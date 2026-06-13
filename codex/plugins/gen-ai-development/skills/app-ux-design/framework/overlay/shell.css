@@ -1,0 +1,402 @@
+/* Shell page styles. Keeps the chrome neutral so the previewed app stands out. */
+
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; height: 100%; }
+body {
+  font: 13px/1.5 -apple-system, "SF Pro Text", system-ui, sans-serif;
+  color: #0F172A;
+  background: #F4F5F7;
+  -webkit-font-smoothing: antialiased;
+}
+
+#ued-shell {
+  position: relative;
+  height: 100vh;
+  overflow: hidden;
+}
+
+/* Stage owns the full viewport — no persistent top chrome, so "web" previews
+   get the entire height. When inspecting, content shifts left to clear the
+   floating panel (no padding transition, so device sizing reads the final box). */
+.ued-stage {
+  position: absolute; inset: 0;
+  display: flex; align-items: center; justify-content: center;
+  background: linear-gradient(180deg, #F8FAFC, #EDEEF1);
+  overflow: auto;
+  padding: 24px;
+}
+/* Web = full-bleed: the app fills the entire stage (no device frame padding). */
+#ued-shell[data-platform="web"] .ued-stage { padding: 0; }
+/* Inspecting shifts content left to clear the floating panel (any platform). */
+#ued-shell[data-inspect="on"] .ued-stage { padding-right: 336px; }
+/* Hide the Device picker in web mode — there's no device, it just fills. */
+#ued-shell[data-platform="web"] #ued-dock-device { display: none; }
+
+/* Controls — reused inside the floating dock popover. */
+.ued-platform-group {
+  display: inline-flex; width: 100%; background: #F1F5F9; border-radius: 8px; padding: 2px;
+}
+.ued-pill {
+  flex: 1; border: 0; background: transparent; padding: 5px 8px;
+  font-size: 12px; color: #475569; border-radius: 6px; cursor: pointer; font-family: inherit;
+}
+.ued-pill.is-active { background: #fff; color: #0F172A; box-shadow: 0 1px 2px rgba(15,23,42,0.08); }
+.ued-select {
+  width: 100%; height: 30px; padding: 0 8px; border: 1px solid #E5E7EB; border-radius: 6px;
+  background: #fff; color: #0F172A; font-size: 12px;
+}
+.ued-btn, .ued-btn:link, .ued-btn:visited {
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+  height: 30px; padding: 0 10px;
+  background: #fff; color: #0F172A; border: 1px solid #E5E7EB; border-radius: 6px;
+  font-size: 12px; cursor: pointer; text-decoration: none; font-family: inherit;
+}
+.ued-btn:hover { background: #F8FAFC; }
+.ued-btn.is-active { background: #3B82F6; color: #fff; border-color: #3B82F6; }
+.ued-icon-btn {
+  width: 24px; height: 24px; border: 0; background: transparent;
+  color: #64748B; cursor: pointer; font-size: 18px; line-height: 1;
+}
+/* Sizer = the scaled on-screen footprint the stage centers. The frame inside is
+   the TRUE device size, transform-scaled to fill it. */
+.ued-frame-sizer {
+  position: relative;
+  transition: width 200ms ease, height 200ms ease;
+}
+
+/* Device frame — flex column: top chrome (status bar / tab bar / title bar) ·
+   app iframe · bottom chrome (home indicator). Rendered at true device px and
+   scaled via transform (origin top-left) so the app lays out at real width. */
+.ued-device-frame {
+  position: absolute; top: 0; left: 0;
+  transform-origin: top left;
+  display: flex; flex-direction: column;
+  overflow: hidden;
+  background: #0F172A;
+  border-radius: var(--ued-device-radius, 12px);
+  box-shadow:
+    0 1px 0 rgba(255,255,255,0.06) inset,
+    0 20px 50px -20px rgba(15,23,42,0.4),
+    0 8px 16px -8px rgba(15,23,42,0.2);
+  transition: transform 200ms ease, border-radius 200ms ease;
+}
+#ued-app {
+  display: block;
+  flex: 1; min-height: 0;
+  width: 100%;
+  border: 0;
+  background: #fff;
+}
+.ued-chrome { flex: none; width: 100%; height: 0; overflow: hidden; }
+
+/* Web: full-bleed — no frame chrome, fills the whole stage like a real browser tab. */
+#ued-shell[data-platform="web"] .ued-device-frame {
+  background: transparent; border-radius: 0; box-shadow: none;
+}
+
+/* ── Mobile status bar (top) + home indicator (bottom) ── */
+.ued-device-frame[data-chrome="mobile"] .ued-chrome-top {
+  height: 44px; background: #fff; color: #0F172A;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 22px; font-size: 13px; font-weight: 600; position: relative;
+}
+.ued-device-frame[data-chrome="mobile"] .ued-chrome-bottom {
+  height: 22px; background: #fff; position: relative;
+}
+.ued-device-frame[data-chrome="mobile"] .ued-chrome-bottom::after {
+  content: ""; position: absolute; left: 50%; bottom: 7px; transform: translateX(-50%);
+  width: 132px; height: 5px; border-radius: 3px; background: #0F172A; opacity: 0.85;
+}
+.ued-device-frame[data-chrome="mobile"][data-notch="home-button"] .ued-chrome-bottom { height: 0; }
+/* notch decorations, centered in the status bar */
+.ued-device-frame[data-chrome="mobile"][data-notch="dynamic-island"] .ued-chrome-top::after {
+  content: ""; position: absolute; left: 50%; top: 8px; transform: translateX(-50%);
+  width: 86px; height: 26px; background: #000; border-radius: 14px;
+}
+.ued-device-frame[data-chrome="mobile"][data-notch="punch-hole"] .ued-chrome-top::after {
+  content: ""; position: absolute; left: 50%; top: 9px; transform: translateX(-50%);
+  width: 11px; height: 11px; background: #000; border-radius: 50%;
+}
+
+/* ── Pad status bar (slimmer, no notch) ── */
+.ued-device-frame[data-chrome="pad"] .ued-chrome-top {
+  height: 28px; background: #fff; color: #0F172A;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 18px; font-size: 12px; font-weight: 500;
+}
+
+/* status bar content (time left, signal/wifi/battery right) */
+.ued-sb-time { font-variant-numeric: tabular-nums; letter-spacing: 0.01em; }
+.ued-sb-icons { display: inline-flex; align-items: center; gap: 6px; }
+.ued-sb-icons svg { display: block; }
+
+/* ── Browser tab bar (desktop FHD / generic) ── */
+.ued-device-frame[data-chrome="browser"] .ued-chrome-top {
+  height: 38px; background: linear-gradient(180deg, #F8FAFC, #EFF1F5);
+  border-bottom: 1px solid #E5E7EB;
+  display: flex; align-items: center; gap: 6px; padding: 0 12px;
+}
+.ued-device-frame[data-chrome="browser"] .ued-chrome-top::before {
+  content: ""; width: 10px; height: 10px; border-radius: 50%;
+  background: #FF5F57; box-shadow: 16px 0 0 #FEBC2E, 32px 0 0 #28C840;
+}
+
+/* ── macOS window title bar (MacBook) ── */
+.ued-device-frame[data-chrome="macos"] .ued-chrome-top {
+  height: 28px; background: #F2F2F2; border-bottom: 1px solid #E5E5E5;
+  display: flex; align-items: center; gap: 8px; padding: 0 12px;
+}
+.ued-device-frame[data-chrome="macos"] .ued-chrome-top::before {
+  content: ""; width: 12px; height: 12px; border-radius: 50%;
+  background: #FF5F57; box-shadow: 20px 0 0 #FEBC2E, 40px 0 0 #28C840;
+}
+
+/* Inspect panel — floating overlay card on the right, slides in when inspecting. */
+.ued-inspect-panel {
+  position: fixed; top: 12px; right: 12px; bottom: 12px;
+  width: 312px; z-index: 2147483000;
+  background: #fff;
+  border: 1px solid #E5E7EB; border-radius: 12px;
+  display: flex; flex-direction: column;
+  overflow: hidden;
+  box-shadow: 0 12px 32px -8px rgba(15,23,42,0.28), 0 4px 12px -4px rgba(15,23,42,0.16);
+  transform: translateX(calc(100% + 16px)); opacity: 0; pointer-events: none;
+  transition: transform 220ms cubic-bezier(.22,.61,.36,1), opacity 180ms ease;
+}
+#ued-shell[data-inspect="on"] .ued-inspect-panel {
+  transform: none; opacity: 1; pointer-events: auto;
+}
+.ued-panel-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 10px 12px;
+  border-bottom: 1px solid #E5E7EB;
+}
+.ued-panel-title { font-weight: 600; font-size: 13px; color: #0F172A; }
+
+/* Persistent menubar — global actions like Undo. Sits between header and body. */
+.ued-panel-menubar {
+  display: flex; align-items: center; gap: 4px;
+  padding: 6px 10px;
+  border-bottom: 1px solid #E5E7EB;
+  background: #FAFBFC;
+  min-height: 36px;
+}
+.ued-menu-btn {
+  display: inline-flex; align-items: center; gap: 6px;
+  height: 24px; padding: 0 8px;
+  background: transparent; border: 0; border-radius: 4px;
+  font-size: 11px; color: #475569; cursor: pointer;
+  font-family: inherit;
+}
+.ued-menu-btn:hover:not(:disabled) { background: #EEF2F6; color: #0F172A; }
+.ued-menu-btn:disabled { color: #CBD5E1; cursor: not-allowed; }
+.ued-menu-kbd {
+  font-size: 10px; color: #94A3B8; font-family: ui-monospace, monospace;
+}
+.ued-menu-badge {
+  display: inline-block; min-width: 16px; padding: 0 4px;
+  font-size: 10px; line-height: 14px; text-align: center;
+  background: #E2E8F0; color: #475569; border-radius: 7px;
+}
+
+.ued-panel-body { flex: 1; overflow: auto; padding: 12px; }
+.ued-panel-hint { color: #64748B; font-size: 12px; margin: 0; }
+
+.ued-target {
+  font-size: 11px; color: #475569;
+  background: #F8FAFC; border: 1px solid #E5E7EB; border-radius: 6px;
+  padding: 8px; margin-bottom: 12px;
+  word-break: break-all;
+}
+.ued-target b { color: #0F172A; font-weight: 600; }
+
+.ued-field { margin-bottom: 12px; }
+.ued-field label {
+  display: block; font-size: 11px; color: #64748B;
+  text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 4px;
+}
+.ued-field input, .ued-field textarea {
+  width: 100%; padding: 6px 8px; font-size: 12px; border-radius: 6px;
+  border: 1px solid #E5E7EB; background: #fff; color: #0F172A;
+  font-family: inherit;
+}
+.ued-field textarea { min-height: 60px; resize: vertical; }
+.ued-row { display: flex; gap: 6px; align-items: center; }
+.ued-row .ued-btn { flex: 1; justify-content: center; }
+.ued-save-status {
+  flex: 1; text-align: right;
+  font-size: 11px; color: #94A3B8;
+  font-variant-numeric: tabular-nums;
+}
+.ued-save-status[data-state="saved"] { color: #16A34A; }
+.ued-save-status[data-state="saved"]::before {
+  content: "✓"; margin-right: 4px; font-weight: 700;
+}
+.ued-btn-primary {
+  background: #3B82F6; color: #fff; border: 0; border-radius: 6px;
+  padding: 7px 12px; font-size: 12px; cursor: pointer;
+  font-weight: 500;
+}
+.ued-btn-primary:disabled { background: #94A3B8; cursor: not-allowed; }
+
+/* Figma-style className editor — structured controls per Tailwind slot */
+.ued-classpanel {
+  display: flex; flex-direction: column; gap: 6px;
+  background: #FAFBFC; border: 1px solid #E5E7EB; border-radius: 6px;
+  padding: 8px;
+}
+.ued-prop {
+  display: grid;
+  grid-template-columns: 52px 1fr;
+  align-items: center;
+  gap: 6px;
+  min-height: 22px;
+}
+.ued-prop-name {
+  font-size: 10px; color: #94A3B8;
+  text-transform: uppercase; letter-spacing: 0.04em;
+  font-weight: 500;
+}
+.ued-prop-controls { display: flex; flex-wrap: wrap; gap: 3px; align-items: center; }
+
+/* Color swatches */
+.ued-swatches { gap: 3px; }
+.ued-sw {
+  width: 18px; height: 18px;
+  border: 1px solid rgba(15,23,42,0.10);
+  border-radius: 3px; cursor: pointer; padding: 0;
+  background: #fff;
+  transition: transform 80ms ease, box-shadow 80ms ease;
+}
+.ued-sw:hover { transform: scale(1.12); }
+.ued-sw.is-active {
+  box-shadow: 0 0 0 2px #3B82F6, 0 0 0 3px #fff inset;
+  border-color: #3B82F6;
+}
+.ued-sw-none {
+  background: linear-gradient(135deg, transparent 47%, #CBD5E1 47%, #CBD5E1 53%, transparent 53%) #fff;
+}
+
+/* Pill set (size / weight / radius / display) */
+.ued-pillset { gap: 2px; }
+.ued-ps {
+  height: 22px; min-width: 22px; padding: 0 6px;
+  border: 1px solid #E2E8F0; background: #fff;
+  font-size: 10px; font-weight: 500; color: #475569;
+  border-radius: 4px; cursor: pointer;
+  font-family: inherit;
+}
+.ued-ps:hover { background: #F1F5F9; color: #0F172A; }
+.ued-ps.is-active {
+  background: #3B82F6; color: #fff; border-color: #3B82F6;
+}
+.ued-ps-none { color: #94A3B8; }
+
+/* Raw classes — chips + add input */
+.ued-prop-raw { grid-template-columns: 52px 1fr; align-items: start; }
+.ued-raw-pills {
+  display: flex; flex-wrap: wrap; gap: 3px; margin-bottom: 4px;
+}
+.ued-raw-pill {
+  display: inline-flex; align-items: center; gap: 4px;
+  height: 20px; padding: 0 4px 0 6px;
+  background: #EEF2F6; border-radius: 3px;
+  font-family: ui-monospace, "SF Mono", monospace;
+  font-size: 10px; color: #334155;
+}
+.ued-raw-x {
+  width: 14px; height: 14px; padding: 0;
+  border: 0; background: transparent;
+  color: #94A3B8; cursor: pointer;
+  font-size: 13px; line-height: 1;
+}
+.ued-raw-x:hover { color: #DC2626; }
+.ued-raw-empty {
+  font-size: 10px; color: #CBD5E1;
+}
+.ued-raw-input {
+  width: 100%; height: 24px;
+  border: 1px dashed #CBD5E1; background: #fff;
+  border-radius: 4px;
+  padding: 0 8px;
+  font-family: ui-monospace, "SF Mono", monospace;
+  font-size: 10px; color: #334155;
+}
+.ued-raw-input:focus {
+  outline: none; border-color: #3B82F6; border-style: solid;
+}
+
+.ued-event-log {
+  margin-top: 16px; font-size: 11px; color: #64748B;
+}
+.ued-event-log h4 {
+  margin: 0 0 6px; font-size: 11px; font-weight: 600;
+  text-transform: uppercase; letter-spacing: 0.04em; color: #475569;
+}
+.ued-event-log ol { padding-left: 18px; margin: 0; }
+.ued-event-log li { margin-bottom: 4px; }
+
+/* ============================================================
+ * Floating control dock (bottom-right, Next.js-devtools style)
+ * ============================================================ */
+.ued-dock {
+  position: fixed; right: 16px; bottom: 16px; z-index: 2147483001;
+  display: flex; flex-direction: column; align-items: flex-end; gap: 10px;
+}
+.ued-dock-ball {
+  width: 44px; height: 44px; border-radius: 50%; align-self: flex-end;
+  border: 1px solid rgba(15,23,42,0.08);
+  background: #0F172A; color: #fff; cursor: pointer;
+  display: inline-flex; align-items: center; justify-content: center;
+  box-shadow: 0 8px 20px -6px rgba(15,23,42,0.45), 0 2px 6px -2px rgba(15,23,42,0.3);
+  transition: transform 140ms ease, background 140ms ease, box-shadow 140ms ease;
+}
+.ued-dock-ball:hover { transform: translateY(-1px) scale(1.04); }
+.ued-dock[data-open="true"] .ued-dock-ball { background: #3B82F6; }
+.ued-dock[data-open="true"] .ued-dock-ball .ued-dock-ball-icon { transform: rotate(90deg); }
+.ued-dock-ball-icon { transition: transform 180ms ease; }
+#ued-shell[data-inspect="on"] .ued-dock-ball {
+  box-shadow: 0 0 0 3px rgba(59,130,246,0.35), 0 8px 20px -6px rgba(15,23,42,0.45);
+}
+
+.ued-dock-popover {
+  width: 248px;
+  background: #fff; border: 1px solid #E5E7EB; border-radius: 12px;
+  box-shadow: 0 16px 40px -10px rgba(15,23,42,0.32), 0 6px 16px -6px rgba(15,23,42,0.18);
+  padding: 12px; display: flex; flex-direction: column; gap: 12px;
+  transform-origin: bottom right;
+  transform: translateY(8px) scale(0.96); opacity: 0; pointer-events: none;
+  transition: transform 160ms cubic-bezier(.22,.61,.36,1), opacity 140ms ease;
+}
+.ued-dock[data-open="true"] .ued-dock-popover { transform: none; opacity: 1; pointer-events: auto; }
+.ued-dock-section { display: flex; flex-direction: column; gap: 6px; }
+.ued-dock-label {
+  font-size: 10px; font-weight: 600; text-transform: uppercase;
+  letter-spacing: 0.05em; color: #94A3B8;
+}
+.ued-dock-actions {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 8px;
+  padding-top: 10px; border-top: 1px solid #F1F5F9;
+}
+
+/* Commit-to-source action — spans both columns below Inspect/Reload. */
+.ued-commit-btn {
+  grid-column: 1 / -1; position: relative;
+  background: #0F172A; color: #fff; border-color: #0F172A;
+}
+.ued-commit-btn:hover { background: #1E293B; }
+.ued-commit-btn[data-state="busy"] { background: #475569; border-color: #475569; cursor: progress; }
+.ued-commit-btn[data-state="done"] { background: #16A34A; border-color: #16A34A; }
+.ued-commit-btn[data-state="error"] { background: #DC2626; border-color: #DC2626; }
+.ued-commit-btn:disabled { opacity: 0.55; cursor: default; }
+.ued-commit-badge {
+  display: inline-flex; align-items: center; justify-content: center;
+  min-width: 16px; height: 16px; padding: 0 4px; margin-left: 2px;
+  border-radius: 999px; background: #F59E0B; color: #fff;
+  font-size: 10px; font-weight: 700; line-height: 1;
+}
+.ued-commit-hint {
+  grid-column: 1 / -1; margin-top: 2px;
+  font-size: 10.5px; line-height: 1.45; color: #64748B;
+}
+.ued-commit-hint[data-state="error"] { color: #DC2626; }

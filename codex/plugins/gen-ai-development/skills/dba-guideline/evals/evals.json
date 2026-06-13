@@ -1,0 +1,26 @@
+{
+  "skill_name": "dba-guideline",
+  "evals": [
+    {
+      "id": 0,
+      "name": "mysql-new-table-design",
+      "prompt": "我们要做一个优惠券功能，用户领券、核销。帮我设计 MySQL 的优惠券表 coupon 和用户领券记录表 user_coupon，给出建表 SQL。优惠券有面额、最低使用门槛、有效期、状态。",
+      "expected_output": "MySQL CREATE TABLE statements that follow our rules: PK named id, every table/column has COMMENT, every column NOT NULL with an explicit non-NULL DEFAULT (including datetime — never DEFAULT NULL), money fields use DECIMAL (not float/double), mandatory columns created_time/updated_time/is_deleted, indexes named idx_/uniq_ (uk_ prefix not accepted), InnoDB + utf8mb4, no enum/set, ≤5 indexes.",
+      "files": []
+    },
+    {
+      "id": 1,
+      "name": "postgres-migration",
+      "prompt": "我们用的是 PostgreSQL。现在线上有一张几千万行的大表 articles，我需要加一个 view_count 字段记录阅读量，再给 (author_id, created_time) 加个索引方便按作者查最新文章。帮我写迁移 SQL。",
+      "expected_output": "PostgreSQL migration that adds view_count with a constant DEFAULT + NOT NULL (metadata-only on PG11+, avoids full rewrite/long lock), builds the index with CREATE INDEX CONCURRENTLY (avoids blocking writes on a large table), uses PG-idiomatic naming/suffix index name, and warns about the large-table implications.",
+      "files": []
+    },
+    {
+      "id": 2,
+      "name": "review-bad-sql",
+      "prompt": "帮我 review 下这几条要上线的 MySQL SQL 有没有问题：\n1) SELECT * FROM orders WHERE user_id = 123;\n2) UPDATE orders SET status = 2;\n3) ALTER TABLE orders ADD COLUMN remark VARCHAR(500);  -- orders 表大概有 800 万行\n4) INSERT INTO orders VALUES (1, 123, 99.9, 0);",
+      "expected_output": "A findings list flagging: (1) SELECT * banned, list columns; (2) UPDATE with no WHERE will rewrite the whole table — MUST add WHERE; (3) 800万行大表直接 ALTER 应走 gh-ost 在线变更(>100MB), and one-DDL-per-ticket; (4) INSERT must list columns explicitly. Severity-tagged, with concrete fixes and corrected statements.",
+      "files": []
+    }
+  ]
+}

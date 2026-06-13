@@ -1,0 +1,72 @@
+/* tokens.css — the single source of theme truth. The agent hand-edits this file
+   in the "设计方案" step to match the design system produced by the ui-ux-pro-max
+   skill (palette / typography / effects from design-system/MASTER.md). It is NOT
+   generated — edit it directly; Vite HMR pushes changes to the running app.
+   Defaults below are a neutral light theme so a fresh scaffold renders cleanly.
+   Per-locale font stacks are split via :lang() so CJK content renders with appropriate glyphs. */
+
+:root {
+  /* ─── Palette (replace per Phase-2 decision) ─── */
+  --ued-background: #FAFAFA;
+  --ued-surface: #FFFFFF;
+  --ued-ink: #0A0A0A;
+  --ued-muted: #525252;
+  --ued-border: #E5E5E5;
+  --ued-accent: #3B82F6;
+  --ued-danger: #DC2626;
+  --ued-success: #16A34A;
+
+  /* ─── Typography per locale ─── */
+  /* en (Latin script) */
+  --ued-font-en-heading: "Inter";
+  --ued-font-en-body:    "Inter";
+  --ued-font-en-fallback: system-ui, -apple-system, "SF Pro Text", sans-serif;
+
+  /* zh-Hans (Simplified Chinese) */
+  --ued-font-zh-Hans-heading: "Noto Sans SC";
+  --ued-font-zh-Hans-body:    "Noto Sans SC";
+  --ued-font-zh-Hans-fallback: "PingFang SC", "Microsoft YaHei", "Hiragino Sans GB", sans-serif;
+
+  /* Mono (shared, no locale split) */
+  --ued-font-mono: "JetBrains Mono", ui-monospace, "SF Mono", monospace;
+
+  /* Active stacks — :lang() rules below override these to switch per element */
+  --ued-font-heading: var(--ued-font-en-heading), var(--ued-font-en-fallback);
+  --ued-font-body:    var(--ued-font-en-body),    var(--ued-font-en-fallback);
+
+  /* ─── Visual style (replace per Phase-2 decision) ─── */
+  --ued-radius: 6px;
+  --ued-shadow: none;
+  --ued-border-width: 1px;
+  --ued-density: 16px;
+  --ued-line-height: 1.5;
+}
+
+/* ─── Per-locale font switching via :lang() ───
+   Any element with lang="zh-Hans" (or descendant of <html lang="zh-Hans">) picks up
+   the Chinese stack automatically. CJK gets a taller line-height. */
+
+:lang(en) {
+  --ued-font-heading: var(--ued-font-en-heading), var(--ued-font-en-fallback);
+  --ued-font-body:    var(--ued-font-en-body),    var(--ued-font-en-fallback);
+  --ued-line-height: 1.5;
+}
+
+:lang(zh-Hans) {
+  --ued-font-heading: var(--ued-font-zh-Hans-heading), var(--ued-font-en-heading), var(--ued-font-zh-Hans-fallback);
+  --ued-font-body:    var(--ued-font-zh-Hans-body),    var(--ued-font-en-body),    var(--ued-font-zh-Hans-fallback);
+  --ued-line-height: 1.7;
+}
+
+/* Optional dark scheme overrides — uncomment / edit per decision */
+/*
+@media (prefers-color-scheme: dark) {
+  :root {
+    --ued-background: #0A0A0A;
+    --ued-surface: #171717;
+    --ued-ink: #FAFAFA;
+    --ued-muted: #A3A3A3;
+    --ued-border: #262626;
+  }
+}
+*/

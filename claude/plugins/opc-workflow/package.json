@@ -1,0 +1,28 @@
+{
+  "name": "@excalivibe/opc-workflow",
+  "version": "1.1.0",
+  "description": "一人公司（One Person Company）工作流套件 —— 面向非研发场景（内容 / 运营等多顶帽子）的能力位，当前暂无技能。",
+  "type": "module",
+  "license": "UNLICENSED",
+  "engines": {
+    "node": ">=22"
+  },
+  "files": [
+    ".claude-plugin/",
+    "commands/",
+    "skills/",
+    "README.md",
+    "!skills/*-workspace",
+    "!skills/*-workspace/**",
+    "!**/__pycache__",
+    "!**/__pycache__/**",
+    "!**/.venv",
+    "!**/.venv/**",
+    "!**/.pytest_cache",
+    "!**/.pytest_cache/**",
+    "!**/*.pyc"
+  ],
+  "scripts": {
+    "prepublishOnly": "jq empty .claude-plugin/plugin.json"
+  }
+}

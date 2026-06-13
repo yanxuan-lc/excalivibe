@@ -1,0 +1,26 @@
+{
+  "skill_name": "tdd",
+  "evals": [
+    {
+      "id": 0,
+      "name": "ts-feature-test-first",
+      "prompt": "用 TDD 的方式帮我在这个 TypeScript 项目里实现一个 parseDuration 工具函数：把 \"1h30m\"、\"45s\"、\"2d\" 这类字符串解析成毫秒数，非法输入要报错。",
+      "expected_output": "Follows the workflow: a planning pause listing the behaviors to test (valid units, combinations, invalid input) and getting approval BEFORE writing code; then a tracer bullet (one test made to pass end-to-end, setting up Vitest if absent); then a strict red-green-refactor loop — one test at a time, never batch-writing all tests upfront, minimal code per GREEN, full suite run after every change; ends with the coverage gate (>= 80% line coverage) and a completion report.",
+      "files": []
+    },
+    {
+      "id": 1,
+      "name": "go-bugfix-regression-first",
+      "prompt": "我们 Go 服务里 SplitTags(\"a,,b\") 会返回 [\"a\",\"\",\"b\"]，空字符串不应该出现。先写个测试复现这个 bug 再修。",
+      "expected_output": "Writes a failing table-driven Go test that reproduces the bug FIRST and runs it to confirm it fails (RED), then makes the minimal fix to pass (GREEN), then re-runs the full test suite — not just the new test. Does not refactor while RED, and does not change the test to match the buggy behavior.",
+      "files": []
+    },
+    {
+      "id": 2,
+      "name": "plain-js-routing",
+      "prompt": "这是个纯 JavaScript 项目（没有 TypeScript），我想给 src/utils/slugify.js 用 TDD 补一个完整实现。该用什么测试框架？带我走一遍。",
+      "expected_output": "Routes plain JS to the TypeScript toolchain guide (Vitest, same runner and idioms, minus type-level advice) rather than claiming JS is unsupported or inventing a different stack. Then runs the same workflow: plan + pause, tracer bullet (Vitest setup if needed), one-test-at-a-time red-green-refactor, coverage gate >= 80%.",
+      "files": []
+    }
+  ]
+}

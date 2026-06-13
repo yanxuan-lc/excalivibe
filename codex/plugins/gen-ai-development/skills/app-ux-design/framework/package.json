@@ -1,0 +1,19 @@
+{
+  "name": "app-ux-framework",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Vite plugin for the app-ux-design skill: device-frame preview shell + DevTools-style inspect overlay that logs element edits for the agent to replay onto source.",
+  "type": "module",
+  "main": "./src/index.mjs",
+  "exports": {
+    ".": "./src/index.mjs"
+  },
+  "files": [
+    "src",
+    "overlay",
+    "README.md"
+  ],
+  "peerDependencies": {
+    "vite": ">=5"
+  }
+}

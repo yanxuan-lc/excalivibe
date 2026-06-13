@@ -1,0 +1,25 @@
+{
+  "version": 1,
+  "mobile": [
+    { "id": "iphone-16",        "name": "iPhone 16",          "w": 393, "h": 852,  "dpr": 3, "shellRadius": 56, "notch": "dynamic-island" },
+    { "id": "iphone-16-pro-max","name": "iPhone 16 Pro Max",  "w": 440, "h": 956,  "dpr": 3, "shellRadius": 60, "notch": "dynamic-island" },
+    { "id": "iphone-se",        "name": "iPhone SE",          "w": 375, "h": 667,  "dpr": 2, "shellRadius": 28, "notch": "home-button" },
+    { "id": "pixel-9",          "name": "Pixel 9",            "w": 412, "h": 915,  "dpr": 3, "shellRadius": 44, "notch": "punch-hole" }
+  ],
+  "pad": [
+    { "id": "ipad-pro-11",   "name": "iPad Pro 11\"",  "w": 834,  "h": 1194, "dpr": 2, "shellRadius": 24, "notch": "none" },
+    { "id": "ipad-mini",     "name": "iPad mini",      "w": 744,  "h": 1133, "dpr": 2, "shellRadius": 24, "notch": "none" },
+    { "id": "ipad-pro-13",   "name": "iPad Pro 13\"",  "w": 1024, "h": 1366, "dpr": 2, "shellRadius": 24, "notch": "none" }
+  ],
+  "desktop": [
+    { "id": "mbp-14",     "name": "MacBook Pro 14\"",  "w": 1512, "h": 982,  "dpr": 2, "chrome": "macos" },
+    { "id": "mbp-16",     "name": "MacBook Pro 16\"",  "w": 1728, "h": 1117, "dpr": 2, "chrome": "macos" },
+    { "id": "desktop-fhd","name": "Desktop FHD",       "w": 1920, "h": 1080, "dpr": 1, "chrome": "generic" }
+  ],
+  "web": [
+    { "id": "web-1440",    "name": "Web 1440",        "w": 1440, "h": 900,  "dpr": 1, "chrome": "browser" },
+    { "id": "web-1280",    "name": "Web 1280",        "w": 1280, "h": 800,  "dpr": 1, "chrome": "browser" },
+    { "id": "web-1024",    "name": "Web 1024",        "w": 1024, "h": 768,  "dpr": 1, "chrome": "browser" },
+    { "id": "web-responsive","name": "Responsive",    "w": 0,    "h": 0,    "dpr": 1, "chrome": "browser" }
+  ]
+}

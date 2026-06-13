@@ -1,0 +1,14 @@
+# Let `pnpm install` succeed even though esbuild's build script is gated by
+# pnpm 11's build-approval prompt. esbuild works via its prebuilt platform
+# binary, so the build script isn't actually required — without this, install
+# exits 1 with ERR_PNPM_IGNORED_BUILDS.
+strictDepBuilds: false
+
+# Skip pnpm 11's pre-run dependency re-check before `pnpm <script>`. Without it,
+# `pnpm dev` re-runs the install verification (which would hit the same gate) and
+# the dev server fails to start with a 503. scaffold.mjs already installed deps.
+verifyDepsBeforeRun: false
+
+# Best-effort: allow esbuild's build to run when pnpm honors it.
+onlyBuiltDependencies:
+  - esbuild

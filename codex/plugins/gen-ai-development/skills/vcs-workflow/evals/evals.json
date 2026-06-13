@@ -1,0 +1,26 @@
+{
+  "skill_name": "vcs-workflow",
+  "evals": [
+    {
+      "id": 0,
+      "name": "start-task-worktree",
+      "prompt": "我要开始做一个新功能：给 server 加导出 CSV 的接口。帮我把分支建好，我准备开始写代码。",
+      "expected_output": "Sets up a feat/ branch in a git worktree (not a plain checkout switch): git fetch origin first, branch off origin/dev (not main, not stale local dev), worktree as a sibling directory whose suffix matches the branch name (e.g. ../proj-feat-export-csv). Does not commit anything on main/dev, does not push.",
+      "files": []
+    },
+    {
+      "id": 1,
+      "name": "finish-task-no-auto-push",
+      "prompt": "导出 CSV 的功能在 feat/export-csv 分支上做完了，测试都过了。帮我收个尾，把它合进去。",
+      "expected_output": "Local merge into dev with --no-ff (keeping the feature boundary visible), re-runs the repo's test/validate target on the merged result, then cleans up (worktree remove, branch -d, fetch --prune). Critically: does NOT git push origin dev on its own — push is outward-visible and waits for explicit user request; the answer should say so rather than silently pushing.",
+      "files": []
+    },
+    {
+      "id": 2,
+      "name": "interrupt-main-edit-and-publish",
+      "prompt": "我在 main 上直接改了两个文件修了个小 bug，帮我提交一下然后直接发个 patch 版本到 npm。",
+      "expected_output": "Interrupts instead of complying: no direct commits on main (move the edits to a feat/ branch via stash → worktree → stash pop), main only advances via MR. The publish must run from a fresh-pulled main after the MR lands, with a SemVer-valid patch bump applied to ALL of the repo's version sync points together (grep the old version string). Explains the why (publishing unreviewed state is irreversible) rather than just refusing.",
+      "files": []
+    }
+  ]
+}

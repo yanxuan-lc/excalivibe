@@ -1,0 +1,26 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-marketplace.json",
+  "name": "excalivibe",
+  "description": "Vibe Working 能力套件 —— 汇集生成式 AI 开发（类 OpenSpec 流程、编码 / 数据库规约、交互式 UI-UX 设计、开发子代理）与浏览器自动化等基础设施的 plugin 集合。",
+  "owner": {
+    "name": "ExcaliVibe",
+    "url": "https://github.com/yanxuan-lc/excalivibe"
+  },
+  "plugins": [
+    {
+      "name": "plugin-infra",
+      "description": "通用基础设施 plugin —— Chrome DevTools 浏览器 MCP。",
+      "source": "./plugins/plugin-infra"
+    },
+    {
+      "name": "gen-ai-development",
+      "description": "生成式 AI 开发套件 —— 提供类 OpenSpec 的开发方法、编码规约 / 数据库规约 Skills、交互式 UI/UX 设计（app-ux-design）以及各类开发 Subagent。",
+      "source": "./plugins/gen-ai-development"
+    },
+    {
+      "name": "opc-workflow",
+      "description": "一人公司（One Person Company）工作流套件 —— 面向非研发场景（内容 / 运营等多顶帽子）的能力位，当前暂无技能。",
+      "source": "./plugins/opc-workflow"
+    }
+  ]
+}

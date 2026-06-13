@@ -1,0 +1,31 @@
+{
+  "name": "opc-workflow",
+  "version": "1.1.0",
+  "description": "一人公司（One Person Company）工作流套件 —— 面向非研发场景（内容 / 运营等多顶帽子）的能力位，当前暂无技能。",
+  "author": {
+    "name": "ExcaliVibe Contributors"
+  },
+  "license": "MIT",
+  "keywords": [
+    "one-person-company",
+    "solo",
+    "workflow",
+    "non-engineering",
+    "placeholder",
+    "excalivibe"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "OPC Workflow",
+    "shortDescription": "一人公司工作流套件（当前暂无技能）",
+    "longDescription": "一人公司（One Person Company）工作流套件，面向非研发场景（内容 / 运营等多顶帽子）。当前暂无技能。",
+    "developerName": "ExcaliVibe Contributors",
+    "category": "Productivity",
+    "capabilities": [
+      "Interactive"
+    ],
+    "defaultPrompt": [
+      "看看 opc-workflow 现在提供哪些能力"
+    ]
+  }
+}

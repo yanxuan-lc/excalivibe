@@ -1,0 +1,26 @@
+{
+  "skill_name": "spec-review",
+  "evals": [
+    {
+      "id": 0,
+      "name": "generate-review-doc-from-spec",
+      "prompt": "openspec/changes/add-user-quota/ 的 spec 已经过 arch-review 闭环了，帮我准备给用户做 spec-confirm 确认的人审材料。",
+      "expected_output": "Generates openspec/changes/add-user-quota/REVIEW.md following the template: four contracts in the order 模块设计 → 外部协议 → 数据库设计 → 用例设计, header metadata table with a real spec-hash.sh output (not invented) and date-command timestamp, absent contracts explicitly marked in the overview table, tables/mermaid/DDL-style presentation rather than prose, ending with the pointer table and per-item confirmation checklist. Stays concise (one-screen-scroll scale; key-decision prose ≤1 paragraph per section) — an over-long REVIEW.md that dumps spec-level detail is a fail. Then points the user at the REVIEW.md file path with a short digest in conversation, rather than generating HTML or any other derived view.",
+      "files": []
+    },
+    {
+      "id": 1,
+      "name": "feedback-routes-to-spec-not-review-md",
+      "prompt": "用户看了 REVIEW.md 之后说数据库那节的 quota_limit 字段应该用 BIGINT 不是 INT，帮我改一下 REVIEW.md。",
+      "expected_output": "Refuses to edit REVIEW.md directly despite being asked to. Routes the change into the spec (planner revision of the actual spec artifacts), then regenerates REVIEW.md from the updated spec with a fresh spec-hash stamp. Explains why: REVIEW.md is a one-way derived view; editing it directly creates a second source of truth and the Gate 1 freshness check exists precisely to catch this.",
+      "files": []
+    },
+    {
+      "id": 2,
+      "name": "present-existing-review-md",
+      "prompt": "把 openspec/changes/add-user-quota/REVIEW.md 给我看一下。",
+      "expected_output": "First verifies freshness via scripts/spec-hash.sh against the header stamp, then gives the user the REVIEW.md file path to open in their own markdown viewer plus a short digest in conversation. Does NOT generate HTML, write a bespoke page, or start an HTTP server — REVIEW.md itself is the review carrier.",
+      "files": []
+    }
+  ]
+}

@@ -1,0 +1,46 @@
+@import "tailwindcss";
+
+/* Tailwind v4 inline theme. Semantic tokens map to CSS variables defined in tokens.css. */
+
+@theme {
+  --color-background: var(--ued-background);
+  --color-surface: var(--ued-surface);
+  --color-foreground: var(--ued-ink);
+  --color-muted: var(--ued-muted);
+  --color-border: var(--ued-border);
+  --color-accent: var(--ued-accent);
+  --color-danger: var(--ued-danger);
+  --color-success: var(--ued-success);
+
+  --color-primary: var(--ued-accent);
+  --color-primary-foreground: var(--ued-surface);
+
+  --font-sans: var(--ued-font-body);
+  --font-serif: var(--ued-font-heading);
+  --font-mono: var(--ued-font-mono);
+
+  --radius-sm: calc(var(--ued-radius) - 4px);
+  --radius-md: var(--ued-radius);
+  --radius-lg: calc(var(--ued-radius) + 4px);
+}
+
+@layer base {
+  *, ::before, ::after { box-sizing: border-box; border-color: var(--ued-border); }
+  html, body { margin: 0; }
+  body {
+    background-color: var(--ued-background);
+    color: var(--ued-ink);
+    font-family: var(--ued-font-body);
+    line-height: var(--ued-line-height);
+    -webkit-font-smoothing: antialiased;
+  }
+  h1, h2, h3, h4 { font-family: var(--ued-font-heading); letter-spacing: -0.01em; }
+  code, pre { font-family: var(--ued-font-mono); }
+
+  /* Hide scrollbars while preserving scroll. Prototypes display inside a
+     device frame at /__ued/shell; native scrollbars are off on iOS/Android
+     and leak in only on the Chrome/desktop preview. Hiding them everywhere
+     keeps the prototype reading "mobile-native" regardless of preview host. */
+  * { scrollbar-width: none; }                 /* Firefox */
+  *::-webkit-scrollbar { display: none; }      /* WebKit (Chrome/Safari) */
+}

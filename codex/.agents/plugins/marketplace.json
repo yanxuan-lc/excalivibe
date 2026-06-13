@@ -1,0 +1,44 @@
+{
+  "name": "excalivibe",
+  "interface": {
+    "displayName": "ExcaliVibe"
+  },
+  "plugins": [
+    {
+      "name": "plugin-infra",
+      "source": {
+        "source": "local",
+        "path": "./plugins/plugin-infra"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Developer Tools"
+    },
+    {
+      "name": "gen-ai-development",
+      "source": {
+        "source": "local",
+        "path": "./plugins/gen-ai-development"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Developer Tools"
+    },
+    {
+      "name": "opc-workflow",
+      "source": {
+        "source": "local",
+        "path": "./plugins/opc-workflow"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Productivity"
+    }
+  ]
+}
