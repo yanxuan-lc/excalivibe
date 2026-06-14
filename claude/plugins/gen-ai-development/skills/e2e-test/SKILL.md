@@ -1,6 +1,6 @@
 ---
 name: e2e-test
-description: Execute end-to-end tests against an already-running application and verify the outcome — both the user-visible/API result AND the resulting database writes. Three modes — (1) GUI-driven full-functional suites that drive the real UI, (2) API-only tests that start from an endpoint call, and (3) agent-driven scenario execution for scenarios no suite covers (live browser driving via the graceful-browser skill). Covers Web (Playwright), Flutter on device/emulator (integration_test + flutter drive, ADB), and Tauri desktop (tauri-driver + WebdriverIO), with MySQL/PostgreSQL write verification over an env connection string. Use this skill whenever asked to run e2e / end-to-end / smoke tests, to verify a feature works through its UI or API, to confirm a flow "actually wrote to the database", or before merge to validate a running build. This is end-to-end execution, NOT unit/red-green TDD (use the tdd skill for that).
+description: Execute end-to-end tests against an already-running application and verify the outcome — both the user-visible/API result AND the resulting database writes. Three modes — (1) GUI-driven full-functional suites that drive the real UI, (2) API-only tests that start from an endpoint call, and (3) agent-driven scenario execution for scenarios no suite covers (live browser driving via the graceful-browser skill). Covers Web (Playwright), Flutter on device/emulator (integration_test + flutter drive, ADB), React Native on device/simulator (Detox), and Tauri desktop (tauri-driver + WebdriverIO), with MySQL/PostgreSQL write verification over an env connection string. Use this skill whenever asked to run e2e / end-to-end / smoke tests, to verify a feature works through its UI or API, to confirm a flow "actually wrote to the database", or before merge to validate a running build. This is end-to-end execution, NOT unit/red-green TDD (use the tdd skill for that).
 ---
 
 # End-to-End Testing
@@ -53,6 +53,7 @@ The client stack varies per project, so load only the reference for the stack ac
 |--------|-------|-----------|
 | Web (browser) | Playwright | [references/web-playwright.md](references/web-playwright.md) |
 | Flutter (Android/iOS, real device or emulator) | `integration_test` + `flutter drive`, ADB | [references/flutter-integration-test.md](references/flutter-integration-test.md) |
+| React Native (Android/iOS, emulator or simulator) | Detox (gray-box, Jest runner) | [references/react-native-detox.md](references/react-native-detox.md) |
 | Tauri (desktop) | `tauri-driver` + WebdriverIO | [references/tauri-webdriverio.md](references/tauri-webdriverio.md) |
 
 Don't load all of them — read the one that matches the project. If a project ships its own e2e runner that differs from these defaults, follow the project's runner and use the reference only for the concepts.
@@ -74,7 +75,7 @@ Prefer the project's **existing command** for running the suite over a hand-buil
 ### 3. Confirm preconditions
 Before executing, verify (and report clearly if any fails — do not silently proceed):
 - The app/service under test is **running and reachable** (the skill does not boot it unless the user asks).
-- For GUI: the target is available — a browser for Playwright, a connected device/emulator for Flutter (`adb devices` / `flutter devices`), the built debug binary + a running `tauri-driver` for Tauri.
+- For GUI: the target is available — a browser for Playwright, a connected device/emulator for Flutter (`adb devices` / `flutter devices`), a built debug binary + a booted simulator/emulator for React Native (Detox), the built debug binary + a running `tauri-driver` for Tauri.
 - The database is reachable with the env connection string, and you're pointed at a **test/staging** database — never production.
 
 ### 4. Run the suite
@@ -91,7 +92,7 @@ Distinguish a **product bug** (the app did the wrong thing) from a **test/infra 
 ```
 ## E2E Test Results
 
-- **Mode**: GUI (Web/Flutter/Tauri) / API / both
+- **Mode**: GUI (Web/Flutter/React Native/Tauri) / API / both
 - **Scope**: <what was tested>
 - **Total**: X    Passed: X ✅    Failed: X ❌    Skipped: X ⏭️
 

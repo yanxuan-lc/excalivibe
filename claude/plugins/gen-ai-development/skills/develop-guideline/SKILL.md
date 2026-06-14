@@ -1,6 +1,6 @@
 ---
 name: develop-guideline
-description: Multi-language development guidelines — coding style, naming, types, error handling, and module structure for TypeScript, JavaScript, React, Python, Go, Rust, Swift, Dart, and Flutter. Use this skill whenever writing new code, modifying existing files, adding components or functions, implementing features, fixing bugs, or reviewing code in any supported language. Also use when the user asks about coding conventions, style questions, or how to structure new modules — even if they don't mention "guidelines" explicitly.
+description: Multi-language development guidelines — coding style, naming, types, error handling, and module structure for TypeScript, JavaScript, React, React Native, Python, Go, Rust, Swift, Dart, and Flutter. Use this skill whenever writing new code, modifying existing files, adding components or functions, implementing features, fixing bugs, or reviewing code in any supported language. Also use when the user asks about coding conventions, style questions, or how to structure new modules — even if they don't mention "guidelines" explicitly.
 ---
 
 # Development Guidelines
@@ -23,6 +23,7 @@ Universal principles that apply regardless of language, plus per-language conven
 | All | [references/common/comments.md](references/common/comments.md) | Comment style, doc-comment conventions in any language |
 | TypeScript | [references/typescript/guide.md](references/typescript/guide.md) | Writing or modifying `.ts` files |
 | React | [references/react/guide.md](references/react/guide.md) | Writing or modifying `.tsx` files, React components/hooks |
+| React Native | [references/react-native/guide.md](references/react-native/guide.md) | Writing or modifying React Native screens/components (core components, StyleSheet, platform files, native modules); layered on top of React |
 | JavaScript | [references/javascript/guide.md](references/javascript/guide.md) | Writing or modifying `.js`/`.mjs` files in plain-JS (non-TS) projects |
 | Python | [references/python/guide.md](references/python/guide.md) | Writing or modifying `.py` files |
 | Go | [references/go/guide.md](references/go/guide.md) | Writing or modifying `.go` files |

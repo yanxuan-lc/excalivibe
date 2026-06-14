@@ -1,6 +1,6 @@
 ---
 name: tdd
-description: Test-driven development with a red-green-refactor loop. The workflow is language-agnostic, with toolchain guides for TypeScript, JavaScript, React, Python, Go, Rust, Swift, and Flutter/Dart. Use when the user wants to build features or fix bugs test-first, mentions "red-green-refactor", asks for unit or regression tests around a change, or says "write tests first". Also triggered when the developer agent enters the implementation phase via opsx:apply. This is development-time unit/widget testing — running e2e suites against an already-running app is the e2e-test skill.
+description: Test-driven development with a red-green-refactor loop. The workflow is language-agnostic, with toolchain guides for TypeScript, JavaScript, React, React Native, Python, Go, Rust, Swift, and Flutter/Dart. Use when the user wants to build features or fix bugs test-first, mentions "red-green-refactor", asks for unit or regression tests around a change, or says "write tests first". Also triggered when the developer agent enters the implementation phase via opsx:apply. This is development-time unit/widget testing — running e2e suites against an already-running app is the e2e-test skill.
 ---
 
 # Test-Driven Development
@@ -25,6 +25,7 @@ Tests verify behavior through public interfaces, not implementation details. One
 | Rust | [references/rust/guide.md](references/rust/guide.md) | `cargo test`, `#[cfg(test)]` |
 | Swift | [references/swift/guide.md](references/swift/guide.md) | Swift Testing / XCTest |
 | Flutter / Dart | [references/flutter/guide.md](references/flutter/guide.md) | `flutter test` (unit + widget) / `dart test`, mocktail |
+| React Native | [references/react-native/guide.md](references/react-native/guide.md) | Jest (`react-native` preset) + React Native Testing Library |
 
 ## Common References
 
