@@ -9,9 +9,9 @@ For full-functional tests of a Tauri desktop app. Tauri's official e2e approach 
 `tauri-driver` relies on the OS's WebView WebDriver:
 - **Linux** — `WebKitWebDriver` (ship with `webkit2gtk-driver`).
 - **Windows** — Microsoft Edge Driver (`msedgedriver.exe`), version-matched to the installed WebView2 runtime.
-- **macOS** — **not supported** (WKWebView exposes no WebDriver). On macOS, e2e via tauri-driver is not an option; fall back to API-mode e2e, or run the GUI suite on Linux/Windows (or CI).
+- **macOS** — no native WebDriver (Apple ships none for WKWebView). You cannot drive a macOS-built Tauri app with `tauri-driver` directly. This does **not** mean no e2e on a Mac — see [Running on macOS](#running-on-macos) for the verified Docker-on-Linux recipe and the other options.
 
-If you're on macOS and the request needs Tauri GUI e2e, report this constraint up front rather than failing mid-run.
+If the dev machine is a Mac, decide the macOS strategy up front (Docker-Linux / CI / in-app driver) rather than failing mid-run.
 
 ## Discover before running
 
@@ -57,3 +57,65 @@ If the project's `wdio.conf` already spawns `tauri-driver` (onPrepare/onComplete
 ## Then verify the DB
 
 After the UI flow, query the backend's MySQL/PostgreSQL per `db-verification.md`.
+
+## Running on macOS
+
+Apple ships no WebDriver for WKWebView, so there is no native macOS path. The robust answer is **run the GUI e2e on Linux** — either hosted (CI) or locally in Docker. The Docker recipe below was **verified on Apple Silicon (arm64 macOS, Docker 29, Ubuntu 24.04)**: WDIO v9 → `tauri-driver` → `WebKitWebDriver` → the real `wry`/WebKitGTK webview, reading the actually-rendered DOM headless.
+
+### Option A — Docker (Linux) on the Mac (verified)
+
+A `Dockerfile` mirroring Tauri v2's official Linux dependency set:
+
+```dockerfile
+FROM ubuntu:24.04                     # use the arm64-native image on Apple Silicon — do NOT --platform linux/amd64 (x86 emulation is painfully slow)
+ENV DEBIAN_FRONTEND=noninteractive
+RUN apt-get update && apt-get install -y --no-install-recommends \
+      curl git ca-certificates build-essential pkg-config libssl-dev \
+      libwebkit2gtk-4.1-dev libayatana-appindicator3-dev librsvg2-dev libgtk-3-dev \
+      webkit2gtk-driver xvfb \
+ && rm -rf /var/lib/apt/lists/*
+RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - && apt-get install -y nodejs && rm -rf /var/lib/apt/lists/*
+RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --profile minimal
+ENV PATH="/root/.cargo/bin:${PATH}"
+RUN cargo install tauri-driver --locked
+WORKDIR /app
+```
+
+Build the binary and run the suite as **two steps**, so iterating tests doesn't recompile Rust:
+
+```bash
+docker build -t tauri-e2e -f Dockerfile.e2e .
+
+# 1) compile the Linux debug binary — CARGO_TARGET_DIR on a named volume keeps Linux
+#    artifacts out of the host's macOS target/, and caches them for fast re-runs.
+docker run --rm -v "$PWD":/app -w /app \
+  -e CARGO_TARGET_DIR=/build/target \
+  -v probe_cargo:/root/.cargo/registry -v probe_target:/build/target \
+  tauri-e2e bash -lc "npm install && npm run tauri build -- --debug --no-bundle"
+
+# 2) run headless under xvfb (cheap to repeat)
+docker run --rm -v "$PWD":/app -w /app \
+  -e CARGO_TARGET_DIR=/build/target \
+  -e TAURI_APP_BINARY=/build/target/debug/<app-name> \
+  -e DATABASE_URL='mysql://...@host.docker.internal:3306/testdb' \
+  -v probe_cargo:/root/.cargo/registry -v probe_target:/build/target \
+  tauri-e2e bash -lc "xvfb-run -a npm run test:e2e"
+```
+
+`wdio.conf` points its `tauri:options.application`/`binary` at the `CARGO_TARGET_DIR` path (`/build/target/debug/<app-name>`). For a test DB, prefer composing the app + DB in one docker-compose network; `host.docker.internal` reaches a DB running on the Mac host.
+
+Gotchas confirmed in the verified run:
+- **WDIO v9 must be forced to classic WebDriver** — `tauri-driver`/`wry` don't speak WebDriver BiDi. Set `'wdio:enforceWebDriverClassic': true` in the capability, or v9's BiDi negotiation can hang the session.
+- **`xvfb-run -a`** supplies the virtual display; without it the webview can't open headless.
+- **`libEGL ... DRI3` warnings are benign** — no GPU in the container, software rendering; the run still passes.
+- A static-frontend template (`frontendDist` a built dir) needs **no dev server**; a dev-server template needs it started first.
+
+### Option B — CI on Linux/Windows runners
+
+Same recipe, hosted: install `libwebkit2gtk-4.1-dev` + `libayatana-appindicator3-dev` + `webkit2gtk-driver` + `xvfb`, `cargo install tauri-driver --locked`, build `--debug --no-bundle`, and run the suite under `xvfb-run`. This is Tauri's documented CI path and the most trustworthy place for the acceptance run.
+
+### Option C — true macOS WKWebView (when Mac-native rendering matters)
+
+Linux WebKitGTK is **not** the same engine as macOS WKWebView, so Options A/B validate flows / logic / DB writes but **not** Mac-specific rendering. If shipping a macOS build whose native rendering must be checked, use a community in-app WebDriver plugin that embeds a W3C server inside the debug app and drives WKWebView directly (e.g. `Choochmeque/tauri-plugin-webdriver`, cross-platform). It is community-maintained (verify maturity), debug-build only, and may need the frontend dev server running. Don't substitute Playwright's bundled WebKit for this — it's a different engine from `wry`'s WKWebView and won't exercise real IPC.
+
+> Fidelity rule: a green Linux/Docker e2e is acceptance for behavior and persistence; for a macOS release, add at least one macOS-native smoke (Option C or manual) before declaring the GUI verified on Mac.

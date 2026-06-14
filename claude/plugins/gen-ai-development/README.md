@@ -10,13 +10,13 @@
 
 | Skill | 触发场景 | 内容 |
 |-------|----------|------|
-| `develop-guideline` | 写新代码 / 改文件 / 加组件函数 / 实现特性 / 修 bug / 评审代码 | 多语言编码规约：TS、JS、React、Python、Go、Rust、Swift、Dart、Flutter；含命名 / 错误处理 / 代码组织 / 注释通用篇 |
+| `develop-guideline` | 写新代码 / 改文件 / 加组件函数 / 实现特性 / 修 bug / 评审代码 | 多语言编码规约：TS、JS、React、React Native、Python、Go、Rust、Swift、Dart、Flutter；含命名 / 错误处理 / 代码组织 / 注释通用篇 |
 | `dba-guideline` | 任何数据库相关工作：建表 / 改表 / 迁移 / ORM 模型 / 非平凡查询 / review SQL | MySQL、PostgreSQL 的 DDL/DML/DQL 规约（含内部 SQL 审核红线，强制 / 推荐分级） |
 | `devops-guideline` | 写 / 改项目任务运行器（Makefile / justfile / npm 脚本）、统一多语言或 monorepo 命令入口、加 build/test/lint/fmt 入口、写本地中间件 docker-compose、写服务镜像 Dockerfile、问「怎么跑 X」 | DevOps 规约：单一命令入口、委托原生工具不重写、聚合动词→分域目标、自文档化分组 help、跨工具依赖显式化；docker-compose 只编排本地中间件（非服务、随机端口防冲突）；Dockerfile 多阶段 + 非 root + 国内镜像源。含 Makefile / docker-compose / Dockerfile 实现参考 |
 | `middleware-guideline` | 服务接入平台中间件与监控：接 Nacos / 配置中心、启动读运行时配置、PROFILE 环境选择、配置热更、加健康检查 / `/metrics`、新起服务端骨架 | 中间件接入规约：bootstrap 与业务配置两层分离、`<APP>_PROFILE` 单开关驱动环境隔离、必选中间件 fast-fail 不静默兜底、辅助中间件降级不拖垮服务、密钥只在 bootstrap 层；**服务端必备监控面**：`/healthz` + `/readyz` + Prometheus `/metrics`（业务端口、存活/就绪分离、RED 指标、标签基数纪律，含 Go / Python / Rust / Node.js 接线）。现含 Nacos + 监控参考；OpenObserve 日志规约后续落库 |
 | `docs-guideline` | `openspec archive` 之后沉淀文档，或「整理 / 梳理技术文档」「建 docs 索引」「这块设计记到哪」 | as-built 文档策展：`docs/tech`（事实标准）/ `research` / `ued` 三分类、README-as-Index 两跳可达、权威内容不重复只链接、过期叙事打 STALE 横幅 |
-| `tdd` | TDD / red-green-refactor / 先写测试 / 单元、回归测试，或 `opsx:apply` 实施阶段 | 红绿重构循环 + 各语言测试工具链（TS / React / Python / Go / Rust / Swift / Flutter）+ 覆盖率门槛 |
-| `e2e-test` | 跑端到端 / 冒烟测试，验证功能经 UI 或接口生效、且**确实写库**，合并前验证运行中的构建 | 三种模式：GUI 脚本套件（Web=Playwright / Flutter=integration_test / Tauri=tauri-driver+WDIO）+ API 模式 + **agent 驱动模式**（无套件覆盖的场景经 graceful-browser 实时驱动浏览器执行）；均做 MySQL/PG 写入校验。假定应用已运行。是端到端**执行**，区别于 `tdd` 的单元/红绿 |
+| `tdd` | TDD / red-green-refactor / 先写测试 / 单元、回归测试，或 `opsx:apply` 实施阶段 | 红绿重构循环 + 各语言测试工具链（TS / React / React Native / Python / Go / Rust / Swift / Flutter）+ 覆盖率门槛 |
+| `e2e-test` | 跑端到端 / 冒烟测试，验证功能经 UI 或接口生效、且**确实写库**，合并前验证运行中的构建 | 三种模式：GUI 脚本套件（Web=Playwright / Flutter=integration_test / RN=Detox / Tauri=tauri-driver+WDIO）+ API 模式 + **agent 驱动模式**（无套件覆盖的场景经 graceful-browser 实时驱动浏览器执行）；均做 MySQL/PG 写入校验。假定应用已运行。是端到端**执行**，区别于 `tdd` 的单元/红绿 |
 | `dev-pipeline` | 接到跨模块 / 需调研设计 / 影响面大的开发任务、续作在途的 `openspec/changes/<id>/`、或显式提「走流程」 | **主 Agent 的研发编排规约**：简单 vs 复杂分流决策（单向承诺）、相位图（research → ux → propose → arch-review → spec-confirm → apply ∥ QA → e2e ∥ code-review → merge → archive/docs）、人工检查点（四件套，基于 spec-review 的 REVIEW.md 呈现）、产物门禁表（含产物时效性）、PIPELINE.md 状态落盘（跳步留痕）；含 e2e manifest 契约参考 |
 | `spec-review` | spec 走到 spec-confirm 人审、生成人审文档、用户提「四件套确认」「查看 REVIEW」 | **四件套人审文档规约**：`REVIEW.md` 由 spec **单向派生**（固定顺序：模块 → 协议 → 库表 → 用例；表格 / Mermaid / DDL 优先于散文）；spec-hash 新鲜度戳供 Gate 1 机检；用户直接以 markdown 查看 REVIEW.md（不生成 HTML）；下游 agent 禁读——spec 才是实施输入 |
 | `research-pipeline` | 任何调研 / 对比 / 可行性需求（「调研一下 X」「A 和 B 怎么选」「这方案可行吗」），或 dev-pipeline 的 research 相位展开 | **主 Agent 的调研编排规约**：路由分流 → 苏格拉底澄清（AskUserQuestion）→ 结论确认 → 调研计划（按子任务路由 deep-research / researcher / inline，模型按任务选）→ 并行派发 → 汇总追问与循环 → synthesize 派发落盘 REPORT.md + PROPOSAL.md；含派发 / 结果协议参考。**所有用户交互都在主 Agent**，researcher 是纯执行单元 |
@@ -65,7 +65,7 @@
 `e2e-test` 执行端到端测试，对运行环境有要求——它**不**负责拉起被测应用：
 
 - 被测应用 / 服务已在运行且可达。
-- GUI 模式需对应目标：Playwright 的浏览器（Web）、已连接的设备 / 模拟器（Flutter，`adb devices`）、已构建的 debug 产物 + 运行中的 `tauri-driver`（Tauri）。
+- GUI 模式需对应目标：Playwright 的浏览器（Web）、已连接的设备 / 模拟器（Flutter，`adb devices`）、已构建的 debug 产物 + 已启动的模拟器/真机（React Native，Detox）、已构建的 debug 产物 + 运行中的 `tauri-driver`（Tauri）。
 - **Tauri GUI 端到端在 macOS 不可用**（WKWebView 无 WebDriver）——在 macOS 上需改走 Linux/Windows/CI，或退而用 API 模式。
 - 数据库校验：MySQL/PostgreSQL 的连接信息放环境变量（`DATABASE_URL` 或 `MYSQL_*`/`PG*`），且应指向**测试/预发库，绝不是生产**。
 
@@ -99,7 +99,7 @@ gen-ai-development/
 │   ├── spec-review/             # 四件套人审文档：REVIEW.md 模板 + spec-hash 新鲜度戳（用户直接查看 markdown）
 │   ├── research-pipeline/       # 主 Agent 调研编排：澄清 → 确认 → 计划 → 并行派发 → 汇总循环 → synthesize 落盘（含派发/结果协议）
 │   ├── tdd/                     # 红绿重构 + 各语言测试工具链
-│   ├── e2e-test/                # 端到端执行：GUI(Web/Flutter/Tauri) + API 模式 + 写库校验
+│   ├── e2e-test/                # 端到端执行：GUI(Web/Flutter/RN/Tauri) + API 模式 + 写库校验
 │   ├── research-source-code/    # 调研方法：锁版本读真源码
 │   ├── research-data-source/    # 调研方法：只读探查真实数据源
 │   └── research-api/            # 调研方法：发现 spec + 真实调用验证
