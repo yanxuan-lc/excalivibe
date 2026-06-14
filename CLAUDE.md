@@ -13,7 +13,7 @@ See [AGENTS.md](./AGENTS.md) for project facts shared across agents.（项目简
 - 任何迭代改进，先确认它在 Claude 与 Codex 两侧**走同样的主流程**，再用 Claude 最契合的 primitives 落地实现细节。
 - 改 `claude/` 时，**同步考虑 `codex/` 的对应实现**：两侧要么一起改、保持主流程一致，要么显式说明为何只动一侧。
 - **不要**为了和 Codex 对齐而把 Claude 的能力拉低到折中方案，反之亦然。这是「存异」，不是「将就」。
-- 修改 `codex/` 下的文件时，遵循 Codex 的 manifest 规范（`.codex-plugin/plugin.json` 必含 `interface.capabilities`/`defaultPrompt`，禁写 `hooks` 字段），不要套用 Claude 的结构假设。
+- 修改 `codex/` 下的文件时，遵循 Codex 的 manifest 规范（`.codex-plugin/plugin.json` 必含 `interface.capabilities`/`defaultPrompt`，**不要**在 `.codex-plugin/plugin.json` 里写 `hooks` 字段：`validate_plugin.py` 会拒绝该字段（exit 1）；注意 Codex 运行时本身具备 hooks 能力（`config.toml`/`hooks.json` 途径），但非交互式 exec 下触发未经验证（trust-gated）；v1 无任何 hooks 依赖），不要套用 Claude 的结构假设。
 
 ## Claude 侧能力与 primitives
 
@@ -38,6 +38,7 @@ See [AGENTS.md](./AGENTS.md) for project facts shared across agents.（项目简
 | planner | user (gen-ai-development) | 走 OpenSpec 流程提案新功能 / 大重构（opsx:propose） | 单文件修复 |
 | arch-reviewer | user (gen-ai-development) | 实施前审 OpenSpec 提案/spec 的设计（schema/API/模块边界/验收标准） | 纯逻辑小 spec 可跳过 |
 | developer | user (gen-ai-development) | OpenSpec apply 阶段的 TDD 实施（spec 已就绪） | 缺少 spec 时禁用 |
+| debugger | user (gen-ai-development) | bug/failure/stack-trace 出现时的假设驱动调试会话 | spec 创建、无 bug 背景的功能实现 |
 | quality-assurance | user (gen-ai-development) | 依据 spec 场景编写 e2e 测试代码（与 developer 并行） | 编写产品代码 |
 | code-reviewer | user (gen-ai-development) | 增量 / 全量代码审查 | 一次性脚本 |
 | e2e-runner | user (gen-ai-development) | 合并前 / 大功能完成后执行 e2e 并产出验收报告 | 单测验证 |
