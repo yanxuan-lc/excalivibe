@@ -81,7 +81,11 @@ running at <url>"):**
 5. Hand off: manifest finalized (`status: final`), suite green locally (or red
    with product-bug findings attached), lint clean. Report scenario coverage
    (mapped / agent-driven / non-automatable-needs-waiver) and how to run each
-   suite.
+   suite. **Flag the non-scripted ratio**: `non-scripted = agent-driven +
+   non-automatable`; if it crosses `> 5` scenarios or `≥ 20%` of M, say so
+   explicitly in the handoff so the main agent runs the automation-coverage
+   escalation (dev-pipeline `references/e2e-manifest.md`) before the e2e pass —
+   you cannot ask the user yourself.
 
 ## Hard Guardrails
 

@@ -47,7 +47,9 @@ Rules:
   callback, hardware-in-the-loop). Non-automatable scenarios require a
   **user-approved waiver**: the main agent relays the request, records approval in
   PIPELINE.md (`waived: S5 — <reason>`), and the e2e report marks them
-  `⚠ waived (user-approved)`. The merge gate counts `executed + waived = M`.
+  `⚠ waived (user-approved)`. When the non-scripted set is large, both this waiver
+  and the `manual` alternative are decided in one batch — see **Automation-coverage
+  escalation** below. The merge gate counts `executed + manually-verified + waived = M`.
 - The `Asserts` column declares what the test itself checks (UI / API / DB).
   e2e-runner performs its own database verification regardless — the column exists
   so gaps are visible, not to delegate DB checking.
@@ -75,6 +77,52 @@ Rules:
    (classify product bug / test bug / infra) — never to overturn the result.
    The verdict stays red until developer fixes the product or QA fixes the test.
 ```
+
+## Automation-coverage escalation (human decision before a slow e2e pass)
+
+The scripted carrier is the goal: scenarios that run as **zero-LLM scripts**.
+Everything outside it is **non-scripted** — either *agent-driven* (a browser driven
+live, one multimodal LLM call per step → slow and costly) or *non-automatable*
+(neither script nor agent can perform it). When the non-scripted set is large,
+silently grinding through it wastes wall-clock and tokens — so the **main agent
+gets a human decision before dispatching e2e-runner**.
+
+This is evaluated against the **finalized** manifest — the one QA stamps
+`status: final` at its Phase-2 handoff, never a Phase-1 `status: draft`. A
+non-scripted set that is large merely because QA hasn't finished scripting (still a
+draft) is **not** an escalation — the fix is to finish the scripts, not to ask the
+user.
+
+Over the `M` spec scenarios:
+- `scripted`     = scenarios in the mapping table (zero-LLM)
+- `non-scripted` = `M − scripted` = agent-driven class + non-automatable class
+
+**Threshold**: escalate when `non-scripted > 5` **OR** `non-scripted / M ≥ 20%`.
+Below it the default flow stands — agent-driven scenarios run automatically,
+non-automatable ones still take their per-scenario waiver.
+
+At the escalation the main agent shows, per non-scripted scenario, **why it isn't
+scripted** (the Reason column) and asks the user to choose an outcome. The menu is
+**class-aware** — an agent cannot drive a non-automatable scenario:
+
+| Scenario class | Valid outcomes |
+|----------------|----------------|
+| agent-driven (an agent *can* drive it) | **manual** · **agent-driven (LLM auto)** · **waive** |
+| non-automatable (no agent can drive it) | **manual** · **waive** only |
+
+| Outcome | Meaning | Recorded as | Coverage |
+|---------|---------|-------------|----------|
+| **manual** | user runs it by hand and reports what they checked, **including the DB write where applicable** | `manual: S<n> — <evidence>` in PIPELINE.md; report row `🧑 manually-verified` | counts — but only with stated evidence (no evidence ⇒ not a pass) |
+| **agent-driven (LLM auto)** | approve the slow live-driven run | e2e-runner drives it via graceful-browser | counts as executed |
+| **waive** | accept it unverified | `waived: S<n> — <reason>`; report `⚠ waived (user-approved)` | counted as waived, not executed |
+
+Because subagents cannot ask the user: QA surfaces the non-scripted ratio in its
+handoff, and e2e-runner — if it finds the threshold crossed with **no decisions
+recorded in PIPELINE.md** — reports a `needs-user-decision` blocker for the
+non-scripted set instead of attempting it. Merge-gate accounting then becomes
+`executed + manually-verified + waived = M`. This single checkpoint **subsumes** the
+old standalone non-automatable-waiver step (below-threshold, that per-scenario
+waiver still applies unchanged).
 
 ## Login state for scripted tests (zero-LLM at runtime)
 

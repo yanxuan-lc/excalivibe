@@ -68,13 +68,19 @@ All of the following, checked against files on disk:
 2. **E2E report exists and is green**: `openspec/changes/<id>/e2e-report.md`
    (or the path recorded in PIPELINE.md) shows
    - all executed scenarios passed (interface assertions AND database verification),
-   - scenario coverage **executed + waived = M** — every spec scenario was either
-     executed (script or agent-driven) or carries a **user-approved waiver**. A
-     waiver exists only for genuinely non-automatable scenarios (third-party
-     callback, hardware-in-the-loop): the main agent relays the request to the
-     user, approval is recorded in PIPELINE.md (`waived: S5 — <reason>`), and the
-     report marks the row `⚠ waived (user-approved)`. A scenario that is merely
-     unmapped is NOT waivable — it must be agent-driven,
+   - scenario coverage **executed + manually-verified + waived = M** — every spec
+     scenario was either executed (script or agent-driven), **manually verified by
+     the user** (the user ran it by hand and reported what they checked — including
+     the DB write where applicable; recorded `manual: S<n> — <evidence>` in
+     PIPELINE.md, report row `🧑 manually-verified`), or carries a **user-approved
+     waiver** (`waived: S5 — <reason>`, report row `⚠ waived (user-approved)`, for
+     genuinely non-automatable scenarios — third-party callback, hardware-in-the-loop).
+     Manual-verification and waivers are user decisions taken at the
+     **automation-coverage escalation** (see references/e2e-manifest.md): when the
+     non-scripted set crosses the threshold the main agent asks the user per
+     scenario before the e2e pass. A `manual` row with no stated evidence does NOT
+     count — a pass with no evidence is not a pass. A scenario that is merely
+     unmapped is NOT waivable — it is agent-driven (or escalated),
    - regression: the project's existing e2e suite (if any) also green.
 3. **Unit gate already held**: developer reported tests green, coverage ≥80%,
    lint clean (re-verify only if the fix loop touched code after that report).
