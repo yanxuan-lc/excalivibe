@@ -167,6 +167,8 @@ backfill phases that happened before activation (research, ux).
 ```markdown
 # Pipeline — <change-id>
 
+ultracode: off   （Claude-only 可选；on 时在对应相位行记录被包裹片段的 runId，如 code-review → … (wf_…)）
+
 - [x] research      → docs/research/2026-06-11_10-00-00-topic/
 - [-] ux-design     （跳过：纯后端，无 UI 面）
 - [x] propose       → openspec/changes/<id>/
@@ -208,3 +210,19 @@ The e2e manifest contract between quality-assurance and e2e-runner:
 - **Subagents can't talk to the user**: if a subagent returns questions instead of
   results, relay them to the user verbatim and continue the same agent with the
   answers — never answer on the user's behalf.
+
+## Ultracode Mode (optional, Claude-only)
+
+An optional acceleration: when the user explicitly opts in, the main agent **may** run
+certain deterministic, no-human segments via the Workflow tool (scripted fan-out / loop)
+instead of plain "dispatch in one message". **Off by default** — the default path is the
+unchanged model-driven dispatch, identical to the Codex side, and ultracode never changes
+the canonical phase order, gates, or artifacts (only *how* a marked segment runs).
+
+Before reaching for it, read [references/ultracode-mode.md](references/ultracode-mode.md):
+the opt-in gate (why it is a user-gated **MAY**, not an imperative), the wrap / no-wrap
+boundary rule and per-segment table, the `ultracode:` PIPELINE.md row, and the write-back
++ resume rules.
+- **What may be wrapped, what may not, and why** — the boundary rule, the per-segment
+  allow/deny table, write-back + resume-layer rules, and the dual-end note:
+  [references/ultracode-mode.md](references/ultracode-mode.md).
