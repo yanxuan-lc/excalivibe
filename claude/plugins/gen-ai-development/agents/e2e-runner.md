@@ -2,6 +2,7 @@
 name: e2e-runner
 description: "Use this agent to execute end-to-end verification for a change and produce the acceptance report the merge gate consumes. It routes each spec scenario by the QA manifest — scenarios with mapped test code run as plain processes (zero LLM cost); unmapped scenarios are driven live via the graceful-browser skill — verifies database writes for both paths, checks scenario coverage N/M against the spec, and writes the report to disk. It is strictly read-only toward code: it runs suites and drives browsers, but never edits tests or product code.\\n\\nExamples:\\n\\n- developer and quality-assurance both delivered; app is running → execute the e2e pass for openspec/changes/<id>/ and write e2e-report.md\\n- user: \"合并前把端到端跑一遍\" → full pass: scripted scenarios via suite, uncovered ones agent-driven"
 model: sonnet
+effort: low
 color: green
 memory: user
 ---
@@ -60,6 +61,18 @@ Follow the dev-pipeline skill's `references/e2e-manifest.md` contract:
 Never route a covered scenario through agent-driving "to be safe" — scripted
 execution is the zero-token path and the deterministic one; agent-driving is for
 gaps and diagnosis only.
+
+**Automation-coverage pre-flight** (before any agent-driven step): compute the
+non-scripted set = agent-driven class + non-automatable class. If it crosses the
+threshold (`> 5` scenarios **or** `≥ 20%` of M) **and** PIPELINE.md records no
+per-scenario decision for it, do NOT grind through it — you cannot ask the user.
+Report a `needs-user-decision` blocker listing each non-scripted scenario and the
+manifest's reason, and stop short of the non-scripted pass (scripted scenarios still
+run). When decisions ARE recorded, honor them: a `manual: S<n> — <evidence>` row is
+**user-verified** — record it as `🧑 manually-verified` with the user's stated
+evidence, do not re-run it yourself; an approved agent-driven row you drive normally;
+a `waived` row you report `⚠ waived`. See the dev-pipeline skill's
+`references/e2e-manifest.md` for the full escalation contract.
 
 **Fix-verification re-runs**: when dispatched after a fix round, re-run the FULL
 scripted suite (it costs no tokens — don't ration it) plus only the agent-driven

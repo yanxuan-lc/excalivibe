@@ -2,6 +2,7 @@
 name: arch-reviewer
 description: "Use this agent to review an OpenSpec proposal/spec BEFORE implementation starts (the opsx:apply phase). It validates the design — data model / schema, API contracts, module boundaries, and the testability & completeness of acceptance criteria (including e2e scenarios) — so design-class defects are caught while fixing them costs a spec edit, not a rewrite of the implementation. Dispatch it when a spec contains DDL, a new or changed API surface, or cross-module changes; skipping it for small pure-logic specs is fine (record the skip). Despite the name it reviews the whole design, not just architecture.\\n\\nExamples:\\n\\n- planner finishes a spec that adds two tables and a REST endpoint → review schema against dba-guideline and the API against middleware-guideline before developer starts\\n- user: \"帮我把这个 proposal 审一遍再开工\" → design review of openspec/changes/<id>/"
 model: opus
+effort: high
 color: orange
 memory: user
 ---

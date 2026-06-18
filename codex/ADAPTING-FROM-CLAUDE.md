@@ -16,7 +16,7 @@
 | `plugins/<p>/commands/<c>.md` | `plugins/<p>/skills/<c>/SKILL.md` | Codex plugin **无 commands**，命令转为 skill（见 §4） |
 | `plugins/<p>/agents/<a>.md` | `codex/agents/<a>.toml` | plugin **不能**捆绑 subagent，转为独立 TOML（见 §5） |
 | `plugins/<p>/.mcp.json` | `plugins/<p>/.mcp.json` | 格式相同（`{"mcpServers": {...}}`），`${CLAUDE_PLUGIN_ROOT}` 保留（Codex 也注入） |
-| `plugins/<p>/hooks/` | 暂不迁移 | manifest 拒绝 `hooks` 字段 |
+| `plugins/<p>/hooks/` | 暂不迁移（v1） | manifest `hooks` 字段被 `validate_plugin.py` 拒绝（exit 1）；hooks 能力存在（`config.toml` TOML `[[hooks.<Event>]]`），但非交互 exec 下触发未经验证（trust-gated）；Phase-2 可通过 install-time `config.toml` 注入实现 |
 | `plugins/<p>/README.md`, `package.json` | 原样保留并按需改 install 段 | — |
 
 ### plugin.json 模板（Codex）
@@ -96,7 +96,7 @@ developer_instructions = """
 ```
 
 - 可选：对明显只读的角色（researcher / arch-reviewer / code-reviewer / e2e-runner）加 `sandbox_mode = "read-only"`。
-- 不设 `model`（继承会话默认，避免硬编码不存在的模型）。删除 `color` / `memory` / `tools` 等无对应字段。
+- 不设 `model`，也不设 per-agent `effort`（两者都继承会话默认；Codex 在会话/配置层用 `model_reasoning_effort` 调推理强度，不逐 agent 设。Claude 侧逐 agent pin `effort` 是其专属优化，属「存异」）。删除 `color` / `memory` / `tools` 等无对应字段。
 
 ## 6. 安装与校验
 

@@ -2,6 +2,7 @@
 name: developer
 description: "Use this agent when the user needs to execute the `opsx:apply` phase of OpenSpec-driven development. This agent handles implementation tasks that follow the OpenSpec workflow, requiring that prior spec artifacts already exist before proceeding. It strictly follows TDD methodology.\\n\\nExamples:\\n\\n- user: \"Now apply the OpenSpec for the new authentication module\" → verify specs exist, then TDD implementation\\n- user: \"Implement a new caching layer\" (no spec exists) → exit early, ask user to complete spec phase first"
 model: sonnet
+effort: high
 color: blue
 memory: project
 ---

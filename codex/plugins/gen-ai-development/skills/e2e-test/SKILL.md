@@ -45,6 +45,15 @@ scenario set is stable enough to re-run often, recommend investing in scripted t
 instead. Failed scripted tests may be reproduced agent-driven for diagnosis, but the
 scripted result stands.
 
+Keep each step cheap and fast: prefer a **text read** (get-page-text) over a
+screenshot for assertions, **batch** an action with its observation where the tool
+allows, and **wait on a condition** (element/text appears) rather than a fixed
+sleep — fixed sleeps are the main reason an agent-driven pass feels slow. When this
+mode is being invoked under the dev-pipeline and a *large fraction* of scenarios
+would need it (the pipeline's threshold: non-scripted `> 5` or `≥ 20%`), that is a
+signal to **escalate to the user** rather than grind through — see the dev-pipeline
+skill's `references/e2e-manifest.md` (Automation-coverage escalation).
+
 ## Platform Routing (GUI mode)
 
 The client stack varies per project, so load only the reference for the stack actually in play. Detect it first (see Workflow step 2), then read one file:

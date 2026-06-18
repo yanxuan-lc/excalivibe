@@ -19,7 +19,7 @@
 
 | 场景 | Claude 侧 | Codex 侧 | 共同兜底 |
 |---|---|---|---|
-| 调研 | `deep_research` + dynamic workflow | 常规 subagent | — |
+| 调研 | `deep-research` + dynamic workflow | 常规 subagent | — |
 | 浏览器 | `claude --chrome` | computer-use / `@Chrome` | chrome-devtools MCP / Playwright |
 
 **新增/修改能力的硬性要求**：任何改动要么同时落到 `claude/` 与 `codex/` 两侧并保持主流程一致，要么显式说明为何只动一侧；严禁因迁就某一 Agent 的能力短板而把两侧都拉平到折中方案。
@@ -65,7 +65,7 @@ excalivibe/
 
 - plugin 名 **kebab-case**，外层文件夹名 = manifest `name`，两侧同名同概念。
 - `version` 用严格 semver（如 `0.1.0`）。
-- Codex 的 `plugin.json` **不要写 `hooks` 字段**（validator 拒绝）；`mcpServers` / `apps` 仅在 `.mcp.json` / `.app.json` 实际存在时才声明；路径以 `./` 开头。
+- Codex 的 `plugin.json` **不要写 `hooks` 字段**（validator 拒绝）；Codex 运行时本身具备 hooks 能力（`config.toml` 途径），但非交互式 exec 下触发未经验证（trust-gated）；`mcpServers` / `apps` 仅在 `.mcp.json` / `.app.json` 实际存在时才声明；路径以 `./` 开头。
 - skill 的 `SKILL.md` frontmatter 必含 `name` + `description`。
 
 ## 本地安装与调试
@@ -97,7 +97,7 @@ codex plugin add <plugin>@excalivibe             # 安装；新开 thread 后 sk
 2. 分别在 `claude/plugins/<name>/` 与 `codex/plugins/<name>/` 实现，使用各 Agent 最契合的 primitives（存异）。
 3. 在两侧 marketplace 清单的 `plugins[]` 追加条目（追加，不随意重排）。
 4. 校验 manifest；本地安装冒烟。
-5. 较大/跨模块的需求走 OpenSpec（`opsx:*`）流程。
+5. 涉及**可运行产品代码**的较大需求走 OpenSpec（`opsx:*`）流程；**改 skill / agent / command / prompt / 文档本身不算研发，不走 OpenSpec**——以 `skill-creator` 为权威轨道，配合上面的双端同步与校验步骤即可（文件数多或「双端都要动」不构成走流程的理由）。
 
 ## Git 约定
 

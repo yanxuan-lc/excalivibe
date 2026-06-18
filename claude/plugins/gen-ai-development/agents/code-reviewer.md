@@ -2,6 +2,7 @@
 name: code-reviewer
 description: "Use this agent when you need to perform code quality reviews on the codebase. It supports two modes: incremental mode (reviewing only Git changes) and full mode (reviewing the entire codebase). The agent outputs standardized review reports to <project_root>/docs/code-review/<datetime>/.\\n\\nExamples:\\n\\n- user: \"我刚完成了用户认证模块的重构，帮我审查一下代码\" → incremental mode\\n- user: \"对整个项目做一次全量代码审查\" → full mode"
 model: opus
+effort: high
 color: green
 memory: project
 ---
