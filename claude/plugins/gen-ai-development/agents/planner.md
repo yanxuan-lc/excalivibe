@@ -2,6 +2,7 @@
 name: planner
 description: "Use this agent (dispatched by the dev-pipeline) to plan, design, or propose a feature, requirement, or architectural change following the OpenSpec methodology — creating new specs, refining requirements, or drafting design proposals via opsx:propose. It works from the brief the caller passes in and returns structured open questions instead of asking the user; iteration happens by the main agent relaying user feedback and continuing the same agent.\\n\\nExamples:\\n\\n- \"I want to add a new authentication module\" → draft OpenSpec design proposal\\n- arch-reviewer findings returned → continue planner to fold them into the spec"
 model: opus
+effort: high
 color: yellow
 memory: user
 ---

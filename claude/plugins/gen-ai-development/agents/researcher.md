@@ -2,6 +2,7 @@
 name: researcher
 description: "Use this agent as the EXECUTION UNIT of research work, dispatched by the research-pipeline skill (or directly for a quick scoped lookup). Two modes — investigate: answer ONE scoped sub-question by probing the real thing (research-source-code / research-data-source / research-api / context7 / web search) and return structured findings with provenance, parking user-facing questions instead of blocking; synthesize: merge a set of findings + the alignment digest into docs/research/<datetime>-<topic>/ (REPORT.md + PROPOSAL.md). It never interacts with the user — clarification, confirmation, and follow-ups belong to the main agent's research-pipeline. Broad multi-source web fan-out is NOT its job either (the main agent invokes deep-research directly).\\n\\nExamples:\\n\\n- research-pipeline Step d: \"库 X 的连接池在 v2.3 是否支持自动重连\" → investigate via research-source-code, return findings + SHA-level provenance\\n- research-pipeline Step e: all findings collected → synthesize dispatch writes REPORT.md + PROPOSAL.md"
 model: opus
+effort: medium
 color: purple
 memory: user
 ---

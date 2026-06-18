@@ -12,8 +12,11 @@ Each `*.toml` carries:
 - `sandbox_mode = "read-only"` on the read-only roles (researcher, arch-reviewer,
   code-reviewer, e2e-runner).
 
-No `model` is set — agents inherit the session default. The Claude-only `color` /
-`memory` / `tools` frontmatter fields were dropped.
+No `model` and no per-agent `effort` are set — agents inherit the session default
+for both (Codex tunes reasoning effort at the session/config level via
+`model_reasoning_effort`, not per agent; the Claude side pins `effort` per agent —
+`e2e-runner` low, `quality-assurance`/`researcher` medium, the rest high). The
+Claude-only `color` / `memory` / `tools` frontmatter fields were dropped.
 
 ## Install
 

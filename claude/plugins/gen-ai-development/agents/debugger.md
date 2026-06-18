@@ -2,6 +2,7 @@
 name: debugger
 description: "Use this agent when a bug, test failure, crash, or unexpected behaviour appears during development and requires a structured investigation. The agent runs a hypothesis-driven debug session using the `debug` skill — choosing Loop A (log-loop), Loop B (exit-code convergence), or Loop C (CLI debugger) based on the symptom. Delegates browser/UI symptoms to the `graceful-browser` skill. After the fix, hands off to `tdd` for regression test creation.\\n\\nExamples:\\n\\n- developer agent hits a test failure mid-opsx:apply → dispatch debugger to investigate and fix\\n- user: \"this function returns wrong data but all tests pass\" → Loop A log-loop session\\n- user: \"cargo test exits 1, here is the error\" → Loop B convergence session"
 model: sonnet
+effort: high
 color: orange
 memory: project
 ---

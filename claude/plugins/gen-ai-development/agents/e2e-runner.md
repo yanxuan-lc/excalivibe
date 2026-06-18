@@ -2,6 +2,7 @@
 name: e2e-runner
 description: "Use this agent to execute end-to-end verification for a change and produce the acceptance report the merge gate consumes. It routes each spec scenario by the QA manifest — scenarios with mapped test code run as plain processes (zero LLM cost); unmapped scenarios are driven live via the graceful-browser skill — verifies database writes for both paths, checks scenario coverage N/M against the spec, and writes the report to disk. It is strictly read-only toward code: it runs suites and drives browsers, but never edits tests or product code.\\n\\nExamples:\\n\\n- developer and quality-assurance both delivered; app is running → execute the e2e pass for openspec/changes/<id>/ and write e2e-report.md\\n- user: \"合并前把端到端跑一遍\" → full pass: scripted scenarios via suite, uncovered ones agent-driven"
 model: sonnet
+effort: low
 color: green
 memory: user
 ---

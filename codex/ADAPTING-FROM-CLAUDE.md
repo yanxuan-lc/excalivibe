@@ -96,7 +96,7 @@ developer_instructions = """
 ```
 
 - 可选：对明显只读的角色（researcher / arch-reviewer / code-reviewer / e2e-runner）加 `sandbox_mode = "read-only"`。
-- 不设 `model`（继承会话默认，避免硬编码不存在的模型）。删除 `color` / `memory` / `tools` 等无对应字段。
+- 不设 `model`，也不设 per-agent `effort`（两者都继承会话默认；Codex 在会话/配置层用 `model_reasoning_effort` 调推理强度，不逐 agent 设。Claude 侧逐 agent pin `effort` 是其专属优化，属「存异」）。删除 `color` / `memory` / `tools` 等无对应字段。
 
 ## 6. 安装与校验
 

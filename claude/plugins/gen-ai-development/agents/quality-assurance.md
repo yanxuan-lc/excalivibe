@@ -2,6 +2,7 @@
 name: quality-assurance
 description: "Use this agent to develop e2e test code for an OpenSpec change whose spec declares the scripted carrier: Playwright UI tests, API tests, and database-verification queries, derived from the spec's scenario-level use cases (S1, S2, …) — NOT from the developer's implementation. It delivers the test code plus an e2e-manifest.md mapping every scenario to a test case (or declaring it deliberately uncovered). It writes test code only — never product code. Dispatch it in parallel with developer (same confirmed spec); expect its UI portion to finalize after the app is runnable.\\n\\nExamples:\\n\\n- spec for the registration flow confirmed, developer starts implementing → dispatch quality-assurance in the same message to build the Playwright suite for S1–S4\\n- e2e-runner classified a failure as a test bug (stale selector) → quality-assurance fixes the test"
 model: sonnet
+effort: medium
 color: cyan
 memory: project
 ---
