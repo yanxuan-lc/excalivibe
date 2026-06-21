@@ -7,6 +7,7 @@ The standard `testing` package — no external framework needed.
 - **Test runner**: `go test`
 - **Run command**: `go test ./...`
 - **Coverage command**: `go test -coverprofile=coverage.out ./... && go tool cover -func=coverage.out`
+- **Function / interface coverage**: `go tool cover -func` already prints per-function coverage (final line = total). The 100% interface gate is that every *exported* (capitalized) function shows non-zero coverage; unexported helpers are not part of the gate.
 - **Mocking**: Interface-based fakes (no framework required)
 
 ## File Organization

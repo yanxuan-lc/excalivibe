@@ -1,0 +1,44 @@
+{
+  "skill_name": "debug",
+  "evals": [
+    {
+      "id": 0,
+      "name": "loop-a-wrong-output-tests-pass",
+      "prompt": "我们这个 Python 函数算购物车总价时偶尔少算一分钱，但所有单测都过。函数是这样的：\n\n```python\ndef cart_total(items):\n    # items: list of {\"price\": float, \"qty\": int}\n    total = 0.0\n    for it in items:\n        total += it[\"price\"] * it[\"qty\"]\n    return round(total, 2)\n```\n\n帮我查为什么金额会差一分。",
+      "expected_output": "Routes to Loop A (behaviour wrong, no failing test / non-zero exit). States a single hypothesis first (e.g. float accumulation rounding error in price arithmetic) BEFORE adding any probes — no shotgun logging. Adds targeted [debug:<session-id>]-tagged probes only at the locations the hypothesis predicts (the accumulation / rounding), runs the reproduce command, reads the probe output, then applies a MINIMAL fix at the root cause (e.g. integer cents or Decimal) without incidental refactoring. Finishes with mandatory cleanup so no tagged probes remain.",
+      "expectations": [
+        "Routes to Loop A (hypothesis-driven log-loop) given wrong behaviour with no failing test or non-zero exit",
+        "States a single root-cause hypothesis BEFORE adding any probes, rather than adding logging everywhere (no shotgun logging)",
+        "Adds only [debug:<session-id>]-tagged probes targeted at the hypothesized location, not scattered across the function",
+        "Applies a minimal fix at the root cause with no incidental refactoring of unrelated code"
+      ],
+      "files": []
+    },
+    {
+      "id": 1,
+      "name": "loop-b-converge-to-exit-zero",
+      "prompt": "在我的 Go 项目里跑 `go test ./...` 退出码非零，有个测试挂了。帮我定位并修到测试全过。先创建一个能复现的最小场景：一个 SplitTags(\"a,,b\") 应返回 [\"a\",\"b\"] 但当前返回 [\"a\",\"\",\"b\"] 的实现和一个断言它的失败测试。",
+      "expected_output": "Routes to Loop B (non-zero exit / failing test). Runs the reproduce command (go test ./...) directly and reads the exit code and stderr in full rather than asking the user to paste it; identifies the failing test name and the file:line of the failing assertion. Applies a minimal fix (drop empty segments) and reruns the full command, converging only when exit code is 0 and ALL targets pass — not stopping at 'most tests pass'. Does not edit the test to match the buggy behaviour.",
+      "expectations": [
+        "Routes to Loop B (error-driven exit-code convergence) because there is a non-zero exit / failing test",
+        "Runs the reproduce command directly and reads exit code + stderr instead of asking the user to paste the error",
+        "Converges only when exit code is 0 and all targets pass, not stopping at 'most tests pass'",
+        "Fixes the product code (drops the empty segment) and does NOT edit the test to match the buggy output"
+      ],
+      "files": []
+    },
+    {
+      "id": 2,
+      "name": "cleanup-leaves-zero-debug-markers",
+      "prompt": "我刚用日志排查完一个 bug，在几个文件里加了带 [debug:login-null] 标记的临时日志，根因也已经修好了。帮我收尾，确保仓库里不残留调试代码，同时别把修复一起删掉。",
+      "expected_output": "Runs the mandatory cleanup procedure: `grep -rn '\\[debug:' <project-root>` to find every tagged probe, deletes each tagged line, saves the files, then runs the self-check `git diff | grep '\\[debug:'` and confirms the result is EMPTY. Removes ONLY the tagged probe lines — the actual bug fix (non-probe changes) is left intact, not reverted along with the probes. No leftover debug scaffolding (temporary log helpers, commented-out probes) remains.",
+      "expectations": [
+        "Greps for the [debug: tag from the project root to enumerate every tagged probe before deleting",
+        "Runs the self-check `git diff | grep '\\[debug:'` and confirms it returns EMPTY after removal",
+        "Removes only the tagged probe lines and leaves the actual bug fix intact (does not revert the correction along with the probes)",
+        "Leaves no leftover debug scaffolding (temporary log helpers or commented-out probes) behind"
+      ],
+      "files": []
+    }
+  ]
+}

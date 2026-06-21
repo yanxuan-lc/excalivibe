@@ -1,29 +1,45 @@
 {
   "skill_name": "docs-guideline",
-  "notes": "Fixture project lives at docs-guideline-workspace/fixtures/widget-svc/. Each run works on its own copy (copied into the run's output dir) so the fixture stays pristine. The fixture has an archived OpenSpec change (add-rate-limiting), a partial docs/tech tree, a research report that proposed Redis (superseded by the shipped in-process bucket), and minimal as-built code.",
+  "notes": "Self-bootstrapping evals: each prompt describes the minimal starting tree the executor must create first (an archived OpenSpec change, a partial docs/tech tree, a research report, minimal as-built code), so no external fixture is needed. The prompts deliberately do NOT state the curation verdict (what is stale, top-level vs module dir, where a contract change belongs) — those are the judgments the expectations score.",
   "evals": [
     {
       "id": 0,
       "name": "archive-time-curation",
-      "prompt": "我刚把 OpenSpec change `2026-05-20-add-rate-limiting` archive 了，限流功能已经实现并合并。帮我把这次的技术文档整理到 docs/ 下，建好索引。项目在当前目录。",
+      "prompt": "先在当前目录搭出这样一个起始状态再开始整理：(1) 一个已经 archive 的 OpenSpec change `openspec/archive/2026-05-20-add-rate-limiting/`，里面 proposal/spec/decisions 记录了我们给 widget 服务加了限流——给 `GET /v1/widgets` 在超限时返回 429 + Retry-After，决策里写明最终用「进程内令牌桶」实现（不是早期提案里的 Redis）；(2) 一棵半成品的 `docs/tech/` 树：已有 `docs/tech/README.md` 路由表、`docs/tech/protocol/v1.0/` 协议契约、`docs/tech/server/README.md` 服务端模块文档，但都还没有限流相关内容；(3) 一份 research 报告 `docs/research/2026-05-15-rate-limit-options/`，当时提议用 Redis 做限流；(4) 极少量 as-built 代码 `internal/ratelimit/`（进程内令牌桶的真实实现）。搭好后：限流功能已经实现并合并，帮我把这次的技术文档整理到 docs/ 下、把索引补好。",
       "expected_output": "as-built docs curated from the archived change: protocol/v1.0 gains the 429 + Retry-After error; server/README gains the rate-limit middleware section (权威源 = internal/ratelimit) linking out to protocol rather than restating it; tech/README routing table updated; research/2026-05-15-rate-limit-options marked STALE (Redis proposal superseded by in-process bucket) pointing to the new tech doc; durable 'why in-process not Redis' carried over, change choreography dropped; a recall-path summary.",
-      "assertions": [],
+      "expectations": [
+        "Records the 429 + Retry-After wire behavior in docs/tech/protocol/v1.0/ (the contract home) rather than in a module doc",
+        "Documents the rate-limit middleware under the server module with 权威源 pointing at internal/ratelimit, linking out to the protocol contract instead of restating it",
+        "Marks docs/research/2026-05-15-rate-limit-options as STALE with a banner that names what changed (Redis proposal superseded by the in-process token bucket) and points to where the truth now lives",
+        "Carries over the durable 'why in-process, not Redis' decision into the as-built doc while dropping the change narrative, and does not paste proposal prose into docs/tech/",
+        "Updates the docs/tech/README.md routing table so the new rate-limit knowledge is reachable, and does not duplicate any content that is already authoritative elsewhere"
+      ],
       "files": []
     },
     {
       "id": 1,
       "name": "new-module-skeleton",
-      "prompt": "我们新加了个后台 worker 模块，代码在 src/worker/（目前就一个 reaper，定时清理软删除的 widgets）。帮我在 docs/tech 下把它的文档骨架和索引建好。项目在当前目录。",
+      "prompt": "先在当前目录搭出起始状态：已有一棵 `docs/tech/` 树（含 `docs/tech/README.md` 路由表，以及描述 widgets 表/存储的 `docs/tech/server/` 或 `docs/tech/database/`），还有真实代码 `src/worker/`——目前就一个 reaper，定时清理软删除的 widgets（复用 server 已有的 widgets 表，不引入新表）。搭好后：帮我在 docs/tech 下把这个 worker 模块的文档骨架和索引建好。",
       "expected_output": "a new module subdir docs/tech/worker/README.md following the module-narrative shape: header blockquote with one-line locate + 权威源 src/worker/, links out to shared artifacts (it shares the widgets table → links to server/store or protocol as appropriate); tech/README.md routing table gains a row for the worker; does NOT invent a top-level dir for a single-module concern; does NOT duplicate the widgets schema.",
-      "assertions": [],
+      "expectations": [
+        "Creates a module subdir docs/tech/worker/README.md (a module-narrative doc), not a new top-level shared dir, for this single-module concern",
+        "Gives the README a header blockquote with a one-line locate and 权威源 pointing at src/worker/",
+        "Links out to the shared widgets table / store doc instead of duplicating the widgets schema in the worker doc",
+        "Adds a row for the worker module to the docs/tech/README.md routing table so it is reachable from the index"
+      ],
       "files": []
     },
     {
       "id": 2,
       "name": "small-change-placement-restraint",
-      "prompt": "我给 GET /v1/widgets 加了个可选的分页参数 ?limit=（不传就用默认值，老客户端不受影响）。这个要不要写文档？写哪？项目在当前目录。",
+      "prompt": "先在当前目录搭出起始状态：已有 `docs/tech/protocol/v1.0/` 描述 `GET /v1/widgets` 的线缆契约，以及 `docs/tech/README.md` 路由表。搭好后：我刚给 `GET /v1/widgets` 加了个可选的分页参数 `?limit=`（不传就用默认值，老客户端不受影响）。这个要不要写文档？写在哪？请直接帮我落地。",
       "expected_output": "recognizes this is a wire-contract change → belongs in protocol/v1.0; makes a focused edit to the existing endpoint definition (notes it's backward-compatible, so a minor-version note rather than a new v2.0; v1.1 bump is a judgment call either way); does NOT create a new standalone file or restate the whole protocol; updates the index only if needed; keeps it proportional to a small change rather than ceremony.",
-      "assertions": [],
+      "expectations": [
+        "Recognizes this as a wire-contract change and places it in docs/tech/protocol/ rather than a module doc or a new top-level area",
+        "Makes a focused edit to the existing GET /v1/widgets definition and notes the change is backward-compatible (a minor/compatible bump, not a new v2.0 breaking version)",
+        "Does NOT create a new standalone file or restate the whole protocol for this small change",
+        "Keeps the effort proportional — a one-line/section edit plus an index touch only if needed — rather than manufacturing ceremony"
+      ],
       "files": []
     }
   ]

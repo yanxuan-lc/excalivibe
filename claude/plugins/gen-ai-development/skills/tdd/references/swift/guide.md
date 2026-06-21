@@ -7,6 +7,7 @@ Swift Testing (Swift 6+) as the primary framework, with XCTest as fallback for o
 - **Test runner**: `swift test` (Swift Package Manager) or Xcode Test Navigator
 - **Run command**: `swift test`
 - **Coverage command**: `swift test --enable-code-coverage` then `llvm-cov report`
+- **Function / interface coverage**: `llvm-cov report` shows per-file function coverage / `Missed Functions` (proxy — includes internal funcs); the 100% interface gate is that every `public`/`open` symbol is exercised by a test.
 - **Mocking**: Protocol-based fakes (no framework required)
 
 ## Setup (Swift Package Manager)

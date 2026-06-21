@@ -1,0 +1,43 @@
+{
+  "skill_name": "middleware-guideline",
+  "evals": [
+    {
+      "id": 0,
+      "name": "nacos-two-layer-bootstrap-fast-fail",
+      "prompt": "我们要给一个新的 Go 后端服务接 Nacos 配置中心，启动时读运行时配置。环境通过一个 profile 区分（dev/test/prod）。帮我把启动读配置这块写出来。",
+      "expected_output": "Loads the Nacos reference and applies the config-center conventions: a tiny bootstrap (endpoint + credentials + profile-derived namespace) separate from business config, with the Nacos namespace derived from a single <APP>_PROFILE env var so environments are isolated; bootstrap precedence env > file > built-in default; credentials only from env or a gitignored per-profile file. Because the config center is MANDATORY, when Nacos is unreachable or returns empty/invalid config the process exits non-zero — and it does NOT silently fall back to env vars, a stale cache, or built-in defaults. The failure message names Nacos and the endpoint/namespace tried.",
+      "expectations": [
+        "Derives the Nacos namespace (environment isolation unit) from a single <APP>_PROFILE env var rather than separate per-environment switches",
+        "Separates a minimal bootstrap (endpoint + credentials + namespace) from business config in one bootstrap module rather than scattering Nacos endpoints through application code",
+        "On unreachable or empty/invalid Nacos config, the process exits non-zero rather than starting",
+        "Explicitly does NOT fall back to env vars, a stale cache, or built-in defaults when Nacos config is unavailable (no silent fallback)"
+      ],
+      "files": []
+    },
+    {
+      "id": 1,
+      "name": "monitoring-surface-three-endpoints",
+      "prompt": "在脚手架一个新的后端服务时，监控这块要暴露哪些 HTTP 接口？帮我把它们都加上，说清楚每个接口该返回什么。",
+      "expected_output": "Loads the monitoring reference and exposes the full mandatory surface on the business port: GET /healthz as a dependency-free liveness probe (returns OK as long as the process is up, does not check downstreams), GET /readyz as a readiness probe that checks each dependency and reports per-dependency detail, and GET /metrics in Prometheus exposition format. States these are non-negotiable scaffolding wired when the skeleton is first stood up, not a later add-on.",
+      "expectations": [
+        "Exposes GET /healthz as a liveness probe that is dependency-free (does not check downstream dependencies)",
+        "Exposes GET /readyz as a readiness probe that checks each dependency and reports per-dependency detail",
+        "Exposes GET /metrics in Prometheus exposition format",
+        "Treats all three endpoints as mandatory scaffolding for every backend service rather than optional extras"
+      ],
+      "files": []
+    },
+    {
+      "id": 2,
+      "name": "boundary-local-compose-defers-to-devops",
+      "prompt": "我想在本地用 docker-compose 把 Nacos 和 MySQL 跑起来给开发用，帮我写这个 compose 文件。",
+      "expected_output": "Recognizes that standing middleware UP locally for development (a docker-compose for Nacos/MySQL) is the devops-guideline skill's responsibility, not middleware-guideline's — the dividing line is explicit in the skill. Defers to / points at devops-guideline for the compose file rather than authoring it under middleware conventions. (Middleware-guideline owns only the service-side code that talks to the middleware.)",
+      "expectations": [
+        "Identifies that a local docker-compose to stand up Nacos/MySQL belongs to devops-guideline, not middleware-guideline",
+        "Defers to or routes the request to devops-guideline rather than authoring the compose file under middleware-guideline conventions",
+        "Articulates the dividing line: middleware-guideline governs the service-side code that talks to the middleware, not standing it up locally"
+      ],
+      "files": []
+    }
+  ]
+}

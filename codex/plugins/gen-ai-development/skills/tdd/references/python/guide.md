@@ -7,6 +7,7 @@ pytest as the default test framework for Python projects.
 - **Test runner**: [pytest](https://docs.pytest.org)
 - **Run command**: `pytest`
 - **Coverage command**: `pytest --cov=src --cov-report=term-missing`
+- **Function / interface coverage**: coverage.py reports lines, not functions — judge interface coverage manually: every public symbol (no leading underscore) in the module's API must be exercised by at least one test.
 - **Mocking**: `unittest.mock` (stdlib) + `pytest-mock` plugin
 
 ## Setup
@@ -29,7 +30,7 @@ source = ["src"]
 
 [tool.coverage.report]
 show_missing = true
-fail_under = 80
+fail_under = 90
 ```
 
 ## File Organization

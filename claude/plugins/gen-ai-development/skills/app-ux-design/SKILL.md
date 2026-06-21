@@ -1,6 +1,6 @@
 ---
 name: app-ux-design
-description: "Interactive UI/UX design workflow that turns a vague brief into a real, componentized, iterate-able front-end prototype — for apps, desktop apps, websites, dashboards, mobile screens, any GUI surface. It leans on the ui-ux-pro-max skill to decide style/palette/typography/layout in conversation, then scaffolds a real TypeScript + React + shadcn/ui + Tailwind + Zustand + TanStack + Vite workspace under docs/ued/<datetime>-<topic>/, serves it over HTTP, and iterates via chat and a DevTools-style inspect overlay whose edits commit back to source. Use this whenever the task touches how something LOOKS, FEELS, MOVES, or is laid out — visual表现, 交互, 组件, 配色, 布局, mockup, 原型, 改样式/风格, 'redo this flow', '帮我设计 X', '一起做个 X 的设计' — even when the user never says 'design' or 'prototype'. Prefer this over pure UI/UX guideline skills (including bare ui-ux-pro-max) when the user expects working code and live iteration rather than advice or a static mockup."
+description: "Interactive UI/UX design workflow that turns a vague brief into a real, componentized, iterate-able front-end prototype — for apps, desktop apps, websites, dashboards, mobile screens, any GUI surface. It leans on the ui-ux-pro-max skill to decide style/palette/typography/layout in conversation, then scaffolds a real TypeScript + React + shadcn/ui + Tailwind + Zustand + TanStack + Vite workspace under docs/ued/[datetime]-[topic]/, serves it over HTTP, and iterates via chat and a DevTools-style inspect overlay whose edits commit back to source. Use this whenever the task touches how something LOOKS, FEELS, MOVES, or is laid out — visual表现, 交互, 组件, 配色, 布局, mockup, 原型, 改样式/风格, 'redo this flow', '帮我设计 X', '一起做个 X 的设计' — even when the user never says 'design' or 'prototype'. Prefer this over pure UI/UX guideline skills (including bare ui-ux-pro-max) when the user expects working code and live iteration rather than advice or a static mockup."
 ---
 
 # App UX Design — Interactive Prototype Workflow
@@ -312,44 +312,13 @@ set `<html lang>` in `index.html` to the primary locale.
 
 ### Layout robustness — the #1 source of "looks broken"
 
-Default-generated layouts most often fail by **wrapping text awkwardly or
-overflowing their container** in the narrow case (a 2-col KPI grid on a 375px
-phone, a flex row where a fixed-width chart sits next to a long number). Build so
-the *smallest* target holds together, and the rest follows:
-
-- **Flex rows that mix flexible + fixed children:** give the flexible child
-  `min-w-0` (so it can shrink) and the fixed child (chart, icon, sparkline)
-  `shrink-0`. Without `min-w-0`, the fixed child pushes past the edge — that's the
-  classic sparkline-bleeding-past-the-card bug.
-- **Short labels next to a value/badge:** wrap the pair in `flex items-center
-  gap-* whitespace-nowrap` so "+12.5% 较上周期" never breaks mid-phrase into two
-  lines. Hide non-essential labels on the narrowest breakpoint (`hidden sm:inline`)
-  rather than letting them wrap.
-- **Long single-line text** (names, titles, metric labels): `truncate` (needs a
-  `min-w-0` flex parent) instead of letting it wrap or overflow.
-- **Scale type down on mobile:** big numbers/headings often overflow 2-col cards —
-  `text-xl md:text-2xl`, not a fixed `text-2xl`.
-- **Dense card grids must step columns, not crush cells:** a KPI row should be
-  `grid-cols-2 lg:grid-cols-4`, never a flat `grid-cols-4`. With a sidebar, a
-  4-col grid at tablet width shrinks each card to ~125px — too narrow for a
-  number + sparkline, so the sparkline bleeds out. Step the column count up with
-  the breakpoint; same for chart rows (`grid-cols-1 lg:grid-cols-3`). Use the
-  bundled `Sparkline` (it's `shrink-0` and won't push past its card).
-- **Wide tables:** wrap in `overflow-x-auto` (with a sensible `min-w-[…]`), or swap
-  to a stacked card/list layout under `md:` — don't let a table force horizontal
-  page scroll.
-- **Spacing:** stick to the Tailwind scale (`gap-2/3/4`, `p-4 md:p-6`); don't
-  hand-pick one-off pixel paddings per element — inconsistent padding is what
-  reads as "unstable whitespace".
-- **Don't fake device chrome.** The shell already draws the phone status bar
-  (clock / signal / battery), notch, and home indicator, and reserves that space —
-  your screen renders *below* it. Don't add your own status bar, and don't pad the
-  top for a notch; just build the screen content. (Web mode is full-bleed, no
-  chrome — the app fills the whole viewport.)
-
-Verify both ends before handing off: open `/__ued/shell`, check the Mobile frame
-*and* the Web (full-bleed) view; nothing should clip, bleed, or wrap into a
-two-line mess.
+Default-generated layouts most often fail by wrapping text awkwardly or
+overflowing their container in the narrow case. Build so the *smallest* target
+holds together first. The full CSS cookbook (flex `min-w-0`/`shrink-0`,
+`whitespace-nowrap` label pairs, `truncate`, responsive type, stepping grid
+columns, wide-table handling, spacing scale, device chrome) is in
+[references/layout-robustness.md](references/layout-robustness.md) — consult it
+when laying out a screen.
 
 ---
 
@@ -392,74 +361,16 @@ string was edited, so a Chinese change doesn't land in the English source.
 
 ### Channel C — 落库 commit (the durable save the user clicks)
 
-> **Why edits don't reload the page:** the framework excludes `<stateDir>` (`.ued/`)
-> from Vite's file watcher (`server.watch.ignored`). Without that, every appended
-> inspect event (each blur) is a change to a non-module file inside the project
-> root, and Vite answers with a full page reload — which reloads the app iframe
-> mid-edit and closes any open dialog / resets the active tab. With it ignored,
-> logging never reloads; only real source writes do, and those are React Fast
-> Refresh, which preserves UI state (the dialog/tab stays open).
-
-When the user clicks **落库**, the shell first runs the **fast path**: every net
-static `text-edit` / `placeholder-edit` is written straight to source via
-`POST /__ued/apply` and marked done with an `{kind:"apply", of:…}` line in the
-log. If *all* pending edits went via the fast path, the shell advances `.cursor`
-itself and you're never involved. Only the **leftovers** — dynamic text, className
-edits, hides, notes, or anything the fast path couldn't resolve uniquely — are
-written to `.ued/apply-request.json` (`{seq, offset, count, fast, ts}`, where
-`offset` = the log size to apply up to and `count` = leftovers). The shell polls
-`.ued/apply-result.json` for a result tagged with the same `seq`. **Your job is
-to notice the request and apply the leftovers.**
-
-**Arm a watcher whenever inspect is in play** (after scaffolding, on resume, or
-the moment the user starts inspecting). Run a background command that blocks
-until the marker changes, so a click re-invokes you with zero chat typing:
-
-```bash
-# background watcher — exits when the user clicks 落库; re-arm after each apply.
-# mtime() is portable: BSD/macOS uses `stat -f %m`, GNU/Linux uses `stat -c %Y`.
-# A hardcoded `stat -f %m` silently never fires on Linux (ref==cur forever, the
-# loop hangs), so try both forms and fall back to 0 when the file is absent.
-cd <WORKING_DIR>
-mtime() { stat -f %m "$1" 2>/dev/null || stat -c %Y "$1" 2>/dev/null || echo 0; }
-ref=$(mtime .ued/apply-request.json)
-while :; do cur=$(mtime .ued/apply-request.json); [ "$cur" != "$ref" ] && break; sleep 2; done
-echo apply-requested
-```
-
-When it fires (or the user simply says "应用 inspect 改动"), run the apply loop,
-then **re-arm the watcher**.
-
-### The apply loop
-
-1. **Read the pending slice** of `.ued/inspect-events.jsonl` — from the
-   `.ued/.cursor` byte offset up to the `offset` in `apply-request.json` (or EOF
-   if applying on a chat request). **Filter, in order:** (a) drop events the user
-   undid — collect every `{"kind":"undo","of":X}` and drop each matching original
-   `X` (match by `kind` + `target.path` + changed value); (b) drop events already
-   written by the fast path — collect every `{"kind":"apply","of":X}` and drop the
-   target whose net `to` it covers (these are already in source); (c) drop the
-   `undo` / `apply` markers themselves. Keep only the **last edit per target**
-   (later wins). What remains is the leftovers you must apply.
-2. **Apply** each remaining event to source — use `path` + `text` to locate the
-   element; verify after each edit. For `placeholder-edit`, change the located
-   input/textarea's `placeholder` prop. `note` events are instructions, not
-   auto-edits — act on them as feedback. If a target is **dynamic** (e.g. text is `{expr}` /
-   className is `cn(...)`) so you can't safely patch it, skip the literal edit and
-   handle it by judgement (or leave it for the user) — count it as `skipped`. If
-   multiple sites match ambiguously, ask.
-3. **Apply** any conversational feedback from the same turn.
-4. **Advance `.cursor`** to the `offset` you applied through (the end of the slice).
-5. **Write `.ued/apply-result.json`** = `{"seq": <from request>, "applied": <N>,
-   "skipped": <M>, "ts": "<iso>"}` so the shell's 落库 button can confirm
-   "已写入源码 N 项". (Skip this when applying from a plain chat request.)
-6. **Confirm tersely, then re-arm.** On a 落库 commit the user wants the *action*,
-   not a report: just apply and reply lean — a single line, or one short bullet
-   per edit when there are several (`昵称 → 昵称1`). No preamble, no narrating the
-   protocol (cursor / apply-result / fast-path), no re-opening the browser to
-   verify — HMR already shows it live and the 落库 button already says "已写入源码
-   N 项". Save the detailed walkthrough for when the user asks. Then **re-arm the
-   watcher** and wait for the next commit.
+When the user clicks **落库**, the shell fast-paths every net static
+`text-edit` / `placeholder-edit` straight to source and routes only the
+**leftovers** (dynamic text, className edits, hides, notes) to you via
+`.ued/apply-request.json`. **Your job is to notice the request and apply the
+leftovers**, then advance `.cursor` and write `.ued/apply-result.json`. Full
+落库 protocol — the file-watcher rationale, the background watcher you arm
+whenever inspect is in play, and the step-by-step apply loop (filter undone /
+fast-pathed events, last-edit-per-target wins, handle dynamic targets, confirm
+tersely and re-arm) — is in
+[references/apply-loop.md](references/apply-loop.md). Read it before applying.
 
 When the user is satisfied, the working dir *is* the deliverable: the prototype
 source + `design-system/MASTER.md` (the reusable design spec that 延续设计 reads
@@ -475,12 +386,13 @@ imports. It contributes only what the prototype can't do itself:
 - **`/__ued/shell`** — device frame (mobile / pad / desktop / web) + screen switcher + inspect toggle. Iframes the app at `/`.
 - **`/__ued/devices`** — device specs from `<skill>/data/devices.json`.
 - **`/__ued/inspect-event` / `/__ued/inspect-events`** — append / tail the inspect event log (`?since=<offset>` tails the pending slice).
-- **`/__ued/apply`** — POST `{kind, from, to}`; the **fast path**. Writes a static `text-edit` / `placeholder-edit` straight to source by unique-literal find-replace in `src/**` (returns `{ok:true,file}`), or refuses (`not-found` / `ambiguous` / `unsupported`) so the shell falls back to the agent. No agent, near-instant via HMR.
+- **`/__ued/apply`** — POST `{kind, from, to}`; the **fast path**. Writes a static `text-edit` / `placeholder-edit` straight to source by unique-literal find-replace in `src/**` (returns `{ok:true,file}`), or refuses (`not-found` / `ambiguous` / `unsupported` / `noop`) so the shell falls back to the agent. No agent, near-instant via HMR.
 - **`/__ued/state/<file>`** — raw read/write of `.ued/` state files. The 落库 button uses this to write `apply-request.json`, advance `.cursor`, and read back `apply-result.json`; the bridge reads `.cursor` here too.
 - **Inspect bridge** — injected into every served HTML page; handles element picking + live preview edits inside the app, posts events back, and **replays only the pending slice** (events after `.cursor`) via a MutationObserver so edits stick across React re-renders until you apply them to source.
 
 There is no style-picker page and no token generator: theming is just you editing
-`tokens.css`. See `ARCHITECTURE.md` for the data flow.
+`tokens.css`. See `ARCHITECTURE.md` for the data flow and `framework/README.md` for
+the plugin's own internals.
 
 ## Scripts & data
 

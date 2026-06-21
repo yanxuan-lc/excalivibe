@@ -7,6 +7,7 @@ Vitest as the default test runner for TypeScript projects.
 - **Test runner**: [Vitest](https://vitest.dev)
 - **Run command**: `npm test` (or `npx vitest run`)
 - **Coverage command**: `npx vitest run --coverage`
+- **Function / interface coverage**: the text reporter prints a `% Funcs` column as a proxy (it counts private functions too); the 100% interface gate is the *exported* surface — confirm each exported symbol has at least one test.
 - **Watch mode**: `npx vitest` (default)
 
 ## Project Setup
@@ -33,6 +34,7 @@ export default defineConfig({
       include: ["src/**/*.ts"],
       exclude: ["src/**/*.d.ts", "src/types/**"],
       reporter: ["text", "lcov"],
+      thresholds: { lines: 90 }, // hard line gate; interface coverage is judged on the exported surface (see skill)
     },
   },
 });

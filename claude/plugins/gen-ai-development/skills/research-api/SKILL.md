@@ -1,6 +1,6 @@
 ---
 name: research-api
-description: Research how an API actually works by discovering its spec (OpenAPI/Swagger) and making real calls to probe endpoints, request/response shapes, and auth — instead of guessing from docs or memory. Use this skill whenever a research conclusion depends on how an API behaves in practice: "how do I call endpoint X", "what does this service return", "does this API support Y", "what's the auth flow", "explore the Swagger for this service", or before integrating against an interface you haven't exercised. Trigger it even when the user doesn't say "call the API" — if answering well means hitting the endpoint and reading the real response, do it (read-only first). The companion source/data research skills are research-source-code and research-data-source.
+description: Research how an API actually works by discovering its spec (OpenAPI/Swagger) and making real calls to probe endpoints, request/response shapes, and auth — instead of guessing from docs or memory. Use this skill whenever a research conclusion depends on how an API behaves in practice: "how do I call endpoint X", "what does this service return", "does this API support Y", "what's the auth flow", "explore the Swagger for this service", or before integrating against an interface you haven't exercised. Trigger it even when the user doesn't say "call the API" — if answering well means hitting the endpoint and reading the real response, do it (read-only first). The companion source/data research skills are research-source-code and research-data-source; for a multi-subtask or comparative study spanning several sources, research-pipeline orchestrates this skill.
 ---
 
 # API Research
@@ -31,13 +31,13 @@ Try the common spec/debug surfaces before hand-crafting calls — a machine-read
 
 - OpenAPI/Swagger JSON: `/openapi.json`, `/v3/api-docs`, `/swagger.json`, `/swagger/v1/swagger.json`
 - Swagger UI / Redoc pages: `/swagger`, `/swagger-ui`, `/docs`, `/redoc`, `/api-docs`
-- Fetch the spec with **WebFetch** or `curl`; for an interactive Swagger UI "Try it out" flow, drive it with the **playwright MCP** browser tools.
+- Fetch the spec with **WebFetch** or `curl`; for an interactive Swagger UI "Try it out" flow, drive it via the `graceful-browser` skill (claude --chrome → chrome-devtools MCP → Playwright MCP, in that order).
 
 Parse the spec for the endpoints in scope: path, method, params, request/response schemas, auth requirements.
 
 ### 3. Probe endpoints safely
 
-> **Tooling: nothing to install.** `curl` ships on virtually every macOS/Linux box, the `WebFetch` tool is built in, and Swagger UI is driven by the playwright MCP (server-side) — none of these need a local install. If `curl` somehow isn't present, fall back to `WebFetch` or an HTTP client in a runtime that's already there (e.g. Python `urllib`/`requests`-if-installed, Node `fetch`). **Don't `brew`/`apt`/`pip`/`npm` install a tool (httpie, etc.) just to probe** — use what's available or ask the user.
+> **Tooling: nothing to install.** `curl` ships on virtually every macOS/Linux box, the `WebFetch` tool is built in, and Swagger UI is driven through the `graceful-browser` skill — none of these need a local install. If `curl` somehow isn't present, fall back to `WebFetch` or an HTTP client in a runtime that's already there (e.g. Python `urllib`/`requests`-if-installed, Node `fetch`). **Don't `brew`/`apt`/`pip`/`npm` install a tool (httpie, etc.) just to probe** — use what's available or ask the user.
 
 - **Read-only first.** Exercise `GET`/read endpoints to confirm response shape and behavior. Always set a timeout.
 - **Write endpoints** (`POST`/`PUT`/`PATCH`/`DELETE`) only in a sandbox/test environment, with the **smallest possible payload**, and only after **explicit user confirmation**. Never fire a write at a production API as part of research.

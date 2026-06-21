@@ -147,8 +147,10 @@ flutter test --coverage
 lcov --summary coverage/lcov.info
 ```
 
-Generated files (`*.g.dart`, `*.freezed.dart`) inflate the denominator — exclude them when judging the 80% gate:
+Generated files (`*.g.dart`, `*.freezed.dart`) inflate the denominator — exclude them when judging the >= 90% line gate:
 
 ```bash
 lcov --remove coverage/lcov.info '**/*.g.dart' '**/*.freezed.dart' -o coverage/lcov.info
 ```
+
+Flutter's `lcov.info` is line-only (`flutter test --coverage` emits no `FN`/`FNDA` function records), so there is no function-coverage proxy here — judge interface coverage manually: every public (exported) API — widgets, public methods, library-level functions — must be exercised by at least one test.

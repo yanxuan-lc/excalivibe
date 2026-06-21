@@ -5,7 +5,13 @@
       "id": 0,
       "name": "ts-feature-test-first",
       "prompt": "用 TDD 的方式帮我在这个 TypeScript 项目里实现一个 parseDuration 工具函数：把 \"1h30m\"、\"45s\"、\"2d\" 这类字符串解析成毫秒数，非法输入要报错。",
-      "expected_output": "Follows the workflow: a planning pause listing the behaviors to test (valid units, combinations, invalid input) and getting approval BEFORE writing code; then a tracer bullet (one test made to pass end-to-end, setting up Vitest if absent); then a strict red-green-refactor loop — one test at a time, never batch-writing all tests upfront, minimal code per GREEN, full suite run after every change; ends with the coverage gate (>= 80% line coverage) and a completion report.",
+      "expected_output": "Follows the workflow: a planning pause listing the behaviors to test (valid units, combinations, invalid input) and getting approval BEFORE writing code; then a tracer bullet (one test made to pass end-to-end, setting up Vitest if absent); then a strict red-green-refactor loop — one test at a time, never batch-writing all tests upfront, minimal code per GREEN, full suite run after every change; ends with the coverage gate (100% interface coverage and >= 90% line coverage) and a completion report.",
+      "expectations": [
+        "Pauses to list the behaviors to test and gets approval before writing implementation code",
+        "Writes tests one at a time in a red-green-refactor loop, not all upfront",
+        "Runs the full test suite after each change, not just the new test",
+        "Ends by reporting both coverage gates: 100% interface coverage and >= 90% line coverage"
+      ],
       "files": []
     },
     {
@@ -13,14 +19,39 @@
       "name": "go-bugfix-regression-first",
       "prompt": "我们 Go 服务里 SplitTags(\"a,,b\") 会返回 [\"a\",\"\",\"b\"]，空字符串不应该出现。先写个测试复现这个 bug 再修。",
       "expected_output": "Writes a failing table-driven Go test that reproduces the bug FIRST and runs it to confirm it fails (RED), then makes the minimal fix to pass (GREEN), then re-runs the full test suite — not just the new test. Does not refactor while RED, and does not change the test to match the buggy behavior.",
+      "expectations": [
+        "Writes a failing test reproducing SplitTags(\"a,,b\") emitting an empty string BEFORE changing product code",
+        "Runs the test and confirms it fails (RED) before making the fix",
+        "Makes a minimal fix and re-runs the full suite to confirm GREEN",
+        "Does not edit the test to match the buggy behavior"
+      ],
       "files": []
     },
     {
       "id": 2,
       "name": "plain-js-routing",
       "prompt": "这是个纯 JavaScript 项目（没有 TypeScript），我想给 src/utils/slugify.js 用 TDD 补一个完整实现。该用什么测试框架？带我走一遍。",
-      "expected_output": "Routes plain JS to the TypeScript toolchain guide (Vitest, same runner and idioms, minus type-level advice) rather than claiming JS is unsupported or inventing a different stack. Then runs the same workflow: plan + pause, tracer bullet (Vitest setup if needed), one-test-at-a-time red-green-refactor, coverage gate >= 80%.",
+      "expected_output": "Routes plain JS to the TypeScript toolchain guide (Vitest, same runner and idioms, minus type-level advice) rather than claiming JS is unsupported or inventing a different stack. Then runs the same workflow: plan + pause, tracer bullet (Vitest setup if needed), one-test-at-a-time red-green-refactor, coverage gate (100% interface, >= 90% line).",
+      "expectations": [
+        "Routes plain JS to the TypeScript/Vitest toolchain guide rather than claiming JS is unsupported or inventing a different stack",
+        "Runs the red-green-refactor loop one test at a time",
+        "Reports both coverage gates: 100% interface coverage and >= 90% line coverage"
+      ],
       "files": []
+    },
+    {
+      "id": 3,
+      "name": "ts-multi-export-interface-coverage",
+      "prompt": "项目里已经有一个 money.ts 模块，帮我用 TDD 给它补全单元测试，补到满足覆盖率门槛。",
+      "expected_output": "Reads money.ts FIRST and enumerates its export surface from the source itself (the prompt does not name the functions): formatMoney, parseMoney, and the small, easy-to-overlook normalizeNegativeZero. Writes at least one test exercising EACH exported function. Runs coverage, then judges the interface gate on the exported surface independently of the line %: because normalizeNegativeZero is a single rarely-hit line, a solution that tests only formatMoney + parseMoney can still read >= 90% line coverage — yet interface coverage is only 2/3, so the gate must FAIL and the skill must say so rather than declaring PASS on the strength of the line number. Completion report states both gates separately: interface coverage (must be 100% — every exported symbol tested) and line coverage (must be >= 90%).",
+      "expectations": [
+        "Reads the money.ts source and enumerates its exported functions from the file (not from the prompt, which does not name them), identifying all three including normalizeNegativeZero",
+        "Writes at least one test that calls each exported function: formatMoney, parseMoney, and normalizeNegativeZero",
+        "States that interface coverage requires every exported symbol to be tested, and treats it as a separate gate from line coverage",
+        "Does NOT declare the coverage gate PASS while normalizeNegativeZero remains untested, even when line coverage already reads >= 90%",
+        "Reports the two gates separately: interface coverage (100%) and line coverage (>= 90%)"
+      ],
+      "files": ["evals/files/money.ts"]
     }
   ]
 }

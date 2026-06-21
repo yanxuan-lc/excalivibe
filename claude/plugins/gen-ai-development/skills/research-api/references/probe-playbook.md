@@ -18,7 +18,7 @@ $BASE/swagger/v1/swagger.json   # ASP.NET / Swashbuckle default
 $BASE/api-docs
 ```
 
-**Human-facing doc UIs (drive with playwright MCP if you need "Try it out"):**
+**Human-facing doc UIs (drive via the `graceful-browser` skill if you need "Try it out"):**
 
 ```
 $BASE/swagger      $BASE/swagger-ui      $BASE/swagger-ui.html
@@ -32,7 +32,7 @@ Fetch the spec:
 curl -sS --max-time 15 "$BASE/openapi.json" | jq '.info, (.paths | keys)'
 ```
 
-Or use **WebFetch** on the spec URL for a summarized read. For an interactive Swagger UI where you want to click "Try it out", use the **playwright MCP** browser tools (`browser_navigate`, `browser_snapshot`, `browser_click`, `browser_fill_form`).
+Or use **WebFetch** on the spec URL for a summarized read. For an interactive Swagger UI where you want to click "Try it out", drive it via the `graceful-browser` skill (claude --chrome → chrome-devtools MCP → Playwright MCP, in that order).
 
 From the spec, pull for each endpoint in scope: path, method, parameters (path/query/body), request & response schemas, and the security scheme (auth) it requires.
 

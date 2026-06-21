@@ -98,8 +98,10 @@ Many libraries ship an official mock (as above) — prefer it over hand-rolled m
 ## Coverage
 
 ```bash
-jest --coverage        # honors the skill's >= 80% line-coverage gate
+jest --coverage        # honors the skill's >= 90% line-coverage gate (+ 100% interface coverage)
 ```
+
+Jest's text report includes a `% Funcs` proxy column; enforce the line gate with `coverageThreshold: { global: { lines: 90 } }` in `jest.config`. Interface coverage = every exported component/function exercised by at least one test.
 
 ## What NOT to Test
 
