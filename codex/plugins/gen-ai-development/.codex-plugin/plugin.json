@@ -1,6 +1,6 @@
 {
   "name": "gen-ai-development",
-  "version": "1.6.0",
+  "version": "1.6.1",
   "description": "生成式 AI 开发套件 —— 提供类 OpenSpec 的开发方法、编码规约 / 数据库规约 Skills、交互式 UI/UX 设计（app-ux-design）以及各类开发 Subagent。",
   "author": {
     "name": "ExcaliVibe Contributors"
