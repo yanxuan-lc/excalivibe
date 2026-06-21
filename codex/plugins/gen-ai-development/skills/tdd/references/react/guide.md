@@ -9,6 +9,7 @@ Vitest + React Testing Library for component and hook testing. Read the TypeScri
 - **User interaction**: `@testing-library/user-event`
 - **DOM assertions**: `@testing-library/jest-dom`
 - **DOM environment**: `jsdom`
+- **Function / interface coverage**: inherits the TypeScript Vitest setup; interface coverage here = every exported component/hook rendered or invoked by at least one test (`% Funcs` is the proxy).
 
 ## Setup
 

@@ -1,7 +1,7 @@
 ---
 name: dev-pipeline
 description: >-
-  The gen-ai-development orchestration pipeline for product-code development — how the main agent routes a coding task through research → ux → propose → arch-review → apply ∥ QA → e2e ∥ code-review → merge → archive/docs, with artifact gates at each irreversible moment. Use this skill when the task builds or changes runnable product code and is substantial: a new feature, a database schema or migration, a public API or contract, a cross-module change, or a bugfix whose blast radius is high ("做个新功能", "走流程", "按 openspec 来") — or when RESUMING an in-flight change (an `openspec/changes/<id>/` directory exists, or the user says "继续 xxx"). It is NOT for non-coding work — authoring or editing skills / agents / commands / prompts (that is skill-creator's job), writing docs, or research-only tasks. The research phase has its own expansion: the companion research-pipeline skill.
+  Route a product-code development task through research → ux → propose → arch-review → apply ∥ QA → e2e ∥ code-review → merge → archive/docs — the gen-ai-development orchestration pipeline, with artifact gates at each irreversible moment. Use this skill when the task builds or changes runnable product code and is substantial: a new feature, a database schema or migration, a public API or contract, a cross-module change, or a bugfix whose blast radius is high ("做个新功能", "走流程", "按 openspec 来") — or when RESUMING an in-flight change (an `openspec/changes/` change directory exists, or the user says "继续 xxx"). It is NOT for non-coding work — authoring or editing skills / agents / commands / prompts (that is skill-creator's job), writing docs, or research-only tasks. The research phase has its own expansion: the companion research-pipeline skill.
 ---
 
 # Development Pipeline — Orchestration for the Main Agent
@@ -66,9 +66,8 @@ Phase notes:
   planner — it is required to read what exists, not to demand what doesn't. When the
   research phase IS needed, run it via the **`research-pipeline`** skill (clarify →
   confirm → plan → dispatch → synthesize); its REPORT.md/PROPOSAL.md output is exactly
-  what this phase's checklist row points to. (`app-ux-design` ships in the separate
-  `opc-workflow` plugin — if it isn't installed, the ux phase degrades to a manual
-  design doc or a `[-]` skip with reason.)
+  what this phase's checklist row points to. (`app-ux-design` is a sibling skill in this plugin; when it isn't used, the ux phase
+  degrades to a manual design doc or a `[-]` skip with reason.)
 - **arch-reviewer** is discretionary: spawn it when the spec contains DDL, a new or
   changed API surface, or cross-module boundaries. Its findings close by planner
   revising the spec — no standing checklist.
@@ -182,7 +181,7 @@ backfill phases that happened before activation (research, ux).
 - [x] propose       → openspec/changes/<id>/
 - [x] arch-review   意见已消化进 spec（或 [-] 跳过：无 DDL / 新接口）
 - [ ] spec-confirm  用户确认四件套（直接查看 REVIEW.md）：模块 / 协议 / 库表 / 用例（缺席项注明）
-- [ ] apply         developer：单测 ✅ 覆盖率 ≥80% lint ✅
+- [ ] apply         developer：单测 ✅ 接口覆盖率 100% 行覆盖率 ≥90% lint ✅
 - [ ] qa            quality-assurance → e2e-manifest.md（Phase 1 草稿 / Phase 2 定稿）
 - [ ] e2e           e2e-runner → e2e-report.md（全绿，executed + manually-verified + waived = M）
 - [ ] code-review   → docs/code-review/<datetime>/（CHECKLIST P0/P1 全部 Resolved）

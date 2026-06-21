@@ -7,6 +7,7 @@
 - **Test runner**: `cargo test`
 - **Run command**: `cargo test`
 - **Coverage command**: `cargo llvm-cov --lcov --output-path lcov.info` (requires `cargo-llvm-cov`)
+- **Function / interface coverage**: `cargo llvm-cov --summary-only` adds a `Functions` coverage column (proxy — counts private fns too); the 100% interface gate is that every `pub` item is exercised by a test.
 - **Mocking**: Trait-based fakes, optionally `mockall` crate
 
 ## Setup

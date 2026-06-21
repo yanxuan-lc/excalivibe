@@ -75,14 +75,17 @@ REFACTOR: Check candidates (see references/common/design.md) → run tests → a
 
 ### 4. Coverage Gate (mandatory)
 
-Run the test suite with coverage enabled (see your language's toolchain guide for the command). **Line coverage target: >= 80%.** If below, add tests for impactful uncovered paths — not trivial tests to inflate numbers.
+Run the test suite with coverage enabled (see your language's toolchain guide for the command). Two targets, both mandatory:
+
+- **Interface coverage: 100%.** Every public/exported interface — exported functions, public methods/classes, API endpoints, the module's outward contract — must be exercised by at least one test. No public surface ships untested. Coverage tools report line/function coverage, not interface coverage (function metrics also count private functions), so judge this directly: enumerate the module's exported symbols and confirm each has at least one test that calls it. Where the toolchain reports per-function coverage (e.g. Istanbul/Vitest `% Funcs`), use it as a proxy, but the gate is the exported surface, not the proxy number.
+- **Line coverage: >= 90%.** If below, add tests for impactful uncovered paths — not trivial tests to inflate numbers.
 
 ### 5. Completion (pause to report)
 
-- Coverage summary (overall % and per-module)
+- Coverage summary (overall line % and per-module; interface coverage)
 - List of new/modified tests
 - Deferred behaviors (if any)
-- Coverage gate: PASS/FAIL with actual percentage
+- Coverage gate: PASS/FAIL — interface coverage (must be 100%) and line coverage (actual %, must be >= 90%)
 
 ## Integration
 

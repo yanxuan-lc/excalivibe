@@ -6,21 +6,41 @@
       "name": "monorepo-makefile-front-door",
       "prompt": "这个仓库里有一个 Go 写的 server（go.mod 在 server/）和一个 pnpm 的前端（web/），现在 README 里写了七八条命令大家老记不住。帮我加个 Makefile 把 build / test / lint / 本地起服务统一起来。",
       "expected_output": "A Makefile that is the single front door: help is the default goal (bare `make` shows help, never builds), every public target carries a one-line description on the target itself, help output grouped by the repo's real seams (go/server vs web, not arbitrary buckets). Two tiers: aggregate verbs (build/test/lint) that delegate to domain targets (server-build, web-build…), each domain target independently runnable. Targets delegate to native toolchains (go test ./..., pnpm -r build) without re-encoding their logic, and the recipes stay portable (BSD/macOS awk/sed safe).",
-      "files": []
+      "files": [],
+      "expectations": [
+        "`help` is the default goal — running bare `make` shows the help listing and never triggers a build.",
+        "Every public target carries a one-line description on the target itself, and the help output is grouped by the repo's real seams (go/server vs web) rather than arbitrary buckets.",
+        "Provides two tiers: aggregate verbs (build/test/lint) that delegate to per-domain targets (e.g. server-build, web-build), with each domain target independently runnable.",
+        "Targets delegate to the native toolchains (e.g. `go test ./...`, `pnpm -r build`) without re-encoding their logic.",
+        "The help recipe stays portable to BSD/macOS userland (awk/sed-safe), not GNU-only."
+      ]
     },
     {
       "id": 1,
       "name": "local-middleware-compose",
       "prompt": "本地开发需要 MySQL 8 和 Redis，帮我写个 docker-compose，顺便把我们自己的 Go server 也放进去一起 up。",
       "expected_output": "Pushes back on composing the team's own service: compose orchestrates middleware only (MySQL, Redis); the service runs on the host for instant rebuild/debugger attach. The compose file is marked dev-only (never ships to prod), host ports are non-conflicting (allocated and persisted rather than hardcoded 3306/6379), and config flows through env with a checked-in .env.example while the real .env stays gitignored.",
-      "files": []
+      "files": [],
+      "expectations": [
+        "Pushes back on putting the team's own Go server in compose — the compose file orchestrates middleware only (MySQL, Redis), with the service running on the host for instant rebuild / debugger attach.",
+        "Marks the compose file as dev-only and states it never ships to production.",
+        "Uses non-conflicting host ports that are allocated and persisted rather than hardcoded to 3306/6379.",
+        "Flows configuration through environment variables with a checked-in .env.example, while the real .env stays gitignored."
+      ]
     },
     {
       "id": 2,
       "name": "ship-image-dockerfile",
       "prompt": "给我们的 Go server 写一个生产用的 Dockerfile，团队在国内，构建经常被墙得很慢。",
       "expected_output": "A multi-stage Dockerfile: builder compiles a static stripped binary, runtime stage carries only the binary + ca-certificates/tzdata, runs as a dedicated non-root user with pre-created writable dirs, exec-form ENTRYPOINT so SIGTERM reaches the process. China-buildable by default (goproxy.cn, domestic apk/apt mirror) but overridable via ARG for builds abroad, with dependency layers cached (go.mod/go.sum copied first, BuildKit cache mounts) and a .dockerignore keeping the context small and secret-free.",
-      "files": []
+      "files": [],
+      "expectations": [
+        "Uses a multi-stage build: a builder stage compiles a static, stripped binary and the runtime stage carries only the binary plus ca-certificates/tzdata.",
+        "Runs as a dedicated non-root user with pre-created writable dirs, and uses an exec-form ENTRYPOINT so SIGTERM reaches the process.",
+        "Is China-buildable by default (goproxy.cn plus a domestic apk/apt mirror) yet overridable via ARG for builds abroad.",
+        "Caches dependency layers — go.mod/go.sum copied before the source, with BuildKit cache mounts.",
+        "Includes a .dockerignore that keeps the build context small and secret-free."
+      ]
     }
   ]
 }

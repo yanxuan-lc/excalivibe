@@ -6,21 +6,42 @@
       "name": "mysql-new-table-design",
       "prompt": "我们要做一个优惠券功能，用户领券、核销。帮我设计 MySQL 的优惠券表 coupon 和用户领券记录表 user_coupon，给出建表 SQL。优惠券有面额、最低使用门槛、有效期、状态。",
       "expected_output": "MySQL CREATE TABLE statements that follow our rules: PK named id, every table/column has COMMENT, every column NOT NULL with an explicit non-NULL DEFAULT (including datetime — never DEFAULT NULL), money fields use DECIMAL (not float/double), mandatory columns created_time/updated_time/is_deleted, indexes named idx_/uniq_ (uk_ prefix not accepted), InnoDB + utf8mb4, no enum/set, ≤5 indexes.",
-      "files": []
+      "files": [],
+      "expectations": [
+        "Both tables use a primary key named `id`.",
+        "Every table and every column carries a COMMENT, and the status column's comment spells out what each value means.",
+        "Every column is NOT NULL with an explicit non-NULL DEFAULT — no `DEFAULT NULL` appears, and datetime/validity columns carry a concrete default (CURRENT_TIMESTAMP for bookkeeping times, a fixed sentinel for business times) rather than NULL.",
+        "Money fields (face value / minimum threshold) use DECIMAL, never float/double.",
+        "Both tables include the mandatory bookkeeping columns created_time, updated_time, and is_deleted.",
+        "Indexes are named with the `idx_`/`uniq_` prefixes (the `uk_` prefix is not used), each table has at most 5 indexes, and the tables declare InnoDB + utf8mb4 with no enum/set types."
+      ]
     },
     {
       "id": 1,
       "name": "postgres-migration",
       "prompt": "我们用的是 PostgreSQL。现在线上有一张几千万行的大表 articles，我需要加一个 view_count 字段记录阅读量，再给 (author_id, created_time) 加个索引方便按作者查最新文章。帮我写迁移 SQL。",
       "expected_output": "PostgreSQL migration that adds view_count with a constant DEFAULT + NOT NULL (metadata-only on PG11+, avoids full rewrite/long lock), builds the index with CREATE INDEX CONCURRENTLY (avoids blocking writes on a large table), uses PG-idiomatic naming/suffix index name, and warns about the large-table implications.",
-      "files": []
+      "files": [],
+      "expectations": [
+        "Adds view_count as NOT NULL with a constant DEFAULT, and notes this is metadata-only on PostgreSQL 11+ so it avoids a full table rewrite / long lock.",
+        "Builds the (author_id, created_time) index with CREATE INDEX CONCURRENTLY to avoid blocking writes on the large table.",
+        "Names the index with a PostgreSQL-idiomatic naming/suffix convention rather than reusing MySQL prefixes.",
+        "Warns about the large-table implications (the millions-of-rows size driving the choice of metadata-only add and CONCURRENTLY)."
+      ]
     },
     {
       "id": 2,
       "name": "review-bad-sql",
       "prompt": "帮我 review 下这几条要上线的 MySQL SQL 有没有问题：\n1) SELECT * FROM orders WHERE user_id = 123;\n2) UPDATE orders SET status = 2;\n3) ALTER TABLE orders ADD COLUMN remark VARCHAR(500);  -- orders 表大概有 800 万行\n4) INSERT INTO orders VALUES (1, 123, 99.9, 0);",
       "expected_output": "A findings list flagging: (1) SELECT * banned, list columns; (2) UPDATE with no WHERE will rewrite the whole table — MUST add WHERE; (3) 800万行大表直接 ALTER 应走 gh-ost 在线变更(>100MB), and one-DDL-per-ticket; (4) INSERT must list columns explicitly. Severity-tagged, with concrete fixes and corrected statements.",
-      "files": []
+      "files": [],
+      "expectations": [
+        "Flags statement (1) `SELECT *` as banned and tells the user to list the explicit columns.",
+        "Flags statement (2) — the UPDATE with no WHERE — as a MUST-fix because it rewrites the whole table, and adds a WHERE predicate in the fix.",
+        "Flags statement (3) — the ALTER on the ~8M-row table — as needing an online-DDL tool (gh-ost / pt-osc) because it exceeds the >100MB threshold.",
+        "Flags statement (4) `INSERT ... VALUES` as requiring an explicit column list.",
+        "Output is a severity-tagged findings list (强制/推荐) with concrete fixes and corrected statements, not free-form prose."
+      ]
     }
   ]
 }

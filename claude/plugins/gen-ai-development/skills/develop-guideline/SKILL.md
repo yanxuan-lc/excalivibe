@@ -1,6 +1,6 @@
 ---
 name: develop-guideline
-description: Multi-language development guidelines — coding style, naming, types, error handling, and module structure for TypeScript, JavaScript, React, React Native, Python, Go, Rust, Swift, Dart, and Flutter. Use this skill whenever writing new code, modifying existing files, adding components or functions, implementing features, fixing bugs, or reviewing code in any supported language. Also use when the user asks about coding conventions, style questions, or how to structure new modules — even if they don't mention "guidelines" explicitly.
+description: Multi-language development guidelines — coding style, naming, types, error handling, and module structure for TypeScript, JavaScript, React, React Native, Python, Go, Rust, Swift, Dart, and Flutter. Use this skill whenever writing or reviewing non-trivial code in a supported language — adding components or functions, implementing features, fixing bugs, modifying existing files, or structuring a new module. Also use when the user asks about coding conventions, style questions, or how to structure new modules — even if they don't mention "guidelines" explicitly.
 ---
 
 # Development Guidelines

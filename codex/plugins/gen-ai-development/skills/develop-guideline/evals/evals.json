@@ -1,0 +1,45 @@
+{
+  "skill_name": "develop-guideline",
+  "evals": [
+    {
+      "id": 0,
+      "name": "go-error-handling-and-naming",
+      "prompt": "用 Go 帮我写一个 fetchUser(id string) 函数：通过 HTTP 调用 userURL+id 拿到用户，解析 JSON 返回 User。注意网络失败、非 200、解析失败这些错误路径都要处理好。再给我一个对应的小工具包来放它。",
+      "expected_output": "Loads the Go reference guide and applies its conventions: returns errors as values wrapped with context via fmt.Errorf(\"...: %w\", err), does NOT panic on expected failure paths (network error, non-200, parse error), uses a getter named Name() not GetName() if any accessor appears, and names the package something specific to the domain (e.g. user) rather than utils or helpers. defer resp.Body.Close() after a successful request.",
+      "expectations": [
+        "Returns errors as values and wraps them with context using fmt.Errorf with the %w verb on at least one error path",
+        "Does NOT call panic on any expected failure path (network error, non-200 status, or JSON parse failure)",
+        "Names the package with a specific domain word (e.g. user / account), not the forbidden names utils or helpers",
+        "Closes the HTTP response body with defer resp.Body.Close() after a successful request"
+      ],
+      "files": []
+    },
+    {
+      "id": 1,
+      "name": "react-component-on-typescript-conventions",
+      "prompt": "帮我写一个 React 组件 UserCard：接收一个 user 对象（有 id 和 name）和一个可选的 onSelect 回调，点击时回调 user.id。用 TypeScript。",
+      "expected_output": "Loads the React guide (and the TypeScript guide it builds on) and applies their conventions: declares the component as a function declaration (not React.FC), defines a props interface named UserCardProps with onSelect optional, destructures props in the parameter list, and calls onSelect optionally via onSelect?.(user.id). Does not introduce React.FC or add an implicit children prop.",
+      "expectations": [
+        "Declares a props interface suffixed with Props (e.g. UserCardProps) with onSelect typed as optional",
+        "Declares the component as a function declaration and does NOT use React.FC",
+        "Destructures props in the parameter list rather than referencing a props object",
+        "Invokes the optional callback safely as onSelect?.(user.id)"
+      ],
+      "files": []
+    },
+    {
+      "id": 2,
+      "name": "review-go-snippet-flags-violations",
+      "prompt": "帮我 review 这段 Go 代码，按我们的编码规范指出问题：\n\n```go\npackage utils\n\ntype IReader interface {\n    Read() string\n}\n\ntype User struct {\n    name string\n}\n\nfunc (u User) GetName() string {\n    return u.name\n}\n\nfunc FetchUser(id string) User {\n    resp, _ := http.Get(\"http://x/\" + id)\n    if resp.StatusCode != 200 {\n        panic(\"bad status\")\n    }\n    return User{}\n}\n```",
+      "expected_output": "Loads the Go guide and flags the specific convention violations in the snippet: the package name utils is forbidden (use a specific domain name); the interface IReader uses the discouraged I prefix and should be named by its method (e.g. Reader); the getter GetName() should be Name() (Go omits Get); the function panics on an expected failure path (non-200) instead of returning an error wrapped with fmt.Errorf %w; and the http.Get error is swallowed with _ instead of being handled. Each flagged item ties to a concrete guideline rule, not vibes.",
+      "expectations": [
+        "Flags the package name utils as forbidden and recommends a specific domain-oriented name",
+        "Flags the IReader interface name for the discouraged I prefix and suggests naming it by its method (e.g. Reader)",
+        "Flags GetName() and recommends the Go getter form Name() (omitting Get)",
+        "Flags the panic on the non-200 path as an expected-failure path that should return a wrapped error instead",
+        "Flags the swallowed error (resp, _ := http.Get) as needing to be checked and handled"
+      ],
+      "files": []
+    }
+  ]
+}

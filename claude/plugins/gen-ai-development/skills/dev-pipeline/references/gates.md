@@ -82,8 +82,9 @@ All of the following, checked against files on disk:
      count — a pass with no evidence is not a pass. A scenario that is merely
      unmapped is NOT waivable — it is agent-driven (or escalated),
    - regression: the project's existing e2e suite (if any) also green.
-3. **Unit gate already held**: developer reported tests green, coverage ≥80%,
-   lint clean (re-verify only if the fix loop touched code after that report).
+3. **Unit gate already held**: developer reported tests green, interface coverage
+   100% and line coverage ≥90%, lint clean (re-verify only if the fix loop touched
+   code after that report).
 4. **Verdict freshness**: both artifacts name the commit they were produced
    against (the review SUMMARY's `Commit` field; the e2e report's `Commit` field),
    and **both match the merge candidate's HEAD**. A green report from an earlier

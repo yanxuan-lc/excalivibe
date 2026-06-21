@@ -1,0 +1,45 @@
+{
+  "skill_name": "app-ux-design",
+  "notes": "Workflow-behavior evals — they pin the structural/process commitments the skill makes (where output lands, that ui-ux-pro-max owns design judgment, real .tsx not static HTML, className-not-inline-style theming), NOT subjective visual quality. Self-bootstrapping: each eval starts from an empty workspace (files: []) so the run must scaffold from scratch.",
+  "evals": [
+    {
+      "id": 0,
+      "name": "lands-in-ued-folder-and-delegates-design",
+      "prompt": "帮我设计一个记账 App 的首页，风格你来定，干净一点就行。",
+      "expected_output": "A new session directory docs/ued/<datetime>-<topic>/ is scaffolded (timestamp-prefixed topic slug), and the ui-ux-pro-max skill is invoked to decide style/palette/typography rather than the agent hand-rolling a look; the agreed system is persisted to design-system/MASTER.md and the live theme is written to src/styles/tokens.css.",
+      "files": [],
+      "expectations": [
+        "The deliverable is created under a timestamped topic folder matching docs/ued/[datetime]-[topic]/, not at the repo root or an ad-hoc path.",
+        "The ui-ux-pro-max skill is invoked (e.g. its search.py with --design-system) to choose style/palette/typography, rather than the agent inventing the design from scratch.",
+        "A design-system/MASTER.md is written inside the working dir capturing the agreed system.",
+        "Theme values land in src/styles/tokens.css (the single hand-edited theme source), not scattered across components."
+      ]
+    },
+    {
+      "id": 1,
+      "name": "real-tsx-workspace-not-static-html-mockup",
+      "prompt": "做个任务看板（kanban）的原型，能点能拖最好。给我能跑起来的东西。",
+      "expected_output": "A real Vite + React + TypeScript workspace is scaffolded under docs/ued/<datetime>-<topic>/; screens are componentized .tsx files under src/ (src/screens/<id>/index.tsx registered in src/router.tsx and .ued/screens.json), served over HTTP via pnpm dev. NOT a single static .html mockup.",
+      "files": [],
+      "expectations": [
+        "The prototype is authored as .tsx React components under src/ (e.g. src/screens/<id>/index.tsx), not as a standalone static .html file.",
+        "A new screen is registered through the workflow: a route in src/router.tsx plus an entry appended to .ued/screens.json.",
+        "The workspace is served over HTTP (pnpm dev) for live preview rather than handed off as a flat file.",
+        "The skill's anti-pattern 'Don't generate static HTML mockups' is honored — no .html mockup is produced as the deliverable."
+      ]
+    },
+    {
+      "id": 2,
+      "name": "theme-colors-via-classname-not-inline-style",
+      "prompt": "把首页主按钮换成品牌强调色，卡片背景用表面色。",
+      "expected_output": "Color changes are applied via Tailwind className tokens that map through the theme (bg-accent / text-foreground / bg-surface, or bg-[var(--ued-...)]), NOT via inline style={{ background / color }} — because inline style overrides className and silently breaks the inspect overlay's className edits.",
+      "files": [],
+      "expectations": [
+        "Background and text colors are set with className tokens (e.g. bg-accent, bg-surface, text-foreground) rather than inline style={{ background: ... }} / style={{ color: ... }}.",
+        "No theme color is placed in a style={{}} prop, consistent with the className-first rule.",
+        "The chosen classes resolve to theme tokens (the @theme-mapped vars / tokens.css), keeping a single source of truth for color.",
+        "The reasoning ties back to keeping the Step-4 inspect overlay (which only edits className) functional."
+      ]
+    }
+  ]
+}

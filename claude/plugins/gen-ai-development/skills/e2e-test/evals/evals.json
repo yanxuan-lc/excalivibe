@@ -6,28 +6,51 @@
       "name": "web-gui-register-flow-with-db",
       "prompt": "前端是 React + Playwright，后端服务已经在本地跑着。帮我跑一下注册流程的端到端：在网页上填邮箱密码点注册，确认页面跳到了首页，并且 MySQL 的 users 表里这个邮箱的新用户确实写进去了（is_deleted=0、created_time 有值）。",
       "expected_output": "Detects Playwright config/scripts, runs the existing register e2e (scoped to the flow), asserts the UI navigation, then connects to MySQL via env vars and SELECTs the users row for that email — checking existence, is_deleted=0, created_time populated. Reports interface + DB verification table. Does not boot the app or mutate the table.",
-      "files": []
+      "files": [],
+      "expectations": [
+        "Detects the Playwright config/scripts and runs the existing register e2e scoped to that flow, asserting the UI navigation to the home page",
+        "Connects to MySQL via env vars and SELECTs the users row for that email, checking existence plus is_deleted=0 and a populated created_time",
+        "Reports both halves as an interface + DB verification table",
+        "Does NOT boot the app (it is already running) and does NOT mutate the users table"
+      ]
     },
     {
       "id": 1,
       "name": "api-only-create-order-with-db",
       "prompt": "只测下单接口的端到端就行，不用走 UI。服务跑在 $API_BASE_URL。调 POST /orders 下单，验证返回 201 且 body 里有 order_no，然后确认 PostgreSQL 里 orders 和 order_item 两张表写入正确、金额是对的。",
       "expected_output": "Runs in API-only mode: discovers the project's API e2e runner, calls POST /orders against the env base URL, asserts 201 + response body, then verifies PostgreSQL orders + order_item rows (scoped by order_no), checks decimal amounts and row counts, accounts for async writes by polling. Reports both halves.",
-      "files": []
+      "files": [],
+      "expectations": [
+        "Runs in API-only mode (no UI): discovers the project's API e2e runner and calls POST /orders against $API_BASE_URL",
+        "Asserts HTTP 201 and that the response body contains order_no",
+        "Verifies the PostgreSQL orders and order_item rows scoped by order_no, checking decimal amounts and row counts",
+        "Accounts for async writes by polling rather than reading once, and reports both the interface and DB halves"
+      ]
     },
     {
       "id": 2,
       "name": "flutter-emulator-integration-test",
       "prompt": "我们的 App 是 Flutter 的，integration_test 已经写好了。在安卓模拟器上跑一下收藏功能的端到端，验证点收藏后列表更新、后端 favorites 表里有这条记录。模拟器我可能还没开。",
       "expected_output": "Selects/launches an Android emulator (flutter emulators / adb devices), runs the existing integration_test (flutter test integration_test or flutter drive, pinned with -d), asserts the in-app result, then verifies the backend MySQL/PG favorites row. Surfaces a precondition failure clearly if no device is available rather than faking a pass.",
-      "files": []
+      "files": [],
+      "expectations": [
+        "Selects or launches an Android emulator (via flutter emulators / adb devices) before running, since the user said the emulator may not be up",
+        "Runs the existing integration_test (flutter test integration_test or flutter drive) pinned to the device with -d, and asserts the in-app list update after favoriting",
+        "Verifies the backend favorites row in MySQL/PG for that record",
+        "If no device is available, surfaces the precondition failure clearly rather than faking a pass"
+      ]
     },
     {
       "id": 3,
       "name": "tauri-desktop-on-macos-constraint",
       "prompt": "桌面端是 Tauri 做的，帮我在本机（我用的 Mac）跑下设置页保存的端到端 GUI 测试，确认保存后 settings 表更新了。",
       "expected_output": "Recognizes that tauri-driver does not support macOS (WKWebView has no WebDriver), reports this constraint up front, and offers alternatives (run on Linux/Windows/CI, or switch to API-mode e2e) instead of attempting a GUI run that cannot work. Does not fabricate a result.",
-      "files": []
+      "files": [],
+      "expectations": [
+        "Recognizes that tauri-driver does not support macOS because WKWebView has no WebDriver, and reports this constraint up front",
+        "Offers concrete alternatives (run the GUI test on Linux/Windows/CI, or switch to API-mode e2e) instead of attempting a macOS GUI run",
+        "Does not attempt the GUI run anyway and does not fabricate a pass/settings-table result"
+      ]
     }
   ]
 }
