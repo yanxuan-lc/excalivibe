@@ -114,7 +114,12 @@ Phase notes:
   4. Repeat until a round produces no new findings and no new failures.
 - **merge → dev** follows the vcs-workflow skill; the gate below must hold first.
 - **archive + docs**: after merge, run `openspec archive` and curate documentation
-  per the docs-guideline skill. The pipeline is not done at merge.
+  per the docs-guideline skill. The pipeline is not done at merge. Then **clear the
+  transient review reports**: once Gate 4 has consumed it, the change's
+  `docs/code-review/<datetime>/` directory is a spent process byproduct, not as-built
+  knowledge — `docs/code-review/` is **not** part of the maintained docs tree and must
+  not accumulate. Delete the directory; the verdict summary already lives in the
+  PIPELINE.md `code-review` line, so nothing is lost.
 
 ## Human Checkpoint — the Four Contracts 【强制】
 
