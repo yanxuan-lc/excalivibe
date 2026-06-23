@@ -3,3 +3,6 @@
 node_modules/
 .venv/
 __pycache__/
+
+# zread generated wiki (derivable build artifact, regenerate with `zread generate`)
+.zread/
