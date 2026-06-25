@@ -152,5 +152,5 @@ pub struct UserService {
 - **`impl` blocks**: one for inherent methods, separate ones for each trait implementation.
 - **`derive` order**: `Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize` — consistency aids readability.
 - **Builder pattern** for structs with many optional fields instead of constructors with many parameters.
-- **`cfg(test)` inline tests** for unit tests. Integration tests go in `tests/`.
+- **Unit tests** default to inline at the bottom of the source file: `#[cfg(test)] mod tests { ... }` with `use super::*;`. Co-locating tests with the code they exercise is the idiomatic Rust convention and keeps them visible when editing the implementation. When a test module grows large enough to crowd the file — roughly when the tests outweigh the production code or the file pushes past ~400 lines — split it into a sibling submodule file with `#[cfg(test)] mod tests;`, which resolves to `<module>/tests.rs` (or a `<module>/tests/` directory for further splitting). It stays the same `tests` submodule with `use super::*` access to private items; do **not** use `#[path]` or dot-named files like `foo.test.rs` — that is not a Rust convention and confuses tooling. Integration tests go in the crate's top-level `tests/`.
 - **Avoid `String` in struct fields when `&str` or `Cow<str>` suffices** — but do not over-optimize at the cost of ergonomics.
