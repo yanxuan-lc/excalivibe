@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
 # Stable content fingerprint of an OpenSpec change's spec inputs — the
-# freshness stamp REVIEW.md records in its header and Gate 1 re-checks.
+# freshness stamp REVIEW.md records in its header and the human-confirm gate re-checks.
 #
 # Usage: spec-hash.sh <openspec/changes/<id>/>
 #
-# Contract for callers (planner / Gate 1):
+# Contract for callers (planner / the human-confirm gate):
 #   - exit 0  → stdout is exactly one 12-hex-char fingerprint
 #   - exit ≠0 → FAILURE; stdout carries no fingerprint and must not be used
 #   Always check the exit code before consuming stdout.
@@ -40,7 +40,7 @@ find . -type f -name '*.md' \
   ! -name 'e2e-report.md' \
   -print0 | LC_ALL=C sort -z > "$LIST"
 
-# An empty spec set must FAIL, not hash to the empty-string digest — Gate 1
+# An empty spec set must FAIL, not hash to the empty-string digest — the human-confirm gate
 # could not tell that apart from a legitimate fingerprint.
 [ -s "$LIST" ] || { echo "error: no spec input files under $DIR" >&2; exit 2; }
 

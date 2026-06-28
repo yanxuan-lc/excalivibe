@@ -44,7 +44,7 @@ allowed-tools: Bash, Read, Write, Edit, Skill, Agent
 
 **列出 Subagent**（按以下顺序执行）：
 
-1. Plugin 级 Subagent：以当前会话系统提示中列出的为准（本插件自带 `researcher` / `planner` / `arch-reviewer` / `developer` / `quality-assurance` / `code-reviewer` / `e2e-runner`，安装后即可用）。
+1. Plugin 级 Subagent：以当前会话系统提示中列出的为准（本插件自带 `researcher` / `planner` / `arch-reviewer` / `developer` / `qa-author` / `code-reviewer` / `e2e-runner` / `debugger` / `release-coordinator`，安装后即可用）。
 2. 用户级 Subagent：`Bash` 执行 `ls ~/.claude/agents/ 2>/dev/null` 列出文件名，并对每个文件 `Read` 取 frontmatter 中的 `name` / `description`。
 3. 项目级 Subagent：`Bash` 执行 `ls .claude/agents/ 2>/dev/null`，同样读取 frontmatter。
 4. 内置 Subagent（如 `general-purpose`、`Explore`、`Plan` 等）按当前会话系统提示中列出的为准；不要凭记忆补充。
@@ -59,12 +59,14 @@ allowed-tools: Bash, Read, Write, Edit, Skill, Agent
 | 名称 | 来源 | 触发场景 | 不要用于 |
 |------|------|----------|----------|
 | researcher | plugin (gen-ai-development) | research-pipeline 派发的调研执行单元；快速 scoped 查证 | 直接面向用户的调研入口（用 research-pipeline）；广域 web 扫描（主 Agent 调 deep-research） |
-| planner    | plugin (gen-ai-development) | 走 OpenSpec 流程提案新功能 | 单文件修复 |
-| arch-reviewer | plugin (gen-ai-development) | spec 含 DDL / 新接口 / 跨模块时，apply 前设计审查 | 纯逻辑小 spec（跳过留痕）；审实现代码 |
-| developer  | plugin (gen-ai-development) | OpenSpec apply 阶段的 TDD 实施 | 缺少 spec 时禁用；e2e 测试代码 |
-| quality-assurance | plugin (gen-ai-development) | spec 声明脚本化载体后写 e2e 测试代码（与 developer 并行） | 改产品代码；agent 驱动载体的变更 |
-| code-reviewer | plugin (gen-ai-development) | merge 进 dev 前的增量审查（门禁）；全量仅显式要求 | 一次性脚本 |
-| e2e-runner | plugin (gen-ai-development) | 实施+QA 交付后的 E2E 验收（先拉起应用） | 单测验证；写/改任何代码 |
+| planner    | plugin (gen-ai-development) | 走 OpenSpec 流程提案新功能 / 大重构（写四契约 spec） | 单文件修复；实现代码 |
+| arch-reviewer | plugin (gen-ai-development) | spec 含 DDL / 新接口 / 跨模块时，实施前设计审查 | 纯逻辑小 spec（跳过留痕）；审实现代码（那是 code-reviewer） |
+| developer  | plugin (gen-ai-development) | spec 已就绪的 TDD 实施（产品代码 + 单测） | 缺少 spec 时禁用；e2e 测试代码 |
+| qa-author | plugin (gen-ai-development) | spec 声明脚本化载体后写 e2e 测试代码（与 developer 并行） | 改产品代码；agent 驱动载体的变更 |
+| code-reviewer | plugin (gen-ai-development) | merge 进 dev 前的增量审查（门禁，两判定）；全量仅显式要求 | 一次性脚本；审设计（那是 arch-reviewer） |
+| e2e-runner | plugin (gen-ai-development) | 实施 + QA 交付后的 E2E 验收（先拉起应用） | 单测验证；写 / 改任何代码 |
+| debugger | plugin (gen-ai-development) | bug / 失败 / 栈回溯出现时的假设驱动调试 | spec 创建；无 bug 背景的功能实现（只诊断 + 写红回归测试，不改产品码） |
+| release-coordinator | plugin (gen-ai-development) | 发布准备（SemVer 决策、版本同步点核验、release notes 草稿） | 执行 merge/push/publish（不可逆动作由主 Agent 在用户同意下做） |
 | Explore    | built-in | 跨多文件的代码定位与"在哪定义" | 已知路径直接 Read |
 | Plan       | built-in | 设计实施方案 | 单行修改 |
 | general-purpose | built-in | 多步开放式搜索/调研 | 单次明确查找 |
@@ -75,16 +77,18 @@ allowed-tools: Bash, Read, Write, Edit, Skill, Agent
 
 - **并行原则**：多个独立子任务一次性发起多个 `Agent` 调用。
 - **理解不外包**：不要把"基于结果再修复"的判断完全交给 Subagent；主 Agent 必须读关键文件并做综合。
-- **复杂研发按 `gen-ai-development:dev-pipeline` skill 编排**：分流决策、相位顺序、人工检查点、merge 门禁、PIPELINE.md 状态落盘均以该 skill 为准，CLAUDE.md 里只写这条指针，不复制内容。
+- **研发按 `gen-ai-development:autonomy-controller` skill 编排**：三信号分类、自治档位、轨道组装、按档位定门、按强度验证、`PIPELINE.md` 状态落盘均以该 skill 为准，CLAUDE.md 里只写这条指针，不复制内容。
 - **调研需求按 `gen-ai-development:research-pipeline` skill 编排**：澄清、确认、追问都在主 Agent；`researcher` 仅作为执行单元被派发。
+- **改 skill / agent / command / prompt / 文档本身不算研发**，不走上面的编排（以 skill-creator 为权威轨道）。
 - **场景匹配示例**（结合本项目，每条 1 行）：
   - 改动跨 ≥3 文件且不确定影响面 → 先 `Explore`
   - 调研 / 对比 / 可行性 → `research-pipeline` skill（researcher 仅执行单元）
   - 提议新模块 / 大重构 → `planner` 走 OpenSpec
-  - spec 含 DDL / 新接口 → apply 前 `arch-reviewer` 设计审查
-  - 实施已通过 spec 的需求 → `developer`（TDD）∥ `quality-assurance`（e2e 测试代码）
+  - spec 含 DDL / 新接口 → 实施前 `arch-reviewer` 设计审查
+  - 实施已通过 spec 的需求 → `developer`（TDD）∥ `qa-author`（e2e 测试代码）
+  - bug / 失败 / 栈回溯 → `debugger` 假设驱动调试
   - merge 进 dev 前 → `code-reviewer`（增量）∥ `e2e-runner`（验收），同消息并行
-  - UI / 集成路径变更 → `e2e-runner`
+  - 发布准备 → `release-coordinator`（只准备，主 Agent 在用户同意下执行）
 
 ## Step 4 — 校对与收尾
 

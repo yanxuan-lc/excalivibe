@@ -1,6 +1,6 @@
 ---
 name: research-pipeline
-description: The gen-ai-development research orchestration pipeline — how the main agent runs a research task end to end: Socratic clarification with the user (AskUserQuestion), conclusion confirmation, a research plan that routes subtasks to deep-research / researcher subagents / inline answers, parallel dispatch, and synthesis into a dated topic folder under docs/research/ (REPORT.md + PROPOSAL.md). Use this skill whenever the user wants something researched, investigated, compared, or feasibility-checked — "调研一下X", "对比A和B", "这个方案可行吗", "帮我看看这些资料" — and when running the research phase of the dev-pipeline. For a single hands-on probe of ONE source, the method skills (research-source-code / research-data-source / research-api) apply directly; this pipeline is for multi-subtask or comparative research that needs clarification, routing, and synthesis. All user interaction stays in the main agent here; researcher subagents are pure executors that cannot ask the user anything.
+description: The gen-ai-development research orchestration pipeline — how the main agent runs a research task end to end: Socratic clarification with the user (AskUserQuestion), conclusion confirmation, a research plan that routes subtasks to deep-research / researcher subagents / inline answers, parallel dispatch, and synthesis into a dated topic folder under docs/research/ (REPORT.md + PROPOSAL.md). Use this skill whenever the user wants something researched, investigated, compared, or feasibility-checked — "调研一下X", "对比A和B", "这个方案可行吗", "帮我看看这些资料" — and when running the research phase of the autonomy-controller. For a single hands-on probe of ONE source, the method skills (research-source-code / research-data-source / research-api) apply directly; this pipeline is for multi-subtask or comparative research that needs clarification, routing, and synthesis. All user interaction stays in the main agent here; researcher subagents are pure executors that cannot ask the user anything.
 ---
 
 # Research Pipeline — Orchestration for the Main Agent
@@ -11,7 +11,7 @@ subagent is a **pure execution unit** — it receives a scoped question, probes,
 returns structured findings; it never talks to the user. That split is the point:
 subagents cannot ask the user anything, so everything interactive lives here.
 
-This is the expansion of the dev-pipeline's research phase, and also stands alone
+This is the expansion of the autonomy-controller's research phase, and also stands alone
 for research not attached to any development change. Output contract is unchanged:
 `docs/research/<YYYY-MM-DD_HH-mm-ss>-<topic>/REPORT.md + PROPOSAL.md`, with
 PROPOSAL.md consumable by planner / `opsx:propose`.
@@ -105,7 +105,7 @@ conflict and each holds only a partial view).
    you to persist). Review and edit the drafts yourself before presenting — the
    synthesis agent didn't sit in the conversation; you did.
 5. Present the user the key points and the artifact paths. If this ran as a
-   dev-pipeline phase, tick the research row in PIPELINE.md with the path.
+   autonomy-controller phase, tick the research row in PIPELINE.md with the path.
 
 ## Ground Rules
 

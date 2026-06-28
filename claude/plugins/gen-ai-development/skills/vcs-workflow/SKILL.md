@@ -88,7 +88,7 @@ git fetch --prune
 Interrupt and fix before continuing if you observe:
 
 - **Editing files directly on `main` or `dev`.** Even "one-line" fixes. Move the work to a `feat/` branch (`git stash` → worktree → `stash pop` if edits already exist).
-- **Merging a pipeline-tracked change into `dev` with its gates open.** If the work belongs to an in-flight `openspec/changes/<id>/`, the merge gate must hold first: the review CHECKLIST's P0/P1 items all Resolved, and the e2e report on disk, all green, scenario coverage complete (see the `dev-pipeline` skill's gate details). A merge that skips these ships unverified state into the integration branch — stop and complete the gates.
+- **Merging a pipeline-tracked change into `dev` with its gates open.** If the work belongs to an in-flight `openspec/changes/<id>/`, the merge gate must hold first: the review CHECKLIST's P0/P1 items all Resolved, and the e2e report on disk, all green, scenario coverage complete (see the `autonomy-controller` skill's gate details). A merge that skips these ships unverified state into the integration branch — stop and complete the gates.
 - **A publish about to run from anything other than a fresh-pulled `main`.** See [references/release.md](references/release.md) — publishing from `dev`/`feat`/a dirty tree ships unreviewed state irreversibly.
 - **A version bump that doesn't move all of the repo's version sync points together** (manifest + package.json + lockfile + marketplace entry…). Grep the old version string before committing the bump.
 - **A version that isn't valid SemVer, or the wrong increment for the change** (breaking change shipped as a patch, version reused or decreased). Increment rules in [references/release.md](references/release.md).
