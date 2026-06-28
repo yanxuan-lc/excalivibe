@@ -6,6 +6,15 @@
 
 > **状态：2.0，已替代并移除 1.x。** 插件名 `gen-ai-development`，版本 `2.0.0`，skill 命名空间为 `gen-ai-development:*`。Claude 与 Codex 两端均已切到 2.0，走同一主流程；仅 harness primitives 各自最优（见下文 Agents / 兜底安全网两节）。
 
+## 快速开始（每个项目一次性 onboarding）
+
+1. **安装并启用插件**（marketplace）。规约 / 功能 skill 按 description 自动触发。（Codex 侧**无 hook**——不可逆动作的兜底依赖 Codex 运行时的 trust / 审批机制，见下文「兜底安全网」。）
+2. **安装 subagent**：9 个 agent 以 `codex/agents/*.toml` 分发、**不随插件打包**，需复制到 Codex agents 目录（详见 [../../agents/README.md](../../agents/README.md)）：`cp codex/agents/*.toml ~/.codex/agents/`（或项目级 `.codex/agents/`）。
+3. **`project-init`** skill —— 给当前项目写 `AGENTS.md`：编排指针（按 `autonomy-controller` 走）+ 登记 9 个 agent。
+4. **`setup-gen-ai`** skill —— 合并子代理写盘的 allow 规则，让 autonomy-controller 无人值守派发的子代理也能稳定落盘门禁产物。⚠️ 权限在会话启动时加载，跑完**重开会话**才完全生效。
+
+> 两个 setup 命令以 skill 形式提供，**幂等**，可安全重跑。
+
 ## 核心架构
 
 ### 三层（划分原则：功能 skill 永远不知道流水线存在）
