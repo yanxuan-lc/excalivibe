@@ -24,6 +24,42 @@ Before starting, identify the language/stack in play and open the corresponding 
 
 For the `[debug:<id>]` tag convention and cleanup procedure, see [references/common/cleanup.md](references/common/cleanup.md).
 
+## Phase 0 — Establish the reproduction signal (before any loop)
+
+A debug loop is only as good as its reproduction. Before routing to a loop, secure ONE
+reproduction command that is **red-capable, deterministic, fast, and agent-runnable** — it
+must fail *now*, on the exact symptom, without a human in the loop. If one already exists (a
+failing test, a known CLI invocation, the reproduce command in the stack reference guide),
+use it and go to Triage. If not, **manufacture one**, preferring the tightest signal
+available:
+
+1. A failing test at whatever seam reaches the bug (unit / integration / e2e)
+2. A `curl` / HTTP script against a dev server
+3. A CLI invocation with fixture input, diffed against a known-good snapshot
+4. A headless-browser script (delegate browser symptoms to the `graceful-browser` skill)
+5. Replay of a captured trace (a saved request / payload / event log)
+6. A throwaway harness exercising the minimal subset that hits the bug path
+7. A property / fuzz loop (many random inputs to surface the failure mode)
+8. A bisection harness between a known-good and a known-bad commit
+
+Then **shrink it**: cut inputs, callers, and config one at a time until you have the
+smallest scenario that is still red. A 2-second deterministic loop is a debugging
+superpower; a 30-second flaky one is barely better than nothing.
+
+**Non-deterministic / flaky bugs** — the goal is not a clean repro but a *raised*
+reproduction rate: loop the trigger 100×, parallelise, add stress, narrow timing windows,
+inject sleeps. A 50%-flake bug is debuggable; a 1% one is not — invest here before
+theorising. (This is exactly the signal the flaky-bug reproduce step needs.)
+
+**Then rank 3–5 hypotheses, not one.** Before probing, list the candidate root causes
+ordered by likelihood, each with an explicit prediction ("if X is the cause, then changing
+Y makes the bug disappear"). Ranking up front beats anchoring on the first idea. The
+hypothesis-driven loops (A and C) test them one at a time, re-ranking as evidence
+arrives; Loop B instead converges on the exit-code signal directly.
+
+**No reproduction signal → no hypothesis, no probes.** Manufacturing the loop is most of
+the fix.
+
 ## Triage — Choose a Loop
 
 Read the symptom, then route to the correct loop:
@@ -45,7 +81,7 @@ Use when the behaviour is wrong but no test or exit-code signal points to the ca
 
 ### Steps
 
-1. **Form a hypothesis.** State the suspected root cause in one sentence before adding any probes. Do not add logging without a hypothesis.
+1. **Take the top hypothesis** from your ranked list (Phase 0), stated in one sentence, before adding any probes. Do not add logging without a hypothesis; if it is refuted, drop to the next ranked hypothesis (re-ranking as evidence arrives) rather than piling on probes.
 
 2. **Choose a session id.** Pick a short kebab-case identifier for this session (e.g., `null-ref-login`). All probes for this session use the same `[debug:<session-id>]` tag.
 

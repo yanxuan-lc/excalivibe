@@ -15,7 +15,7 @@ Each `*.toml` carries:
 No `model` and no per-agent `effort` are set — agents inherit the session default
 for both (Codex tunes reasoning effort at the session/config level via
 `model_reasoning_effort`, not per agent; the Claude side pins `effort` per agent —
-`e2e-runner` low, `quality-assurance`/`researcher` medium, the rest high). The
+`e2e-runner` low, `qa-author`/`researcher` medium, the rest high). The
 Claude-only `color` / `memory` / `tools` frontmatter fields were dropped.
 
 ## Install
@@ -30,14 +30,16 @@ cp codex/agents/*.toml ~/.codex/agents/
 cp codex/agents/*.toml .codex/agents/
 ```
 
-## The 7 roles
+## The 9 roles
 
 | Agent | Sandbox | Role |
 |---|---|---|
 | `planner` | read-write | Upstream: draft/refine OpenSpec proposals & specs (propose flow). |
-| `arch-reviewer` | read-only | Review the spec/design BEFORE implementation (apply gate). |
+| `arch-reviewer` | read-only | Review the spec/design BEFORE implementation (the AI design pre-check feeding the architecture gate). |
 | `developer` | read-write | Implement a confirmed spec via strict TDD (apply phase). |
-| `quality-assurance` | read-write | Author e2e test code from the spec's scenarios; produce `e2e-manifest.md`. |
+| `qa-author` | read-write | Author e2e test code from the spec's scenarios; produce `e2e-manifest.md`. Never touches product code. |
 | `e2e-runner` | read-only | Execute e2e verification, verify DB writes, write the acceptance report (merge gate). |
-| `code-reviewer` | read-only | Code-quality review (incremental / full); produce the review report (merge gate). |
+| `code-reviewer` | read-only | Code-quality review (incremental / full, two verdicts); produce the review report (merge gate). |
+| `debugger` | read-write | Hypothesis-driven debugging; produce `HYPOTHESIS.md` + a failing regression test (diagnoses only — does not change product code). |
+| `release-coordinator` | read-write | PREPARE a release (SemVer, version sync-point check, notes, evidence). Never executes merge/push/publish — the main agent does, with user consent. |
 | `researcher` | read-only | Execution unit for research: investigate one sub-question, or synthesize findings. |

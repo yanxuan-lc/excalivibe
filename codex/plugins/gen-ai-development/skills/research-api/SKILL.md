@@ -32,7 +32,7 @@ Try the common spec/debug surfaces before hand-crafting calls — a machine-read
 
 - OpenAPI/Swagger JSON: `/openapi.json`, `/v3/api-docs`, `/swagger.json`, `/swagger/v1/swagger.json`
 - Swagger UI / Redoc pages: `/swagger`, `/swagger-ui`, `/docs`, `/redoc`, `/api-docs`
-- Fetch the spec with **WebFetch** or `curl`; for an interactive Swagger UI "Try it out" flow, drive it via the `graceful-browser` skill (claude --chrome → chrome-devtools MCP → Playwright MCP, in that order).
+- Fetch the spec with **WebFetch** or `curl`; for an interactive Swagger UI "Try it out" flow, drive it via the `graceful-browser` skill (Codex's native browser (@Chrome / @Browser) → chrome-devtools MCP → Playwright MCP, in that order).
 
 Parse the spec for the endpoints in scope: path, method, params, request/response schemas, auth requirements.
 

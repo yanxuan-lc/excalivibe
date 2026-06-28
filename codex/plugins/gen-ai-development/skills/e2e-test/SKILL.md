@@ -49,10 +49,12 @@ Keep each step cheap and fast: prefer a **text read** (get-page-text) over a
 screenshot for assertions, **batch** an action with its observation where the tool
 allows, and **wait on a condition** (element/text appears) rather than a fixed
 sleep — fixed sleeps are the main reason an agent-driven pass feels slow. When this
-mode is being invoked under the dev-pipeline and a *large fraction* of scenarios
-would need it (the pipeline's threshold: non-scripted `> 5` or `≥ 20%`), that is a
-signal to **escalate to the user** rather than grind through — see the dev-pipeline
-skill's `references/e2e-manifest.md` (Automation-coverage escalation).
+mode is being invoked under the autonomy-controller and a *large fraction* of scenarios
+would need it (the threshold: non-scripted `> 5` or `≥ 20%`), that is a
+signal to **escalate to the user** rather than grind through — this `> 5` / `≥ 20%`
+threshold is the `qa-author` agent's non-scripted-ratio flag, surfaced via its
+`e2e-manifest.md`; the `autonomy-controller` skill (Step 7) governs verification
+intensity more broadly.
 
 ## Platform Routing (GUI mode)
 

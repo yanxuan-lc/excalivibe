@@ -49,8 +49,8 @@ Read only what is relevant — do not load all reference files at once.
 - **Approval fork** — two run contexts, two rules:
   - *Standalone* (user asked for TDD directly in the main session): pause and get
     user approval before writing code.
-  - *Within OpenSpec apply* (developer agent, spec already user-confirmed via
-    spec-confirm): the approval has already happened — do NOT pause; proceed
+  - *Within OpenSpec apply* (developer agent, spec already user-confirmed at the
+    human-confirm checkpoint): the approval has already happened — do NOT pause; proceed
     straight to the Tracer Bullet.
 
 ### 2. Tracer Bullet
@@ -62,13 +62,20 @@ Write ONE test, make it pass, refactor if needed. This proves the path works end
 For each remaining behavior:
 
 ```
-RED:      Write next test → run tests → new test fails, others pass
-GREEN:    Write minimal code to pass → run tests → all pass
+RED:      Write next test → run tests → it FAILS for the expected reason
+          (behavior is missing — NOT a typo / import / compile error; if it errors
+          instead of failing, fix the test first, then re-run until it fails cleanly)
+GREEN:    Write minimal code to pass → run tests → all pass, output pristine
+          (no new errors or warnings)
 REFACTOR: Check candidates (see references/common/design.md) → run tests → all pass
 ```
 
 **Rules:**
 - One test at a time. Never batch-write tests.
+- **Watch it fail for the right reason.** A test that passes immediately, or that fails
+  with an error instead of the expected assertion, proves nothing. If you didn't watch it
+  fail for the expected reason, you don't know it tests the right thing — fix the test
+  until it fails cleanly before writing any production code.
 - Write only the code needed to pass the current test — no speculative features.
 - Never refactor while RED. Get to GREEN first, then improve.
 - Run the full test suite after every change, not just the new test.
