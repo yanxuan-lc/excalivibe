@@ -32,7 +32,7 @@ Fetch the spec:
 curl -sS --max-time 15 "$BASE/openapi.json" | jq '.info, (.paths | keys)'
 ```
 
-Or use **WebFetch** on the spec URL for a summarized read. For an interactive Swagger UI where you want to click "Try it out", drive it via the `graceful-browser` skill (claude --chrome → chrome-devtools MCP → Playwright MCP, in that order).
+Or use **WebFetch** on the spec URL for a summarized read. For an interactive Swagger UI where you want to click "Try it out", drive it via the `graceful-browser` skill (Codex's native browser (@Chrome / @Browser) → chrome-devtools MCP → Playwright MCP, in that order).
 
 From the spec, pull for each endpoint in scope: path, method, parameters (path/query/body), request & response schemas, and the security scheme (auth) it requires.
 

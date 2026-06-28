@@ -4,14 +4,18 @@
     {
       "id": 0,
       "name": "generate-review-doc-from-spec",
-      "prompt": "openspec/changes/add-user-quota/ 的 spec 已经过 arch-review 闭环了，帮我准备给用户做 spec-confirm 确认的人审材料。",
-      "expected_output": "Generates openspec/changes/add-user-quota/REVIEW.md following the template: four contracts in the order 模块设计 → 外部协议 → 数据库设计 → 用例设计, header metadata table with a real spec-hash.sh output (not invented) and date-command timestamp, absent contracts explicitly marked in the overview table, tables/mermaid/DDL-style presentation rather than prose, ending with the pointer table and per-item confirmation checklist. Stays concise (one-screen-scroll scale; key-decision prose ≤1 paragraph per section) — an over-long REVIEW.md that dumps spec-level detail is a fail. Then points the user at the REVIEW.md file path with a short digest in conversation, rather than generating HTML or any other derived view.",
+      "prompt": "openspec/changes/add-user-quota/ 的 spec 已经过 arch-review 闭环了，帮我准备给用户做架构门评审（spec-confirm）的人审材料。",
+      "expected_output": "Generates openspec/changes/add-user-quota/REVIEW.md following the template's FOUR-LAYER structure (not the old four-contract ordering): ① framing (background / goals-non-goals / constraints) → ② structure = §0 domain model (bounded context, aggregates & invariants with their enforcement strength, state machine, ER relations) PLUS the four contracts §1 module design / §2 interface design / §3 database design / §4 use cases → ③ key-decisions layer in ADR format where EACH decision shows alternatives + chosen option + cost/trade-off (a bare conclusion with no alternatives is a fail) → ④ cross-cutting quality where each triggered concern is written as a testable scenario (当 condition / 则 response / 度量 measurable) plus its trade-off. Header metadata table (6 rows incl. 关键度+自治档位 and Arch-review status) carries a real scripts/spec-hash.sh output (not invented, 12 hex) and a date-command timestamp; absent contracts/layers are explicitly marked in the overview table with their number kept. Obeys the THREE hard requirements: content-form priority diagram(UML/mermaid) > table > DSL(```sql/```jsonc) > prose (structure/relations/state/sequence rendered as mermaid erDiagram/classDiagram/stateDiagram-v2/sequenceDiagram/flowchart; parallel attributes as tables; precise contracts as ```sql/```jsonc; prose ONLY for each decision's rationale, ≤1 paragraph); self-contained (assumes the reader has NOT read the spec/proposal — every domain noun/system name explained in one line on first use); bilingual terms on first occurrence 「中文（English）」. Scales to the depth dial (novel-core = full; supporting/generic write less; absent layers one line). Treats this as the ARCHITECTURE GATE read before code: behavioral-intent decisions (e.g. hard-block vs buffer on overage) are NOT decided here — they are parked '→ 留意图门（对运行切片确认）'. Stays concise (key-decision rationale ≤1 paragraph; no spec-level detail dump). Then points the user at the REVIEW.md file path with a short digest in conversation, rather than generating HTML or any other derived view.",
       "files": [],
       "expectations": [
-        "Writes openspec/changes/add-user-quota/REVIEW.md with the four contracts in the order 模块设计 → 外部协议 → 数据库设计 → 用例设计",
-        "Header metadata table carries a real scripts/spec-hash.sh output and a date-command timestamp, not invented values; absent contracts are explicitly marked in the overview table",
-        "Presents content as tables / Mermaid / DDL blocks rather than prose, and stays concise (one-screen scale, ≤1 paragraph of prose per section) — an over-long detail dump is a fail",
-        "Ends with the deep-dive pointer table back to the spec and a per-item confirmation checklist",
+        "Writes openspec/changes/add-user-quota/REVIEW.md in the four-LAYER structure: ① framing → ② structure (§0 domain model + the four contracts §1 module / §2 interface / §3 database / §4 use cases) → ③ key decisions (ADR layer) → ④ cross-cutting quality — NOT the old flat four-contract ordering",
+        "§0 domain model is present for this novel-core change (bounded context, aggregates & invariants WITH enforcement strength strong/eventual-consistency, state machine, ER relations), and the four contracts are evaluated relative to it",
+        "③ key-decisions layer uses ADR format: each decision shows alternatives + chosen option + explicit cost/trade-off — a bare conclusion without alternatives and cost is a fail",
+        "④ cross-cutting concerns are each written as a testable scenario (当 condition / 则 architectural response / 度量 measurable threshold) plus its trade-off — vague 'must be fast/secure' is a fail",
+        "Honors the three hard requirements: (a) content-form priority diagram(mermaid) > table > DSL(```sql/```jsonc) > prose, with structure/relations/state/sequence as mermaid and prose reserved for decision rationale ≤1 paragraph; (b) self-contained — explains every domain noun/system name in one line on first use, assuming the reader has not read the spec; (c) bilingual terms on first occurrence 「中文（English）」",
+        "Header metadata table carries a real scripts/spec-hash.sh output (12 hex, not invented) and a date-command timestamp, includes 关键度 + 自治档位 and the Arch-review status row, and scales content to the depth dial; absent contracts/layers are explicitly marked in the overview table with their number kept",
+        "Frames it as the architecture gate read BEFORE code: behavioral-intent decisions (e.g. monthly-overage hard-block vs buffer) are parked '→ 留意图门（对运行切片确认）', not decided in REVIEW.md",
+        "Stays concise (one-screen scale, ≤1 paragraph of prose per decision) and ends with the deep-dive pointer table back to the spec plus a per-item confirmation checklist (including the intent-gate parked item)",
         "Points the user at the REVIEW.md file path plus a short digest in conversation, and does NOT generate HTML or any other derived view"
       ]
     },
@@ -19,20 +23,20 @@
       "id": 1,
       "name": "feedback-routes-to-spec-not-review-md",
       "prompt": "用户看了 REVIEW.md 之后说数据库那节的 quota_limit 字段应该用 BIGINT 不是 INT，帮我改一下 REVIEW.md。",
-      "expected_output": "Refuses to edit REVIEW.md directly despite being asked to. Routes the change into the spec (planner revision of the actual spec artifacts), then regenerates REVIEW.md from the updated spec with a fresh spec-hash stamp. Explains why: REVIEW.md is a one-way derived view; editing it directly creates a second source of truth and the Gate 1 freshness check exists precisely to catch this.",
+      "expected_output": "Refuses to edit REVIEW.md directly despite being asked to. Routes the change into the spec (planner revision of the actual spec artifacts), then regenerates REVIEW.md from the updated spec with a fresh spec-hash stamp. Explains why: REVIEW.md is a one-way derived view (the architecture-gate human-review document); editing it directly creates a second source of truth and the architecture-gate freshness check exists precisely to catch this.",
       "files": [],
       "expectations": [
         "Refuses to edit REVIEW.md directly even though the user asked for exactly that",
         "Routes the quota_limit INT→BIGINT change into the spec artifacts (planner revision), not into REVIEW.md",
         "Regenerates REVIEW.md from the updated spec with a fresh spec-hash stamp afterward",
-        "Explains the why: REVIEW.md is a one-way derived view, editing it creates a second source of truth, and the Gate 1 freshness check exists to catch this"
+        "Explains the why: REVIEW.md is a one-way derived view, editing it creates a second source of truth, and the architecture-gate freshness check exists to catch this"
       ]
     },
     {
       "id": 2,
       "name": "present-existing-review-md",
       "prompt": "把 openspec/changes/add-user-quota/REVIEW.md 给我看一下。",
-      "expected_output": "First verifies freshness via scripts/spec-hash.sh against the header stamp, then gives the user the REVIEW.md file path to open in their own markdown viewer plus a short digest in conversation. Does NOT generate HTML, write a bespoke page, or start an HTTP server — REVIEW.md itself is the review carrier.",
+      "expected_output": "First verifies freshness via scripts/spec-hash.sh against the header stamp (architecture-gate freshness check), then gives the user the REVIEW.md file path to open in their own markdown viewer plus a short digest in conversation. Does NOT generate HTML, write a bespoke page, or start an HTTP server — REVIEW.md itself is the review carrier.",
       "files": [],
       "expectations": [
         "First verifies freshness by running scripts/spec-hash.sh and comparing against the REVIEW.md header stamp",
