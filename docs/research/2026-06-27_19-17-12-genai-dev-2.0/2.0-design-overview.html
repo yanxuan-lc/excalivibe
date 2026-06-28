@@ -1,0 +1,281 @@
+<title>gen-ai-development 2.0 — 设计总览</title>
+<meta name="description" content="自治控制器按「变更原型 × 可逆性」给每条轨道定自动化档位，架构门 + 意图门双门人审，三层架构 + 专人专事 subagent。">
+<style>
+  :root{
+    --ground:#EEF1F5; --surface:#FFFFFF; --ink:#13161C; --ink-soft:#2B313C;
+    --muted:#5C6675; --faint:#8A94A3; --line:#DCE2EA; --line-2:#E9EDF2;
+    --auto:#0F8A5A; --auto-bg:#E5F4ED;
+    --spot:#A9760E; --spot-bg:#F8EFDC;
+    --gated:#C23A57; --gated-bg:#FBE7EC;
+    --accent:#2C4C80; --accent-bg:#E7EDF7;
+    --night:#12151C; --night-2:#1A1F29; --on-night:#E8ECF2; --on-night-soft:#A7B0BE;
+    --mono:"SF Mono","JetBrains Mono",ui-monospace,Menlo,Consolas,monospace;
+    --sans:system-ui,-apple-system,"Segoe UI","Helvetica Neue",sans-serif;
+  }
+  *{box-sizing:border-box}
+  body{margin:0}
+  .doc{font-family:var(--sans);color:var(--ink);background:var(--ground);
+    line-height:1.6;-webkit-font-smoothing:antialiased;font-size:16px}
+  .wrap{max-width:1000px;margin:0 auto;padding:0 24px}
+  section{padding:56px 0;border-top:1px solid var(--line)}
+  h2{font-size:clamp(22px,3.4vw,30px);line-height:1.15;letter-spacing:-.02em;margin:0 0 6px;text-wrap:balance}
+  h3{font-size:17px;letter-spacing:-.01em;margin:0 0 8px}
+  p{margin:0 0 14px;color:var(--ink-soft)}
+  .eyebrow{font-size:12px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--accent);margin:0 0 14px}
+  .lead{font-size:18px;color:var(--muted);max-width:64ch}
+  .muted{color:var(--muted)} .faint{color:var(--faint)}
+  code,.mono{font-family:var(--mono);font-size:.92em}
+  .pill{display:inline-block;font-family:var(--mono);font-size:12px;padding:2px 8px;border-radius:6px;background:var(--accent-bg);color:var(--accent);white-space:nowrap}
+
+  /* hero */
+  .hero{background:var(--night);color:var(--on-night);border-top:none;padding:72px 0 64px}
+  .hero h1{font-size:clamp(30px,6vw,52px);line-height:1.04;letter-spacing:-.03em;margin:0 0 18px;text-wrap:balance}
+  .hero h1 .accentword{color:#7FB0FF}
+  .hero .lead{color:var(--on-night-soft);font-size:clamp(17px,2.3vw,21px);max-width:60ch}
+  .hero .tag{font-family:var(--mono);font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:#7FB0FF;margin:0 0 20px}
+  .twin{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:rgba(255,255,255,.10);border-radius:14px;overflow:hidden;margin-top:36px}
+  .twin>div{background:var(--night-2);padding:22px 24px}
+  .twin .k{font-family:var(--mono);font-size:12px;letter-spacing:.1em;text-transform:uppercase;margin:0 0 8px}
+  .twin .reach .k{color:#5FCB9B} .twin .irr .k{color:#F0879E}
+  .twin p{color:var(--on-night-soft);margin:0;font-size:14.5px}
+
+  /* generic blocks */
+  .grid{display:grid;gap:16px}
+  .g3{grid-template-columns:repeat(3,1fr)} .g2{grid-template-columns:repeat(2,1fr)}
+  .card{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:20px}
+  .card h3{margin-top:0}
+  .card .sub{font-size:13.5px;color:var(--muted);margin:0}
+  .stack{display:flex;flex-direction:column;gap:14px}
+
+  /* signal/ceiling cards */
+  .sig{border-left:3px solid var(--accent)}
+  .ceil{border-radius:12px;padding:18px 20px;border:1px solid}
+  .ceil .hd{display:flex;align-items:center;gap:9px;margin-bottom:8px}
+  .dot{width:11px;height:11px;border-radius:50%;flex:none}
+  .ceil .name{font-weight:700;font-size:15px} .ceil .desc{font-size:13.5px;color:var(--muted);margin:0}
+  .c-auto{background:var(--auto-bg);border-color:#BFE3D2} .c-auto .name{color:var(--auto)} .c-auto .dot{background:var(--auto)}
+  .c-spot{background:var(--spot-bg);border-color:#EAD7AE} .c-spot .name{color:var(--spot)} .c-spot .dot{background:var(--spot)}
+  .c-gated{background:var(--gated-bg);border-color:#F1C2CD} .c-gated .name{color:var(--gated)} .c-gated .dot{background:var(--gated)}
+
+  /* flow chains */
+  .flowwrap{overflow-x:auto;padding:4px 0 10px}
+  .flow{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+  .node{font-family:var(--mono);font-size:12.5px;background:var(--surface);border:1px solid var(--line);border-radius:7px;padding:5px 9px;white-space:nowrap}
+  .node.par{border-style:dashed}
+  .node.gate{background:var(--gated-bg);border-color:#F1C2CD;color:var(--gated);font-weight:600}
+  .node.start{background:var(--accent-bg);border-color:#C6D5EC;color:var(--accent)}
+  .arw{color:var(--faint);font-size:13px}
+  .lane{display:flex;align-items:baseline;gap:12px;padding:13px 0;border-bottom:1px solid var(--line-2)}
+  .lane:last-child{border-bottom:none}
+  .lane .lab{flex:none;width:150px;font-weight:600;font-size:13.5px}
+  .lane .lab small{display:block;font-weight:400;color:var(--faint);font-family:var(--mono);font-size:11px;letter-spacing:.04em}
+
+  /* tier / roster */
+  .tier{display:flex;gap:14px;align-items:flex-start}
+  .tier .num{font-family:var(--mono);font-size:13px;font-weight:700;color:var(--accent);background:var(--accent-bg);border-radius:8px;padding:4px 9px;flex:none}
+  .chips{display:flex;flex-wrap:wrap;gap:7px;margin-top:6px}
+  .chips span{font-family:var(--mono);font-size:12px;background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:3px 8px;color:var(--ink-soft)}
+  .chips span.new{background:var(--accent-bg);border-color:#C6D5EC;color:var(--accent)}
+
+  /* layered review */
+  .layers{display:flex;flex-direction:column;gap:10px}
+  .layer{display:flex;gap:14px;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:14px 16px}
+  .layer .ln{font-family:var(--mono);font-weight:700;color:var(--accent);flex:none}
+  .layer .lt{font-size:14px}
+  .layer .lt b{font-size:14.5px}
+  .layer.spot-hl{background:var(--accent-bg);border-color:#C6D5EC}
+
+  table{width:100%;border-collapse:collapse;font-size:13.5px;margin-top:6px}
+  th,td{text-align:left;padding:9px 12px;border-bottom:1px solid var(--line-2);vertical-align:top}
+  th{font-size:11.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);font-weight:700}
+  td .mono{font-size:12.5px}
+
+  .note{background:var(--surface);border:1px solid var(--line);border-left:3px solid var(--spot);border-radius:8px;padding:14px 16px;font-size:14px;color:var(--ink-soft)}
+  .two-col{columns:2;column-gap:32px}
+  .foot{background:var(--night);color:var(--on-night-soft);border-top:none;font-size:13.5px}
+  .foot .wrap{padding-top:40px;padding-bottom:48px}
+  .foot code{color:#7FB0FF}
+  .kbd{font-family:var(--mono);font-size:12px;background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:2px 7px}
+  @media(max-width:760px){.g3,.g2,.twin{grid-template-columns:1fr}.two-col{columns:1}.lane .lab{width:auto}.lane{flex-direction:column;gap:6px}}
+  @media(prefers-reduced-motion:reduce){*{scroll-behavior:auto}}
+</style>
+
+<div class="doc">
+
+  <!-- HERO -->
+  <header class="hero">
+    <div class="wrap">
+      <p class="tag">gen-ai-development · 2.0 · alpha</p>
+      <h1>不是「跑哪些节点」，而是<br><span class="accentword">这件事能放手到什么程度</span>。</h1>
+      <p class="lead">2.0 的核心是一个<strong style="color:#fff">自治控制器（Autonomy Controller）</strong>：对每个任务先判断它能无人值守到什么档位，再据此组装轨道、人审门的形状、与验证强度。范式收敛为 SDD + TDD，落在「三层架构 + 专人专事 subagent + 独立功能 skill」之上。</p>
+      <div class="twin">
+        <div class="reach"><p class="k">可达的一半</p><p>可逆 / 意图明确的工作（视觉、确定性 bug、有覆盖的重构、通用 CRUD）→ 在闭环基建就位后趋向全自动。</p></div>
+        <div class="irr"><p class="k">不可约的一半</p><p>新颖核心 / 不可逆的工作 → 保留人对「运行中的产物」反应的回路，以及对不可逆对外动作的同意。这是类别，不是成本。</p></div>
+      </div>
+    </div>
+  </header>
+
+  <!-- CONTROLLER -->
+  <section><div class="wrap">
+    <p class="eyebrow">脊柱 · Tier-3 编排</p>
+    <h2>自治控制器：三信号 → 四输出</h2>
+    <p class="lead">任务起步时分类一次，把四件事写进 <code>PIPELINE.md</code>（可压缩续作的事实源）。它<strong>只编排，不实现任何能力</strong>。</p>
+    <div class="grid g3" style="margin-top:22px">
+      <div class="card sig"><h3>① 变更原型</h3><p class="sub">feature · bug · visual · refactor · schema-migration · research · docs · dependency-bump</p><p class="sub" style="margin-top:8px;color:var(--accent)">→ 决定走哪条<strong>轨道</strong>（spine）</p></div>
+      <div class="card sig"><h3>② 关键度 / 新颖度</h3><p class="sub">core · supporting · generic</p><p class="sub" style="margin-top:8px;color:var(--accent)">→ <strong>深度档</strong>：设计思考与人工定型给多少</p></div>
+      <div class="card sig"><h3>③ 可逆性 / 影响面</h3><p class="sub">reversible · irreversible（共享 schema / 已发布契约 / 破坏性迁移 / 对外发布）</p><p class="sub" style="margin-top:8px;color:var(--accent)">→ <strong>自治档位</strong>（ceiling）</p></div>
+    </div>
+    <div class="note" style="margin-top:18px">
+      <strong>铁律</strong>：关键度只是深度档，<strong>永不切换轨道</strong>——核心域的 bug 仍是 <code>bug</code>，不升级成 <code>feature</code>。<br>
+      <strong>单向升档</strong>：碰到不可逆面，无论原型一律就那一片升到人审。<strong>异常自动降档</strong>：异常率超注意力预算时，控制器把车道往人审方向拉回（降快升慢、带迟滞）。
+    </div>
+    <p class="muted" style="margin-top:14px;font-size:14px">四输出 = 节点图（轨道）· 自治档位 · 门禁形状 · 验证强度向量。绑定机制：每个产物门读 <code>PIPELINE.md</code> + 盘上产物——轨道靠门强制，不靠记忆。</p>
+  </div></section>
+
+  <!-- CEILINGS -->
+  <section><div class="wrap">
+    <p class="eyebrow">自治档位</p>
+    <h2>三档：放手多少，人审就有多少</h2>
+    <div class="grid g3" style="margin-top:22px">
+      <div class="ceil c-auto"><div class="hd"><span class="dot"></span><span class="name">full-auto 全自动</span></div><p class="desc">无人在环；仅限可逆动作 + 机器 oracle。<strong>须项目具备 canary/遥测/auto-revert 闭环才授予</strong>，否则降为抽检。</p></div>
+      <div class="ceil c-spot"><div class="hd"><span class="dot"></span><span class="name">auto + spot-check 抽检</span></div><p class="desc">自动发布，预算内事后抽样复核；确认坏样本触发 auto-revert。抽样针对<strong>系统性漂移</strong>，非偶发灾难。</p></div>
+      <div class="ceil c-gated"><div class="hd"><span class="dot"></span><span class="name">human-gated 人审</span></div><p class="desc">不可逆动作前人介入。核心工作走两道门 + 发布同意（见下）。</p></div>
+    </div>
+    <p class="muted" style="margin-top:16px;font-size:14px"><code>merge</code> 到集成分支（可逆）见绿自动；只有 <code>publish</code>（不可逆对外）必须人同意——这去掉了「每条流程一道门」的假象。</p>
+  </div></section>
+
+  <!-- TRACKS -->
+  <section><div class="wrap">
+    <p class="eyebrow">轨道 · 按原型组装</p>
+    <h2>不同的活，不同的节点图</h2>
+    <p class="lead">每条轨道是共享节点目录上的一个组合。<span class="node gate" style="padding:2px 7px">玫红</span> = 人审触点；<code>∥</code> = 并行派发。</p>
+    <div style="margin-top:20px">
+      <div class="lane"><div class="lab">feature_core<small>human-gated</small></div><div class="flowwrap"><div class="flow">
+        <span class="node start">grill(deep)</span><span class="arw">→</span><span class="node">prototype</span><span class="arw">→</span><span class="node gate">⟦意图门⟧</span><span class="arw">→</span><span class="node">design-spec</span><span class="arw">→</span><span class="node">arch-review</span><span class="arw">→</span><span class="node gate">⟦架构门 REVIEW.md⟧</span><span class="arw">→</span><span class="node">implement</span><span class="arw">∥</span><span class="node par">qa-author</span><span class="arw">→</span><span class="node">e2e-run</span><span class="arw">∥</span><span class="node par">code-review</span><span class="arw">→</span><span class="node">sec/a11y/perf</span><span class="arw">→</span><span class="node">merge</span><span class="arw">→</span><span class="node">canary</span><span class="arw">→</span><span class="node gate">⟦publish⟧</span><span class="arw">→</span><span class="node">archive</span><span class="arw">→</span><span class="node">docs-sync</span>
+      </div></div></div>
+      <div class="lane"><div class="lab">feature_generic<small>spot-check</small></div><div class="flowwrap"><div class="flow">
+        <span class="node start">grill</span><span class="arw">→</span><span class="node">design-spec</span><span class="arw">→</span><span class="node">sec∥a11y∥perf</span><span class="arw">→</span><span class="node">implement</span><span class="arw">∥</span><span class="node par">qa-author</span><span class="arw">→</span><span class="node">e2e-run</span><span class="arw">∥</span><span class="node par">code-review</span><span class="arw">→</span><span class="node gate">⟦异步抽检⟧</span><span class="arw">→</span><span class="node">merge</span><span class="arw">→</span><span class="node">canary</span><span class="arw">→</span><span class="node">archive</span><span class="arw">→</span><span class="node">docs-sync</span>
+      </div></div></div>
+      <div class="lane"><div class="lab">bug（确定性）<small>full-auto*</small></div><div class="flowwrap"><div class="flow">
+        <span class="node start">reproduce</span><span class="arw">→</span><span class="node">regression-test-first</span><span class="arw">→</span><span class="node">implement</span><span class="arw">→</span><span class="node">e2e-run</span><span class="arw">∥</span><span class="node par">code-review</span><span class="arw">→</span><span class="node">merge</span><span class="arw">→</span><span class="node">canary</span><span class="arw">→</span><span class="node">docs-sync</span>
+      </div></div></div>
+      <div class="lane"><div class="lab">visual<small>full-auto*</small></div><div class="flowwrap"><div class="flow">
+        <span class="node start">prototype</span><span class="arw">→</span><span class="node">感知 diff vs 基线</span><span class="arw">→</span><span class="node">implement</span><span class="arw">→</span><span class="node">code-review</span><span class="arw">→</span><span class="node">merge</span><span class="arw">→</span><span class="node">canary</span><span class="arw">→</span><span class="node">docs-sync</span>
+      </div></div></div>
+      <div class="lane"><div class="lab">refactor（有覆盖）<small>full-auto*</small></div><div class="flowwrap"><div class="flow">
+        <span class="node start">safety-net(characterization)</span><span class="arw">→</span><span class="node">smell-scan</span><span class="arw">→</span><span class="node">implement(行为不变)</span><span class="arw">→</span><span class="node">e2e∥review</span><span class="arw">→</span><span class="node">merge</span><span class="arw">→</span><span class="node">canary</span><span class="arw">→</span><span class="node">docs-sync</span>
+      </div></div></div>
+      <div class="lane"><div class="lab">docs<small>full-auto</small></div><div class="flowwrap"><div class="flow">
+        <span class="node start">写/改文档</span><span class="arw">→</span><span class="node">链接 + 时效检查</span><span class="arw">→</span><span class="node">merge</span>
+      </div></div></div>
+      <div class="lane"><div class="lab">dependency-bump<small>full-auto* → 人审</small></div><div class="flowwrap"><div class="flow">
+        <span class="node start">bump</span><span class="arw">→</span><span class="node">现有测试 + dep-audit</span><span class="arw">→</span><span class="node">canary</span><span class="arw">→</span><span class="node">merge</span><span class="arw">·</span><span class="node gate">MAJOR/审计命中 → 升人审</span>
+      </div></div></div>
+    </div>
+    <p class="faint" style="margin-top:14px;font-size:13px">* full-auto 仅在项目闭环基建就位（infra-readiness）时授予，否则降为抽检。</p>
+  </div></section>
+
+  <!-- THE TWO GATES -->
+  <section><div class="wrap">
+    <p class="eyebrow">人审 · 本轮重点</p>
+    <h2>两道门，判不同的事，不可互替</h2>
+    <p class="lead">核心工作的人审拆成两道——一道评<strong>结构</strong>（建得好不好），一道评<strong>行为</strong>（是不是要的东西）——加上对不可逆对外动作的发布同意。</p>
+    <div class="grid g2" style="margin-top:22px">
+      <div class="card" style="border-top:3px solid var(--gated)">
+        <h3>架构门（Architecture Gate）</h3>
+        <p class="sub"><strong>写代码前</strong> · 评结构合理性与可扩展性 · 此刻改动只值一次 spec 编辑</p>
+        <p class="sub" style="margin-top:8px">载体 = 四层 <code>REVIEW.md</code>（下），由 <code>spec-review</code> skill 从 spec 单向派生，按深度档缩放。</p>
+      </div>
+      <div class="card" style="border-top:3px solid var(--gated)">
+        <h3>意图门（Intent Gate）</h3>
+        <p class="sub"><strong>对运行切片反应</strong> · 评行为意图 · 抓「这不是我想要的」</p>
+        <p class="sub" style="margin-top:8px">默认载体 = <strong>抛弃式原型</strong>，迭代到「对，就是这个」→ 再走正式管线建真品；原型绝不静默转生产。行为意图类决策（如「超额硬拦还是缓冲」）留这里定。</p>
+      </div>
+    </div>
+
+    <h3 style="margin-top:30px">架构门载体：REVIEW.md 的四层</h3>
+    <p class="muted" style="font-size:14px;margin-bottom:12px">承载 markdown；内容形式优先级 <strong>图(UML) &gt; 表格 &gt; DSL(DDL) &gt; 文字</strong>。自驱流程不假设你读过任何文档，名词讲清、术语首现「中文（English）」。</p>
+    <div class="layers">
+      <div class="layer"><span class="ln">①</span><div class="lt"><b>框定层</b> — 背景与范围 · 目标 / 非目标（Goals / Non-Goals）· 约束。给评审一把标尺。</div></div>
+      <div class="layer"><span class="ln">②</span><div class="lt"><b>结构层</b> — <strong>§0 领域模型（参考框架：限界上下文 + 聚合不变式 + 状态机）</strong>，其后 §1 模块 · §2 接口 · §3 数据库 · §4 用例，<strong>逐一对照 §0 评</strong>。</div></div>
+      <div class="layer spot-hl"><span class="ln">③</span><div class="lt"><b>审议层（ADR 式）</b> — 关键决策的<strong>备选 + 理由 + 权衡</strong>。← 让「评得动合理性」的关键：只有看到「为什么这么选、否决了什么、代价是什么」，人才评得动。</div></div>
+      <div class="layer"><span class="ln">④</span><div class="lt"><b>横切层</b> — Tier A 失败一致性 · 安全/信任边界 · 性能/容量 · 可观测；Tier B 并发 · 兼容 · 安全性。每项 = 可测质量场景（当→则→度量）+ 权衡。</div></div>
+    </div>
+    <div class="note" style="margin-top:16px;border-left-color:var(--gated)">
+      可逆 / generic 车道<strong>免</strong>两道重门：架构门靠深度档缩到很轻甚至无；没有意图门（你在已上线应用上的调整就是反馈）。
+    </div>
+  </div></section>
+
+  <!-- THREE TIERS + ROSTER -->
+  <section><div class="wrap">
+    <p class="eyebrow">三层架构</p>
+    <h2>功能 skill 永不感知流水线</h2>
+    <div class="stack" style="margin-top:20px">
+      <div class="tier"><span class="num">T1</span><div><h3>功能 skill（独立内聚，可独立使用）</h3><p class="sub">单一能力，按 description 触发，用户可直接 <code>/tdd</code>，subagent 也可在上下文里 consult。<strong>独立性规则</strong>：不读 PIPELINE.md、不知 archetype/ceiling/gate——只有输入输出。</p>
+        <div class="chips">
+          <span class="new">grill</span><span class="new">glossary-conformance</span><span class="new">security-scan</span><span class="new">a11y-check</span><span class="new">perf-budget</span><span class="new">smell-scan</span>
+          <span>tdd</span><span>e2e-test</span><span>debug</span><span>spec-review</span><span>vcs-workflow</span><span>app-ux-design</span><span>docs-guideline</span><span>develop/dba/devops/middleware-guideline</span><span>research-source-code/-data-source/-api</span>
+        </div></div></div>
+      <div class="tier"><span class="num">T2</span><div><h3>subagent（专人专事，一上下文一职责）</h3><p class="sub">隔离上下文 + 角色，<strong>组合</strong> Tier-1 skill；不编排全流程。验证三角的独立性来源于此。</p>
+        <div class="chips"><span>developer</span><span>qa-author</span><span>e2e-runner</span><span>code-reviewer</span><span>arch-reviewer</span><span>planner</span><span>debugger</span><span class="new">release-coordinator</span><span>researcher</span></div></div></div>
+      <div class="tier"><span class="num">T3</span><div><h3>编排 skill = autonomy-controller</h3><p class="sub">唯一感知流水线的组件：派发 subagent、读写 PIPELINE.md、组装轨道。<strong>自己不实现任何能力，只是安排。</strong></p></div></div>
+    </div>
+    <p class="muted" style="margin-top:16px;font-size:14px">一个<strong>节点</strong>是编排步骤，两种落地：内联功能 skill 调用（廉价）或 subagent 派发（需隔离，验证三角全在此）。</p>
+  </div></section>
+
+  <!-- VERIFICATION -->
+  <section><div class="wrap">
+    <p class="eyebrow">验证系统 · 信任的来源</p>
+    <h2>验证三角 + 横切门 + 事后审计</h2>
+    <div class="grid g2" style="margin-top:20px">
+      <div class="card"><h3>验证三角（写权分离）</h3>
+        <table>
+          <tr><td class="mono">developer</td><td>写产品码 + 单测；<strong>不写 e2e</strong></td></tr>
+          <tr><td class="mono">qa-author</td><td>从 <em>spec 场景</em> 派生 e2e；<strong>不碰产品码</strong></td></tr>
+          <tr><td class="mono">e2e-runner</td><td>双只读执行；验 UI <strong>且</strong> 验库写</td></tr>
+          <tr><td class="mono">code-reviewer</td><td>两判定（合规≠质量）；<strong>不信报告、从 diff 重推</strong></td></tr>
+        </table>
+        <p class="sub" style="margin-top:8px">干净上下文复核、文件路径交接——这才让「绿色报告」可信。</p>
+      </div>
+      <div class="card"><h3>在流门 + oracle + 审计</h3>
+        <p class="sub"><strong>在流门</strong>：security-scan · a11y-check · perf-budget（按面触发）。</p>
+        <p class="sub" style="margin-top:6px"><strong>信任信号</strong>：mutation / property oracle，<u>不</u>用行覆盖率。</p>
+        <p class="sub" style="margin-top:6px"><strong>抗模型单一</strong>：门禁车道 + 事后审计用<strong>异模型族</strong>。</p>
+        <p class="sub" style="margin-top:6px"><strong>事后审计</strong>：对已自动发布的变更无偏抽样，抓「自信但错」——遥测看不见、模型自评不可靠，只有它能抓。预算压力下<strong>绝不先砍它</strong>。</p>
+      </div>
+    </div>
+  </div></section>
+
+  <!-- HOOK + CLOSED LOOP + ROLLOUT -->
+  <section><div class="wrap">
+    <p class="eyebrow">安全网 · 闭环 · 落地顺序</p>
+    <h2>机械护栏与依赖顺序</h2>
+    <div class="grid g3" style="margin-top:20px">
+      <div class="card"><h3>PreToolUse 护栏 hook</h3><p class="sub">控制器「不可逆动作必须有人」的<strong>确定性兜底</strong>。subagent + 不可逆对外 → <span style="color:var(--gated)">deny</span>；其余危险动作 → <span style="color:var(--spot)">ask</span>（交互问人 / headless 自动挡）；可逆操作放行。Claude 侧独有、非承载。</p></div>
+      <div class="card"><h3>后置闭环</h3><p class="sub"><code>canary</code> 分级放量 + 遥测看护 + <code>auto-revert</code>。这是让任何车道<strong>真能全自动</strong>的执行器——错的自动合并被抓回、撤销，无需人在环。</p></div>
+      <div class="card"><h3>Phase A → B → C</h3><p class="sub"><strong>A</strong>（现在）控制器 + 拆 merge/publish + 在流门 + oracle。<strong>B</strong> 建腿：闭环、多模型验证、注意力预算、意图门。<strong>C</strong> 按 B 就绪进度给可逆车道去门。</p></div>
+    </div>
+    <div class="note" style="margin-top:18px">
+      <strong>交付边界（诚实说）</strong>：这是个 markdown skills/agents/manifest 插件。后置闭环是<strong>「项目有 CD 才编排进去」，插件造不出</strong>。无 CD/遥测/回滚时，可逆车道停在抽检，不升全自动——全自动由<strong>项目的基建</strong>挣得，不是插件给的。
+    </div>
+  </div></section>
+
+  <!-- COMPETITIVE -->
+  <section><div class="wrap">
+    <p class="eyebrow">相对位置 · 诚实</p>
+    <h2>对 superpowers 6.0 / matt 是「更全面」，不是「全面超过」</h2>
+    <div class="two-col" style="margin-top:8px">
+      <p><strong>决定性领先</strong>：动态路由（自治档位组装轨道）、验证隔离（四上下文写权分离的三角）、优化侧流（smell-scan + 在流安全/无障碍/性能门）、完整调研子系统——两家都没有。</p>
+      <p><strong>仍落后</strong>：成熟度（对手在跑、跨多 harness 实测；2.0 是 alpha，闭环/全自动多为纸面）、简洁度与上手摩擦、已验证的可移植性（Codex 端口未建）。</p>
+      <p><strong>立场不同</strong>：matt 的极简是<em>立场</em>、superpowers 的克制是<em>纪律</em>；在它们自己的目标（精简·人在环·今天能跑）上没被打败。唯一实打实碾压的是验证三角——因为它从在跑的 1.x 继承来，不是画的饼。</p>
+    </div>
+  </div></section>
+
+  <!-- FOOT -->
+  <footer class="foot"><div class="wrap">
+    <p style="color:var(--on-night);font-weight:700;font-size:15px;margin-bottom:6px">现状</p>
+    <p>设计 dossier 完成，所有决策锁定，无开放设计问题。Phase A 地基已建、经审查与对标、并完成<strong style="color:#fff">架构门 / 意图门</strong>重设计——全部在分支 <code>feat/genai-development-2.0</code>，<strong style="color:#fff">未提交、未注册进 marketplace</strong>（alpha 与在用的 1.x 并存，最终切换）。Codex 端口后续。</p>
+    <p style="margin-top:14px" class="faint">9 个 subagent · 22 个 skill · 1 个 PreToolUse 护栏 · 范式 SDD + TDD · 求同存异（双端主流程一致，实现各自最优）</p>
+  </div></footer>
+
+</div>
