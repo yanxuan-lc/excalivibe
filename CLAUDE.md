@@ -22,11 +22,11 @@ See [AGENTS.md](./AGENTS.md) for project facts shared across agents.（项目简
 - **调研**：可用 `deep-research` 与 dynamic workflow（对应 Codex 侧的常规 subagent）。
 - **库 / API 文档**：需要查任何库 / 框架 / SDK 用法时，优先用 **Context7**（无需用户显式要求）。
 
-## OpenSpec / dev-pipeline
+## OpenSpec / autonomy-controller
 
-本仓库内置 OpenSpec（`openspec/`）与 `opsx:*` 命令。dev-pipeline / OpenSpec **只服务于「可运行产品代码」的研发**——新增功能代码、改 schema/迁移、动公共接口或契约、跨模块业务实现、或**高影响面的 bugfix**，且影响面不明时才走（planner → arch-review → apply ∥ QA → e2e ∥ code-review → archive）；小而明确的改动可直接做。
+本仓库内置 OpenSpec（`openspec/`）与 `opsx:*` 命令。autonomy-controller 编排的开发管线 / OpenSpec **只服务于「可运行产品代码」的研发**——新增功能代码、改 schema/迁移、动公共接口或契约、跨模块业务实现、或**高影响面的 bugfix**，且影响面不明时才走（planner → arch-review → apply ∥ QA → e2e ∥ code-review → archive）；小而明确的改动可直接做。
 
-> **改 skill / agent / command / prompt / 文档本身不算研发，不走 OpenSpec。** 这类工作以 **`skill-creator`** 为权威轨道（结构、eval、描述触发率优化）。**文件数多或「双端都要动」本身不构成「跨模块」**——只有可运行产品代码的变更才会。本仓库的产物绝大多数是 Markdown 形式的 skill/agent/prompt + JSON manifest，因此日常迭代基本都走 skill-creator + 下面的「双端同步」约定，而非 dev-pipeline。
+> **改 skill / agent / command / prompt / 文档本身不算研发，不走 OpenSpec。** 这类工作以 **`skill-creator`** 为权威轨道（结构、eval、描述触发率优化）。**文件数多或「双端都要动」本身不构成「跨模块」**——只有可运行产品代码的变更才会。本仓库的产物绝大多数是 Markdown 形式的 skill/agent/prompt + JSON manifest，因此日常迭代基本都走 skill-creator + 下面的「双端同步」约定，而非 autonomy-controller 管线。
 >
 > **双端同步约定**：改 `claude/` 必同步考虑 `codex/`（见顶部「求同存异」），两侧 marketplace 清单 `plugins[]` 同步追加，改完用 `validate_plugin.py`（Codex）/ `jq`（JSON）做最小校验。
 
@@ -41,9 +41,10 @@ See [AGENTS.md](./AGENTS.md) for project facts shared across agents.（项目简
 | arch-reviewer | plugin (gen-ai-development) | spec 含 DDL / 新接口 / 跨模块时，apply 前设计审查 | 纯逻辑小 spec（跳过留痕）；审实现代码 |
 | developer | plugin (gen-ai-development) | OpenSpec apply 阶段的 TDD 实施（spec 已就绪） | 缺少 spec 时禁用；e2e 测试代码 |
 | debugger | plugin (gen-ai-development) | bug / failure / stack-trace 出现时的假设驱动调试会话 | spec 创建；无 bug 背景的功能实现 |
-| quality-assurance | plugin (gen-ai-development) | spec 声明脚本化载体后写 e2e 测试代码（与 developer 并行） | 改产品代码；agent 驱动载体的变更 |
-| code-reviewer | plugin (gen-ai-development) | merge 进 dev 前的增量审查（门禁）；全量仅显式要求 | 一次性脚本 |
+| qa-author | plugin (gen-ai-development) | spec 声明脚本化载体后写 e2e 测试代码（与 developer 并行） | 改产品代码；agent 驱动载体的变更 |
+| code-reviewer | plugin (gen-ai-development) | merge 进 dev 前的增量审查（门禁，两判定）；全量仅显式要求 | 一次性脚本；审设计（那是 arch-reviewer） |
 | e2e-runner | plugin (gen-ai-development) | 实施 + QA 交付后的 E2E 验收（先拉起应用） | 单测验证；写 / 改任何代码 |
+| release-coordinator | plugin (gen-ai-development) | 发布准备（SemVer 决策、版本同步点核验、release notes 草稿） | 执行 merge/push/publish（不可逆动作由主 Agent 在用户同意下做） |
 | Explore | built-in | 跨多文件的代码定位、"在哪定义 / 有哪些命名约定" | 已知路径直接 Read |
 | Plan | built-in | 设计实施方案 | 单行修改 |
 | general-purpose | built-in | 多步开放式搜索 / 调研 | 单次明确查找 |
@@ -52,16 +53,17 @@ See [AGENTS.md](./AGENTS.md) for project facts shared across agents.（项目简
 
 - **并行原则**：多个相互独立的子任务，在同一条消息里一次性发起多个 `Agent` 调用。
 - **理解不外包**：不要把「基于结果再做判断 / 修复」完全交给 Subagent —— 主 Agent 必须读关键文件并做综合决策。
-- **复杂研发按 `gen-ai-development:dev-pipeline` skill 编排**：分流决策、相位顺序、人工检查点、merge 门禁、PIPELINE.md 状态落盘均以该 skill 为准，这里只写指针、不复制内容。（注意本仓库约束：dev-pipeline 只服务「可运行产品代码」，改 skill/agent/command/prompt/文档不走，见上节。）
+- **复杂研发按 `gen-ai-development:autonomy-controller` skill 编排**：三信号分类、自治档位、轨道组装、按档位定门、按强度验证、`PIPELINE.md` 状态落盘均以该 skill 为准，这里只写指针、不复制内容。（注意本仓库约束：autonomy-controller 管线只服务「可运行产品代码」，改 skill/agent/command/prompt/文档不走，见上节。）
 - **调研需求按 `gen-ai-development:research-pipeline` skill 编排**：澄清、确认、追问都留在主 Agent；`researcher` 仅作为执行单元被派发。
 - **场景匹配示例**（结合本项目，每条 1 行）：
   - 改动跨 ≥3 文件且影响面不明 → 先 `Explore`
   - 调研 / 对比 / 可行性 → `research-pipeline` skill（`researcher` 仅执行单元；或主 Agent 直接用 Context7）
   - 提议新能力 plugin / 大重构 → `planner` 走 OpenSpec
   - spec 含 DDL / 新接口 → apply 前 `arch-reviewer` 设计审查
-  - spec 已就绪、进入实施 → `developer`（TDD）∥ `quality-assurance`（e2e 测试代码）
+  - spec 已就绪、进入实施 → `developer`（TDD）∥ `qa-author`（e2e 测试代码）
   - bug / failure / stack-trace → `debugger` 假设驱动调试
   - merge 进 dev 前 → `code-reviewer`（增量）∥ `e2e-runner`（验收），同消息并行
+  - 发布准备 → `release-coordinator`（只准备，主 Agent 在用户同意下执行 merge/push/publish）
 
 ## Do / Don't
 
