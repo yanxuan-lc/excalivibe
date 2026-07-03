@@ -44,7 +44,7 @@ allowed-tools: Bash, Read, Write, Edit, Skill, Agent
 
 **列出 Subagent**（按以下顺序执行）：
 
-1. Plugin 级 Subagent：以当前会话系统提示中列出的为准（本插件自带 `researcher` / `planner` / `arch-reviewer` / `developer` / `qa-author` / `code-reviewer` / `e2e-runner` / `debugger` / `release-coordinator`，安装后即可用）。
+1. Plugin 级 Subagent：以当前会话系统提示中列出的为准（本插件自带 `researcher` / `planner` / `arch-reviewer` / `developer` / `e2e-author` / `code-reviewer` / `e2e-runner` / `debugger` / `release-coordinator`，安装后即可用）。
 2. 用户级 Subagent：`Bash` 执行 `ls ~/.claude/agents/ 2>/dev/null` 列出文件名，并对每个文件 `Read` 取 frontmatter 中的 `name` / `description`。
 3. 项目级 Subagent：`Bash` 执行 `ls .claude/agents/ 2>/dev/null`，同样读取 frontmatter。
 4. 内置 Subagent（如 `general-purpose`、`Explore`、`Plan` 等）按当前会话系统提示中列出的为准；不要凭记忆补充。
@@ -62,7 +62,7 @@ allowed-tools: Bash, Read, Write, Edit, Skill, Agent
 | planner    | plugin (gen-ai-development) | 走 OpenSpec 流程提案新功能 / 大重构（写四契约 spec） | 单文件修复；实现代码 |
 | arch-reviewer | plugin (gen-ai-development) | spec 含 DDL / 新接口 / 跨模块时，实施前设计审查 | 纯逻辑小 spec（跳过留痕）；审实现代码（那是 code-reviewer） |
 | developer  | plugin (gen-ai-development) | spec 已就绪的 TDD 实施（产品代码 + 单测） | 缺少 spec 时禁用；e2e 测试代码 |
-| qa-author | plugin (gen-ai-development) | spec 声明脚本化载体后写 e2e 测试代码（与 developer 并行） | 改产品代码；agent 驱动载体的变更 |
+| e2e-author | plugin (gen-ai-development) | spec 声明脚本化载体后写 e2e 测试代码（与 developer 并行） | 改产品代码；agent 驱动载体的变更 |
 | code-reviewer | plugin (gen-ai-development) | merge 进 dev 前的增量审查（门禁，两判定）；全量仅显式要求 | 一次性脚本；审设计（那是 arch-reviewer） |
 | e2e-runner | plugin (gen-ai-development) | 实施 + QA 交付后的 E2E 验收（先拉起应用） | 单测验证；写 / 改任何代码 |
 | debugger | plugin (gen-ai-development) | bug / 失败 / 栈回溯出现时的假设驱动调试 | spec 创建；无 bug 背景的功能实现（只诊断 + 写红回归测试，不改产品码） |
@@ -85,7 +85,7 @@ allowed-tools: Bash, Read, Write, Edit, Skill, Agent
   - 调研 / 对比 / 可行性 → `research-pipeline` skill（researcher 仅执行单元）
   - 提议新模块 / 大重构 → `planner` 走 OpenSpec
   - spec 含 DDL / 新接口 → 实施前 `arch-reviewer` 设计审查
-  - 实施已通过 spec 的需求 → `developer`（TDD）∥ `qa-author`（e2e 测试代码）
+  - 实施已通过 spec 的需求 → `developer`（TDD）∥ `e2e-author`（e2e 测试代码）
   - bug / 失败 / 栈回溯 → `debugger` 假设驱动调试
   - merge 进 dev 前 → `code-reviewer`（增量）∥ `e2e-runner`（验收），同消息并行
   - 发布准备 → `release-coordinator`（只准备，主 Agent 在用户同意下执行）

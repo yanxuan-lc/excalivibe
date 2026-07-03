@@ -1,6 +1,6 @@
 ---
 name: security-scan
-description: Use when a change touches a security-relevant surface — authentication / authorization, crypto, input parsing, SQL or shell or path construction, file upload, deserialization, network or HTTP handling, secrets/config — or when dependencies change (a lockfile, manifest, or vendored package moved), or when someone explicitly asks for a security check / SAST / vulnerability audit / secret scan before shipping. Also use to sweep an existing codebase for vulnerabilities and leaked secrets ("是否有安全问题", "扫一下有没有漏洞", "check for hardcoded secrets", "audit our dependencies"). Language-aware across JS/TS, Python, Go, Rust, Java, Ruby, PHP.
+description: SAST + dependency-audit + secret-scan with a blocking-threshold verdict — invoked by name as the security-gate node, or on explicit security check requests.
 ---
 
 # Security Scan

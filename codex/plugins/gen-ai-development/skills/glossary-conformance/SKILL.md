@@ -1,6 +1,6 @@
 ---
 name: glossary-conformance
-description: Use when naming things in a domain that has a project glossary (a CONTEXT.md / ubiquitous-language registry) — introducing or renaming a module, a spec term, a type, an endpoint, a database column, or a test name — and you want to confirm the new names match the canonical terms. Also use to audit naming consistency across an existing change: checking that the words used in spec vocabulary, test names, and code identifiers all agree with the glossary for their bounded context. Triggers on "does this name match our glossary", "check naming consistency", "ubiquitous language drift", "are these identifiers aligned with CONTEXT.md". Not for verifying logic or correctness, and not for inventing glossary terms.
+description: Check that spec/test/code identifiers match the CONTEXT.md glossary (anti-naming-drift only, no trust credit) — invoked by name from pipeline roles when naming or auditing terms.
 ---
 
 # Glossary Conformance
@@ -23,7 +23,7 @@ never registered.
   does not decide whether the fix is to rename the identifier or to add the term to the
   glossary. That resolution is the caller's call.
 - It owns **domain-term consistency**, not general code style. Casing conventions,
-  language idioms, and structural naming rules belong to the `develop-guideline` skill;
+  language idioms, and structural naming rules belong to the `coding-guideline` skill;
   this skill only asks "is this the agreed *word* for this *concept*."
 
 ## The glossary: `CONTEXT.md`, per bounded context

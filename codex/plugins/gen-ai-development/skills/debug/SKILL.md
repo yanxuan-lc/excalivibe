@@ -1,6 +1,6 @@
 ---
 name: debug
-description: "Hypothesis-driven debugging for bugs, errors, and test failures across 8 stacks (React, React Native, Flutter, Go, Rust, Tauri, Node.js, Python). Use when a bug, crash, non-zero exit, or unexpected behaviour appears during development and you need a structured investigation loop. Do NOT use as a substitute for: running an existing test suite (use `e2e-test`); red-green test-first development (use `tdd`); front-end or browser-level inspection (use `graceful-browser`)."
+description: Hypothesis-driven debugging loops (log-loop / exit-code convergence / CLI debugger) across 8 stacks — invoked by name from the debugger agent when a bug, crash, or failing test needs structured investigation.
 ---
 
 # Debug Skill

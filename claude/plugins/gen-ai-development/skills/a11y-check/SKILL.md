@@ -1,6 +1,6 @@
 ---
 name: a11y-check
-description: Run an accessibility audit on a UI surface and report WCAG-relevant findings with a clear pass/fail verdict against a budget. Use this whenever a change touches how something looks or is laid out — a new screen, component, or page; a frontend diff touching markup, styling, or interactive elements; a redesign or visual tweak — or whenever someone asks directly to "run an a11y check", "do an accessibility audit", "is this accessible", "check WCAG / contrast / keyboard nav", or to run "axe" / "Lighthouse accessibility" against a surface. It audits and reports only; it does not fix the issues it finds.
+description: axe / Lighthouse accessibility audit with a pass/fail budget verdict — invoked by name as the a11y-gate node on UI surfaces, or on explicit accessibility / WCAG / contrast audit requests.
 ---
 
 # Accessibility Check

@@ -1,6 +1,6 @@
 ---
 name: research-api
-description: Research how an API actually works by discovering its spec (OpenAPI/Swagger) and making real calls to probe endpoints, request/response shapes, and auth — instead of guessing from docs or memory. Use this skill whenever a research conclusion depends on how an API behaves in practice: "how do I call endpoint X", "what does this service return", "does this API support Y", "what's the auth flow", "explore the Swagger for this service", or before integrating against an interface you haven't exercised. Trigger it even when the user doesn't say "call the API" — if answering well means hitting the endpoint and reading the real response, do it (read-only first). The companion source/data research skills are research-source-code and research-data-source; for a multi-subtask or comparative study spanning several sources, research-pipeline orchestrates this skill.
+description: Discover an API's OpenAPI/Swagger spec and probe endpoints with real (read-only-first) calls — dispatched by research-pipeline / researcher for interface-grounded questions.
 ---
 
 # API Research

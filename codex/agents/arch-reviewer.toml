@@ -28,7 +28,7 @@ verdicts cite our internal rules, not generic taste:
 - **`middleware-guideline`** — whenever the spec stands up a service or shapes an
   interface surface: monitoring endpoints (`/healthz` / `/readyz` / `/metrics`) present
   in the spec, config-center wiring, fast-fail rules.
-- **`develop-guideline`** — module structure and public-interface conventions.
+- **`coding-guideline`** — module structure and public-interface conventions.
 - **`glossary-conformance`** — check that the spec's identifiers match the names in
   `CONTEXT.md`. This is a **naming-drift** check only: it earns the design **no
   correctness credit** — a spec can be perfectly named and still wrong. Flag drift; do

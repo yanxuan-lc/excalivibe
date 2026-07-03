@@ -1,0 +1,50 @@
+[
+ {
+  "query": "给这个 monorepo 加个统一的 Makefile，前后端命令都收进去",
+  "should_trigger": true
+ },
+ {
+  "query": "本地开发要起 mysql 和 redis，写个 docker-compose",
+  "should_trigger": true
+ },
+ {
+  "query": "write a dockerfile for this go service, needs to build in china (proxy issues)",
+  "should_trigger": true
+ },
+ {
+  "query": "npm scripts 太乱了，帮我整理出标准的 build/test/lint 入口",
+  "should_trigger": true
+ },
+ {
+  "query": "这个项目怎么跑起来？给我加个 make run 之类的入口",
+  "should_trigger": true
+ },
+ {
+  "query": "CI 里要跑 lint 和 test，仓库侧的入口命令怎么定义比较好",
+  "should_trigger": true
+ },
+ {
+  "query": "k8s 的 deployment yaml 怎么写？要配 hpa",
+  "should_trigger": false
+ },
+ {
+  "query": "服务要暴露 prometheus 指标，怎么接？",
+  "should_trigger": false
+ },
+ {
+  "query": "docker 容器里连不上宿主机的数据库，host.docker.internal 也不行",
+  "should_trigger": false
+ },
+ {
+  "query": "新服务要接 Nacos 配置中心",
+  "should_trigger": false
+ },
+ {
+  "query": "生产环境的日志采集方案用什么好？",
+  "should_trigger": false
+ },
+ {
+  "query": "github actions 的 workflow 里 matrix 语法怎么写？",
+  "should_trigger": false
+ }
+]

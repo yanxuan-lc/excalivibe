@@ -1,6 +1,6 @@
 ---
 name: smell-scan
-description: "Architecture- and code-level bad-smell detection for a codebase or a slice of it. Use when a refactor or optimization is requested, when reviewing architecture health (\"is this module pulling its weight\", \"where is the complexity hiding\"), or when asked to find bad smells / code smells / design smells / refactoring candidates. Produces a ranked candidate report with a recommendation strength per finding. Do NOT use to: perform the refactor or modify code (use `tdd` / a developer to act on a candidate); check naming/identifier consistency against a glossary (use `glossary-conformance`); debug a failing behaviour (use `debug`)."
+description: Bad-smell sweep producing SMELL.md / CANDIDATES.md for refactor picking — invoked by name from code-reviewer full mode and the refactor track, or on explicit bad-smell / refactor-candidate sweep requests.
 ---
 
 # Smell Scan

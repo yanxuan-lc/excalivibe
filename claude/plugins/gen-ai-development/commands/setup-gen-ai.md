@@ -2,6 +2,7 @@
 description: 初始化本项目以顺畅使用 gen-ai-development 2.0 的管线能力——把各子 Agent 落盘管线产物（研究报告 / code-review 报告 / openspec 变更产物 / e2e 报告）所需的权限规则合并进项目 .claude/settings.json（保留你已有配置，不覆盖）。
 argument-hint: (无需参数)
 allowed-tools: Bash(python3 *), Read
+disable-model-invocation: true
 ---
 
 # gen-ai-development:setup-gen-ai — 初始化管线落盘权限
@@ -10,7 +11,7 @@ allowed-tools: Bash(python3 *), Read
 
 ## 背景（为什么需要这一步）
 
-管线的多个子 Agent 需要写盘，且它们的产物是 merge 门禁的检查对象：`researcher`(synthesize) 写 `docs/research/<datetime>-<topic>/`；`code-reviewer` 写 `docs/code-review/<datetime>/`（其 CHECKLIST 是门禁要件）；`planner`/`arch-reviewer`/`qa-author`/`e2e-runner` 写 `openspec/changes/<id>/` 下的 spec、arch-review、manifest 与 e2e 报告（同为门禁要件）。当它们作为**嵌套子 Agent**在 headless/后台模式运行时，需要交互授权的 `Write`/`Edit` 会被**自动拒绝**——而子 Agent 无法弹框。Claude Code 文档明确：**被 `permissions.allow` 预批准的工具，即便子 Agent 在后台运行也照常放行**。所以预批准这些目录的写入，门禁产物才能在任何权限模式下稳定落盘。
+管线的多个子 Agent 需要写盘，且它们的产物是 merge 门禁的检查对象：`researcher`(synthesize) 写 `docs/research/<datetime>-<topic>/`；`code-reviewer` 把门禁要件 `CHECKLIST.md` 写在**变更目录内的稳定路径**（`openspec/changes/<id>/code-review/`，禁止 datetime 目录），仅无变更目录的全量坏味道扫描才写 `docs/code-review/`；`planner`/`arch-reviewer`/`e2e-author`/`e2e-runner` 写 `openspec/changes/<id>/` 下的 spec、arch-review、manifest 与 e2e 报告（同为门禁要件）。当它们作为**嵌套子 Agent**在 headless/后台模式运行时，需要交互授权的 `Write`/`Edit` 会被**自动拒绝**——而子 Agent 无法弹框。Claude Code 文档明确：**被 `permissions.allow` 预批准的工具，即便子 Agent 在后台运行也照常放行**。所以预批准这些目录的写入，门禁产物才能在任何权限模式下稳定落盘。
 
 > 注意：这是插件能做到的、唯一对所有使用者都通用的方式。插件子 Agent 的 `permissionMode`/`hooks` 字段会被安全策略忽略，agent frontmatter 也没有 `permissions` 字段——只有**项目设置里的 allow 规则**能跨模式生效。
 
@@ -18,7 +19,7 @@ allowed-tools: Bash(python3 *), Read
 
 ```
 Write(/docs/research/**)      Edit(/docs/research/**)       # researcher synthesize
-Write(/docs/code-review/**)   Edit(/docs/code-review/**)    # code-reviewer 四件套 → 门禁要件
+Write(/docs/code-review/**)   Edit(/docs/code-review/**)    # code-reviewer 全量扫描报告（门禁 CHECKLIST 在 openspec/changes/** 内）
 Write(/docs/e2e/**)           Edit(/docs/e2e/**)            # e2e-runner 无 change dir 时的报告位
 Write(/openspec/changes/**)   Edit(/openspec/changes/**)    # spec / arch-review / manifest / e2e-report / PIPELINE.md
 ```

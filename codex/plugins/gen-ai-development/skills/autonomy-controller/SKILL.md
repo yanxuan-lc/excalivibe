@@ -1,6 +1,6 @@
 ---
 name: autonomy-controller
-description: Use this at the START of any development task that builds or changes runnable product code — a feature, a bug, a visual/UI change, a refactor, a schema migration, a docs change, a dependency bump ("做个新功能", "改个 bug", "走流程", "按 openspec 来") — to decide how much of it can run unattended and to route it through the right track. Also use when RESUMING an in-flight change (an `openspec/changes/<id>/PIPELINE.md` exists, or the user says "继续 xxx"), when a task bundles several intents in one utterance, or whenever deciding whether a change is safe to ship without a human in the loop. It is NOT for non-coding work — authoring skills/agents/commands/prompts (skill-creator owns that), or research-only exploration.
+description: Use at the START of any development task that builds or changes runnable product code — a feature, a bug, a visual/UI change, a refactor, a schema migration, a docs change, a dependency bump ("做个新功能", "改个 bug", "走流程", "按 openspec 来") — to set how much of it can run unattended and route it through the right track. Also when RESUMING an in-flight change (`openspec/changes/<id>/PIPELINE.md` exists, or "继续 xxx"), or when one utterance bundles several intents. NOT for authoring skills/agents/commands/prompts (skill-creator owns that) or research-only work.
 ---
 
 # Autonomy Controller — Orchestration for the Main Agent
@@ -10,7 +10,7 @@ toolkit: it classifies a task, sets how much autonomy that task is allowed, comp
 track, spawns the agents that do the work, and reads/writes the durable state.
 **It implements no capability itself — it arranges.** Every capability lives in a
 functional skill (`tdd`, `grill`, `security-scan`, …) or an agent (`developer`,
-`qa-author`, `e2e-runner`, `code-reviewer`, `planner`, `arch-reviewer`, `debugger`,
+`e2e-author`, `e2e-runner`, `code-reviewer`, `planner`, `arch-reviewer`, `debugger`,
 `release-coordinator`, `researcher`). The controller calls them; they never call it.
 
 Design philosophy: **autonomy is set, not assumed.** The old pipeline asked only "which
@@ -56,7 +56,8 @@ collapse them:
   anomaly rate against the attention budget says the pipeline is degrading, the
   controller pulls lanes back toward spot-check/gated until it recovers. This is a
   *runtime* throttle, asymmetric by design — downgrade fast, upgrade slow, measured over
-  a window. See [references/gates.md](references/gates.md).
+  a window. See [references/gates.md](references/gates.md). Inert while
+  `anomaly-rate: n/a` (no measurement mechanism — never fabricate a rate).
 
 The iron law ("never spine-switch") is about the archetype. The ceiling, by contrast, is
 **not** fixed — it escalates up on irreversible surfaces and auto-downgrades on anomaly.
@@ -115,6 +116,12 @@ The full per-archetype tracks, with their ceilings, are in
 [references/tracks.md](references/tracks.md). The node catalog is shared across tracks —
 capabilities are not duplicated per track.
 
+A **size signal** (single module, no DDL, no new external contract, no new UI flow) may
+select a track's *small* variant — these exist **only where tracks.md defines them**
+(currently feature_generic-small): the controller authors the minimal spec inline (no
+`planner` dispatch) and verification collapses to `code-review` + the `existing-suite`
+node. No other track may omit its e2e node. See tracks.md.
+
 ### A node is realized two ways
 
 A *node* in a track is an **orchestration step**, not a skill. The controller realizes
@@ -123,7 +130,7 @@ each node one of two ways:
 - **inline functional-skill call** — cheap, no context isolation needed (e.g. a
   staleness check, a `grill` pass, a guideline consult);
 - **agent dispatch** — when 専人専事 / context isolation matters (everything in the
-  verification triangle: `developer`, `qa-author`, `e2e-runner`, `code-reviewer`; also
+  verification triangle: `developer`, `e2e-author`, `e2e-runner`, `code-reviewer`; also
   `planner`, `arch-reviewer`, `debugger`, `release-coordinator`).
 
 The node is the orchestration concept; Tier-1 skills and Tier-2 agents are its two
@@ -132,14 +139,18 @@ implementation vehicles. This split is what keeps the toolkit portable and lean.
 ## Step 5 — Spawn the agents
 
 - **Parallel-first**: independent dispatches go in one message. `implement` ∥
-  `qa-author` start from the same confirmed spec; `e2e-run` ∥ `code-review` are both
+  `e2e-author` start from the same confirmed spec; `e2e-run` ∥ `code-review` are both
   read-only and always dispatched together. The harness's parallel-dispatch substrate
   may fan out deterministic, no-human segments; the *track, gates, and artifacts are
   identical* whether or not it does.
-- **The QA boot-boundary is a real main-agent seam.** `qa-author` works two-phase: a
+- **The QA boot-boundary is a real main-agent seam.** `e2e-author` works two-phase: a
   spec-only draft (parallel with `developer`), then — after `developer` delivers and the
   main agent boots the app — a continuation that finalizes against the real DOM. An
   agent runs once and returns; it cannot wait for another.
+- **Large implement jobs loop at the controller.** `developer` cannot spawn agents: on a
+  large change it works its `implement-ledger.md` task-by-task and may return at a task
+  boundary; re-dispatch a fresh `developer` to continue from the first unfinished ledger
+  task until the ledger is done.
 - **Judgment stays home.** Agent outputs are inputs to the controller's decision, not
   verdicts to forward blindly. Read the key artifacts (the spec, the diff, the reports)
   yourself before acting on them.
@@ -149,7 +160,8 @@ implementation vehicles. This split is what keeps the toolkit portable and lean.
 
 The controller may also invoke another process skill as a sub-flow — e.g. dispatch the
 **`research-pipeline`** for the `research` archetype. Process skills compose; the
-auto-triggered functional skills never call back up into the controller (no cycles).
+functional skills — auto-triggered or name-invoked — never call back up into the
+controller (no cycles).
 
 ## Step 6 — Gate by ceiling shape
 
@@ -180,7 +192,15 @@ Verification cost is matched to stakes via the **intensity vector** the controll
   deterministic checks (security / a11y / perf / integrity) run *first*; escalate to a
   second pass only on disagreement.
 - **Gated lanes**: a **different model family** for the verifier role (independent
-  *context* is not independent *failure* — same lineage shares misreadings).
+  *context* is not independent *failure* — same lineage shares misreadings). Where the
+  harness cannot dispatch another family, realize it via the dual scaffold or record the
+  gap in `PIPELINE.md` (gates.md's realization note) — never silently downgrade.
+- **Verifier tier follows the lane**: spot-check / light lanes dispatch `code-reviewer`
+  — and the design role `planner` on generic specs — at the **standard tier** (the
+  mid-size model of the harness's lineup); the top tier and the different-family
+  requirement are reserved for human-gated lanes and the post-merge audit. Agent-definition models
+  are standalone defaults; the controller's dispatch model override sets the tier per
+  lane.
 - **Mutation / property-based oracles everywhere** as the `implement`-node trust signal —
   not line-coverage-%. Deterministic, no second LLM, best per-token defense.
 - **Intent-level cross-check only on novel-core**, labelled a floor-raiser, not a

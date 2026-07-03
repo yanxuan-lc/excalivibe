@@ -1,7 +1,6 @@
 ---
 name: dba-guideline
-description: >-
-  Database usage guidelines (DDL / DML / DQL) for MySQL and PostgreSQL, codifying our internal SQL-review rules plus industry best practices (Alibaba/Tencent/ByteDance/Bytebase). Use this skill whenever doing ANY database-related design or development work — designing a schema for a new feature, adding or altering tables/columns/indexes, choosing field types, writing INSERT/UPDATE/DELETE, writing SELECT/query logic, or reviewing someone's SQL or migration. Trigger it even when the user does not say "guideline" or "review": if the output includes a `CREATE TABLE`, an `ALTER TABLE`, a migration file, an ORM model/entity, or a non-trivial query, consult this skill first and self-review the result against it.
+description: Database guidelines (DDL / DML / DQL) for MySQL and PostgreSQL — our internal SQL-review rules plus industry best practices. Use for any work that produces or reviews SQL / schema / data-model artifacts: designing a schema, adding or altering tables/columns/indexes, choosing field types, writing DML or query logic, reviewing SQL or a migration. Trigger even when the user doesn't say "guideline": if the output includes a `CREATE TABLE` / `ALTER TABLE`, a migration file, an ORM model/entity, or a non-trivial query, consult this first and self-review against it.
 ---
 
 # Database Usage Guidelines

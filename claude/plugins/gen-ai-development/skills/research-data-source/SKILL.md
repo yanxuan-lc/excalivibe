@@ -1,6 +1,6 @@
 ---
 name: research-data-source
-description: Research a real data source by actually connecting to it (via an MCP data tool or a connection string) and exploring schema, sample rows, value distributions, and data volume — instead of guessing from code or docs. Use this skill whenever a research conclusion depends on what the data actually looks like: "what's in this table", "how is field X populated in practice", "how many rows / how big", "is this column nullable in reality", "do these two datasets line up", or before designing anything that reads/writes a store you haven't inspected. Trigger it even when the user doesn't say "connect to the DB" — if answering well means looking at live data, connect and look. The companion source/API research skills are research-source-code and research-api; for a multi-subtask or comparative study spanning several sources, research-pipeline orchestrates this skill.
+description: Connect read-only to a real data source and inspect schema, samples, distributions, and volume — dispatched by research-pipeline / researcher for data-grounded questions.
 ---
 
 # Data-Source Research

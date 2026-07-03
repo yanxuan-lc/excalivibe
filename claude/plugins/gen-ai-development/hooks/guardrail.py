@@ -11,7 +11,7 @@ Scope principle (kept deliberately narrow to avoid false positives):
   - deny  ONLY for "subagent + irreversible outward act" — provably safe to block,
           because the main agent can always do it instead, and it enforces the
           release-coordinator's stated hard boundary (a subagent never publishes/pushes
-          to main / rewrites shared history).
+          to main / rewrites shared history / merges a PR).
   - ask   for every other dangerous act (main-agent outward acts, destructive-local,
           commit-on-main). The human decides; in headless / non-interactive runs an
           "ask" is blocked by design — which is exactly right for an unattended lane.
@@ -52,6 +52,27 @@ def _decide(decision, reason):
         sys.stdout,
     )
     sys.exit(0)
+
+
+def _pr_base_branch(cmd, cwd):
+    """Resolve the base branch of the PR a `gh pr merge` targets; None if unknown."""
+    try:
+        sel = []
+        m = re.search(r"\bmerge\b\s+([^\s|;&\"']+)", cmd)
+        if m and not m.group(1).startswith("-"):
+            sel = [m.group(1)]
+        out = subprocess.run(
+            ["gh", "pr", "view", *sel, "--json", "baseRefName", "-q", ".baseRefName"],
+            capture_output=True,
+            text=True,
+            timeout=3,
+            cwd=cwd,
+        )
+        if out.returncode == 0:
+            return out.stdout.strip() or None
+    except Exception:
+        pass
+    return None
 
 
 def _current_branch(cwd):
@@ -152,6 +173,29 @@ def main():
                 + "`main` is protected — it advances only via merge request. Confirm this "
                 "push. (Headless: blocked by design.)",
             )
+
+    # ---- 3b) gh pr merge — advances a protected base branch via the GitHub CLI -
+    # Command-position + quote-excluding matcher: `echo "gh pr merge"`, `--body "ready
+    # to merge"`, and greps whose pattern contains the words don't fire.
+    if re.search(r"(?:^|[|;&])\s*gh\b[^|;&\"']*\bpr\b[^|;&\"']*\bmerge\b", cmd):
+        if in_subagent:
+            _decide(
+                "deny",
+                tag
+                + "A subagent must not merge a pull request — the main agent performs "
+                "PR merges (release-coordinator boundary: a subagent only prepares).",
+            )
+        base = _pr_base_branch(cmd, cwd)
+        if base is not None and base != "main":
+            _defer()  # PR into a non-protected base (e.g. dev): the reversible merge lane
+        _decide(
+            "ask",
+            tag
+            + "`gh pr merge` advances the PR's base branch"
+            + (f" (`{base}`)" if base else " (base could not be resolved — treating as protected)")
+            + " — `main` advances only via consented merge. Confirm. "
+            "(Headless: blocked by design.)",
+        )
 
     # ---- 4) Direct commit on protected `main` (reversible → ask, never deny) -
     if re.search(r"\bgit\b(\s+-C\s+\S+|\s+-{1,2}\S+)*\s+commit\b", cmd):

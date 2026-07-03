@@ -1,0 +1,50 @@
+[
+ {
+  "query": "这个功能上线了，把技术文档补一下",
+  "should_trigger": true
+ },
+ {
+  "query": "openspec archive 跑完了，文档这块还要做什么？",
+  "should_trigger": true
+ },
+ {
+  "query": "整理下 docs 目录，现在东西乱放",
+  "should_trigger": true
+ },
+ {
+  "query": "这块缓存设计的说明该放到哪个文档里？",
+  "should_trigger": true
+ },
+ {
+  "query": "给 docs/tech 建个索引，能按模块找到东西",
+  "should_trigger": true
+ },
+ {
+  "query": "把这次重构的设计决策和取舍记下来，以后好查",
+  "should_trigger": true
+ },
+ {
+  "query": "README 里写一下安装步骤和环境要求",
+  "should_trigger": false
+ },
+ {
+  "query": "给 src/billing 里这几个公共函数补 docstring",
+  "should_trigger": false
+ },
+ {
+  "query": "帮我写篇博客介绍这个开源项目",
+  "should_trigger": false
+ },
+ {
+  "query": "API 文档想用 swagger 自动生成，怎么搞？",
+  "should_trigger": false
+ },
+ {
+  "query": "把这个会议纪要整理成条目",
+  "should_trigger": false
+ },
+ {
+  "query": "CLAUDE.md 该写哪些内容？帮我优化下",
+  "should_trigger": false
+ }
+]

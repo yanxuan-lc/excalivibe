@@ -22,23 +22,28 @@ criticality:      core               # core | supporting | generic — the depth
 reversibility:    irreversible       # reversible | irreversible (escalates the ceiling)
 ceiling:          human-gated        # full-auto | auto+spot-check | human-gated  ← OUTPUT
 gate-shape:       intent-loop + human-confirm(architecture review) + publish-consent  ← OUTPUT
-intensity:        adversarial-N=2; design-it-twice=on; verifier-model=alt-family; \
+intensity:        adversarial-N=2; design-it-twice=on; verifier-tier=top; verifier-model=alt-family; \
                   oracles=mutation+property; sweep=diff-scoped; token-budget=<n>   ← OUTPUT
 infra-readiness:  off                # off ⇒ any full-auto lane is downgraded to spot-check
 escalations:      []                 # surfaces that forced the ceiling up (one-way)
-anomaly-rate:     0.04               # running rate vs budget B; drives auto-downgrade
-budget-B:         12                 # human review-units/day allocated this project
+anomaly-rate:     n/a                # n/a until actually measured — never invent a number
+budget-B:         n/a                # human review-units/day; n/a until the project sets one
 downgrade-state:  none               # none | <ceiling>→<lower> (window=<n>d, since=<date>)
 ```
 
 The fourth controller output, **the node-graph itself**, is the phase checklist below
 (the composed track from references/tracks.md). The `intensity` line is the verification-
 intensity vector (SKILL.md Step 7); `ceiling` / `gate-shape` set what the gates enforce.
+The three budget fields (`anomaly-rate`, `budget-B`, `downgrade-state`) stay `n/a` until
+the project has a real measurement mechanism — never invent values; with
+`anomaly-rate: n/a` the anomaly auto-downgrade loop is inert.
 
 ## The phase checklist — the composed track
 
 One row per node in the composed track (so the row set differs by archetype — a `docs`
 track has three rows, a `feature_core` track has many). Each carries an artifact pointer.
+Any gate-consumed node the composed track *omits* (e.g. `e2e-run` on the small lane) still
+gets a `[-]`-with-reason row, so the merge gate has a deterministic row to read.
 
 ```markdown
 - [x] grill         → BRIEF.md (deep, binding; glossary seeded in CONTEXT.md)
@@ -48,12 +53,12 @@ track has three rows, a `feature_core` track has many). Each carries an artifact
 - [-] arch-review   (skipped: no DDL / no cross-module)  or  → arch-review.md
 - [ ] human-confirm REVIEW.md (architecture review — domain model + 4 contracts + decisions + cross-cutting; spec fingerprint matches)
 - [ ] implement     developer: unit tests ✅ mutation/property oracles ✅ lint ✅
-- [ ] qa-author     → e2e-manifest.md (Phase 1 draft / Phase 2 final)
+- [ ] e2e-author    → e2e-manifest.md (Phase 1 draft / Phase 2 final)
+- [ ] e2e-run       → e2e-report.md (all green; executed + manually-verified + waived = M)
+- [ ] code-review   → CHECKLIST.md (two verdicts; P0/P1 all Resolved)
 - [ ] security-gate → report (SAST + dep-audit + secret-scan; no blocking findings)
 - [ ] a11y-gate     → report (axe/Lighthouse, UI surfaces)  or  [-] no UI
 - [ ] perf-gate     → report (latency / query-count / bundle-size budget)
-- [ ] e2e-run       → e2e-report.md (all green; executed + manually-verified + waived = M)
-- [ ] code-review   → CHECKLIST.md (two verdicts; P0/P1 all Resolved)
 - [ ] merge → dev   auto on green machine gates; irreversible surface excepted
 - [ ] publish       ⟦human consent⟧ — outward irreversible act only  or  [-] no publish
 - [ ] canary        orchestrate into project CD (if present)

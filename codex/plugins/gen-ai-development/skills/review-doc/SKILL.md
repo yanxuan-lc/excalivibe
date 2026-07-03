@@ -1,9 +1,9 @@
 ---
-name: spec-review
-description: Generate the human-review document (REVIEW.md) for an OpenSpec change — the architecture-gate review a person reads BEFORE code is written to judge whether the design's boundaries are sound and extensible. It is a self-contained, four-layer document (framing → structure[domain model + module/interface/database/use-cases] → key decisions with alternatives → cross-cutting quality), derived one-way from the spec and read directly as markdown. Use this skill whenever a change is heading for human architecture review / sign-off — planner consults it to write REVIEW.md from the spec; the main agent consults it to present the document at the architecture gate and to regenerate it after any spec revision. Trigger when the user mentions 架构评审 / 人审文档 / 设计审查文档 / 查看 REVIEW / 四件套确认 / 架构门 / spec-confirm, or whenever a design is being presented for human sign-off before implementation — even if no one says "spec-review".
+name: review-doc
+description: Generate the four-layer human-review document (REVIEW.md) from an OpenSpec change, with its freshness stamp — invoked by name from planner and at the architecture gate.
 ---
 
-# Spec Review — 架构门人审文档（REVIEW.md）的生成
+# Review Doc — 架构门人审文档（REVIEW.md）的生成
 
 机器消费的 spec 写到执行级精度，人类很难直接读、也评不动「架构是否合理」。本 skill 把
 「给人审」的内容独立成一份 **REVIEW.md**——**架构门（Architecture Gate）**的人审载体：
@@ -36,7 +36,7 @@ REVIEW.md 不是结论清单，而是**能被评审**的文档：它分四层—
    REVIEW.md**（直接编辑 = 两份事实源，机制失效）。
 2. **新鲜度戳可机检**：REVIEW.md 头部记录生成时刻的 spec 内容指纹（见下文 spec-hash）。
    架构门的 human-confirm 校验用同一脚本重算比对——戳不匹配 = 审的是旧方案，门禁不放行。
-3. **下游 agent 禁读**：developer / qa-author / arch-reviewer 的输入契约是 spec 本身，不是
+3. **下游 agent 禁读**：developer / e2e-author / arch-reviewer 的输入契约是 spec 本身，不是
    REVIEW.md。REVIEW.md 为人裁剪过（图表化、省略执行级细节），拿它当实施输入会丢信息。
 
 ## 架构门 vs 意图门（分工，别混）

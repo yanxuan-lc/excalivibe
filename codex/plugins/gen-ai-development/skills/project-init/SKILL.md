@@ -1,6 +1,6 @@
 ---
 name: project-init
-description: 初始化当前项目的 AGENTS.md，并登记可用的 Agent（researcher / planner / arch-reviewer / developer / qa-author / code-reviewer / e2e-runner / debugger / release-coordinator）与委派规则。当用户要"初始化项目"、"建项目文档"、"登记 subagent / agent"、"让 Codex / Cursor / Gemini 都能读项目约定"，或刚把本插件装进一个新仓库时使用。
+description: 初始化当前项目的 AGENTS.md，并登记可用的 Agent（researcher / planner / arch-reviewer / developer / e2e-author / code-reviewer / e2e-runner / debugger / release-coordinator）与委派规则。当用户要"初始化项目"、"建项目文档"、"登记 subagent / agent"、"让 Codex / Cursor / Gemini 都能读项目约定"，或刚把本插件装进一个新仓库时使用。
 ---
 
 # project-init — 项目初始化（Codex 版）
@@ -36,7 +36,7 @@ description: 初始化当前项目的 AGENTS.md，并登记可用的 Agent（res
 
 **列出 Agent**（按以下顺序执行）：
 
-1. 本插件随附的 Agent（定义见 `codex/agents/*.toml`，需安装时复制到 `~/.codex/agents/` 或项目 `.codex/agents/`）：`researcher` / `planner` / `arch-reviewer` / `developer` / `qa-author` / `code-reviewer` / `e2e-runner` / `debugger` / `release-coordinator`。
+1. 本插件随附的 Agent（定义见 `codex/agents/*.toml`，需安装时复制到 `~/.codex/agents/` 或项目 `.codex/agents/`）：`researcher` / `planner` / `arch-reviewer` / `developer` / `e2e-author` / `code-reviewer` / `e2e-runner` / `debugger` / `release-coordinator`。
 2. 个人级 Agent：执行 `ls ~/.codex/agents/ 2>/dev/null` 列出文件名，并对每个 `.toml` `Read` 取 `name` / `description`。
 3. 项目级 Agent：执行 `ls .codex/agents/ 2>/dev/null`，同样读取定义。
 4. 不要凭记忆补充不存在的 Agent。
@@ -54,7 +54,7 @@ description: 初始化当前项目的 AGENTS.md，并登记可用的 Agent（res
 | planner    | gen-ai-development | 走 OpenSpec 流程提案新功能 / 大重构（写四契约 spec） | 单文件修复；实现代码 |
 | arch-reviewer | gen-ai-development | spec 含 DDL / 新接口 / 跨模块时，实施前设计审查 | 纯逻辑小 spec（跳过留痕）；审实现代码（那是 code-reviewer） |
 | developer  | gen-ai-development | spec 已就绪的 TDD 实施（产品代码 + 单测） | 缺少 spec 时禁用；e2e 测试代码 |
-| qa-author | gen-ai-development | spec 声明脚本化载体后写 e2e 测试代码（与 developer 并行） | 改产品代码；agent 驱动载体的变更 |
+| e2e-author | gen-ai-development | spec 声明脚本化载体后写 e2e 测试代码（与 developer 并行） | 改产品代码；agent 驱动载体的变更 |
 | code-reviewer | gen-ai-development | merge 进 dev 前的增量审查（门禁，两判定）；全量仅显式要求 | 一次性脚本；审设计（那是 arch-reviewer） |
 | e2e-runner | gen-ai-development | 实施 + QA 交付后的 E2E 验收（先拉起应用） | 单测验证；写 / 改任何代码 |
 | debugger | gen-ai-development | bug / 失败 / 栈回溯出现时的假设驱动调试 | spec 创建；无 bug 背景的功能实现（只诊断 + 写红回归测试，不改产品码） |
@@ -73,7 +73,7 @@ description: 初始化当前项目的 AGENTS.md，并登记可用的 Agent（res
   - 调研 / 对比 / 可行性 → `research-pipeline` skill（researcher 仅执行单元）
   - 提议新模块 / 大重构 → `planner` 走 OpenSpec
   - spec 含 DDL / 新接口 → 实施前 `arch-reviewer` 设计审查
-  - 实施已通过 spec 的需求 → `developer`（TDD）∥ `qa-author`（e2e 测试代码）
+  - 实施已通过 spec 的需求 → `developer`（TDD）∥ `e2e-author`（e2e 测试代码）
   - bug / 失败 / 栈回溯 → `debugger` 假设驱动调试
   - merge 进 dev 前 → `code-reviewer`（增量）∥ `e2e-runner`（验收），同一请求并行
   - 发布准备 → `release-coordinator`（只准备，主 Agent 在用户同意下执行）

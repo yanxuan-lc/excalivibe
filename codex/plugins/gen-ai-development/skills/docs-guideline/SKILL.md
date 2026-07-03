@@ -1,7 +1,6 @@
 ---
 name: docs-guideline
-description: >-
-  How to curate as-built technical documentation under `docs/tech/` — where each piece of knowledge lives, how to write the README indexes that make it findable, and how to keep `research/`/`ued/` linked and marked stale once their design has shipped. Use this skill whenever a feature lands and its knowledge needs to be written down: right after `openspec archive` (the primary moment), or whenever the user asks to "整理/梳理技术文档", "把这次实现的文档补上", "建个 docs 索引", "这块设计记到哪", or to reorganize an existing `docs/` tree. Trigger it even when the user doesn't say "guideline": if the task is turning a finished change into durable docs, or deciding where a design note belongs, consult this skill first.
+description: How to curate as-built technical docs under `docs/tech/` — where each piece of knowledge lives, the docs/tech/ README indexes that make it findable, and keeping `research/`/`ued/` linked and marked stale once shipped. Use when a feature lands and needs writing down (right after `openspec archive` — the primary moment), on "整理/梳理技术文档", "把这次实现的文档补上", "建个 docs 索引", "这块设计记到哪", or when reorganizing a docs/ tree. Trigger whenever the task is turning a finished change into durable docs or placing a design note — not general README editing or meeting-note organizing.
 ---
 
 # Documentation Curation Guidelines

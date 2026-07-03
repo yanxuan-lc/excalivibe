@@ -1,6 +1,6 @@
 ---
 name: grill
-description: Use this when a request to build or change something is vague, under-specified, or stated as an outcome without the behavior — "let's build X", "add a way to do Y", "I want a thing that …", a feature idea with no acceptance criteria, a one-liner that hides several decisions. Trigger it whenever you are about to design or implement against a fuzzy ask and need to pin down what "done" actually means first. Also use to turn a rough product idea into a sharp behavioral brief before any spec or code.
+description: Use when a request to build or change something is vague, under-specified, or stated as an outcome without the behavior — "let's build X", "add a way to do Y", a feature idea with no acceptance criteria, a one-liner hiding several decisions. Pin down what "done" means before designing or implementing against a fuzzy ask; turns a rough product idea into a sharp behavioral brief before any spec or code.
 ---
 
 # Grill — turn a vague request into a sharp behavioral brief

@@ -1,6 +1,6 @@
 ---
 name: perf-budget
-description: Use this skill when a change touches a performance-sensitive surface and you need to know whether it regressed — a hot path or inner loop, database query logic (new queries, an N+1 risk, a loop that hits the DB), a frontend bundle (added a dependency, a new route chunk), or a latency-critical endpoint. Also use it for an explicit performance check ("did this get slower?", "check the bundle size", "is there an N+1 here?", "measure the latency", "perf budget", "check for query-count regressions") before shipping a change. Reports measured-vs-threshold-vs-baseline per dimension as a pass/fail you can act on. It measures and reports; it does not decide release policy.
+description: Latency / query-count / bundle-size budget check with pass/fail per dimension — invoked by name as the perf-gate node, or on explicit performance-regression checks.
 ---
 
 # Performance Budget Check

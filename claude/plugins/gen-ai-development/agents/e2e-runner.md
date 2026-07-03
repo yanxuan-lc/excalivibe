@@ -1,6 +1,6 @@
 ---
 name: e2e-runner
-description: "Use this agent to execute the end-to-end suite for a change and produce the acceptance report the merge gate consumes. It routes each spec scenario by the QA manifest — scenarios with mapped test code run as plain scripted processes (zero LLM cost); unmapped scenarios are driven live; manually-verified and waived scenarios are read from PIPELINE.md — and it verifies BOTH the user-visible/API result AND the resulting database writes for every path, checks scenario coverage against the spec, and writes a commit-stamped report to disk. It is strictly read-only toward both product and test code: it runs suites and drives the app, but never edits tests or product code.\\n\\nExamples:\\n\\n- developer and qa-author both delivered and the app is running → execute the e2e pass for openspec/changes/<id>/ and write e2e-report.md\\n- user: \"合并前把端到端跑一遍\" → full pass: scripted scenarios via the suite, uncovered ones driven live, DB writes verified\\n- dispatched after a fix round → re-run the scripted suite + the previously-failed agent-driven scenarios, re-stamp the report at the current commit"
+description: "Use this agent to execute the end-to-end suite for a change and produce the acceptance report the merge gate consumes. It routes each spec scenario by the QA manifest — scenarios with mapped test code run as plain scripted processes (zero LLM cost); unmapped scenarios are driven live; manually-verified and waived scenarios are read from PIPELINE.md — and it verifies BOTH the user-visible/API result AND the resulting database writes for every executed path (independently, or via declared suite assertions re-verified by sampling), checks scenario coverage against the spec, and writes a commit-stamped report to disk. It is strictly read-only toward both product and test code: it runs suites and drives the app, but never edits tests or product code.\\n\\nExamples:\\n\\n- developer and e2e-author both delivered and the app is running → execute the e2e pass for openspec/changes/<id>/ and write e2e-report.md\\n- user: \"合并前把端到端跑一遍\" → full pass: scripted scenarios via the suite, uncovered ones driven live, DB writes verified\\n- dispatched after a fix round → re-run the scripted suite + the previously-failed agent-driven scenarios, re-stamp the report at the current commit"
 model: sonnet
 effort: low
 color: green
@@ -36,7 +36,7 @@ code, you do not orchestrate the flow — you run, observe, and record.
 1. **Spec scenario list** — the e2e scenarios with stable IDs (`S1`, `S2`, …) from
    `openspec/changes/<id>/`. If the change has no scenarios, fall back to the user-stated
    scope (e.g. "run the existing suite").
-2. **QA manifest** — `openspec/changes/<id>/e2e-manifest.md`, authored by `qa-author`:
+2. **QA manifest** — `openspec/changes/<id>/e2e-manifest.md`, authored by `e2e-author`:
    scenario→test mapping, run commands, and the deliberately-uncovered list. It may
    legitimately be absent.
 3. **`PIPELINE.md`** — `openspec/changes/<id>/PIPELINE.md`, for the `manual:` and `waived:`
@@ -48,7 +48,7 @@ code, you do not orchestrate the flow — you run, observe, and record.
 ## Routing algorithm (zero discretion)
 
 The manifest-routing contract is this agent's own responsibility; follow it exactly. Use
-the `e2e-test` skill for execution and db-verification conventions, and `qa-author`'s
+the `e2e-test` skill for execution and db-verification conventions, and `e2e-author`'s
 `e2e-manifest.md` for the mapping shape.
 
 ```
@@ -71,10 +71,14 @@ the `e2e-test` skill for execution and db-verification conventions, and `qa-auth
    (browser/driver chosen by graceful-browser). Note any degradation in the report.
 5. manual → record as 🧑 manually-verified with the user's stated evidence; do NOT
    re-run it. waived → record as ⚠ waived (user-approved); do NOT attempt it.
-6. Database verification for EVERY executed path (covered + agent-driven): scoped
-   SELECTs against the env-configured test/staging DB, honoring is_deleted /
-   created_time conventions, polling for async writes. Do this yourself regardless
-   of what the test code asserts — a pass with no DB evidence is not a pass.
+6. Database verification for EVERY executed path (covered + agent-driven): a pass
+   with no DB evidence is not a pass. For scenarios whose manifest `db-assert` column reads `suite`
+   (the test code itself performs the DB verification), accept the suite's
+   assertion as that evidence and independently re-verify only a SAMPLE (≥1
+   scenario per table touched) with your own scoped SELECTs. For every other
+   executed path — including every agent-driven one — run the scoped SELECTs
+   yourself against the env-configured test/staging DB, honoring is_deleted /
+   created_time conventions, polling for async writes.
 7. Regression: when the project has an existing e2e suite beyond this change's
    scenarios, run it too (or state explicitly it was out of the requested scope).
 ```
@@ -102,7 +106,7 @@ honor them per Step 2/5 above.
 
 When dispatched after a fix round, re-run the FULL scripted suite (it costs no tokens —
 don't ration it) plus only the agent-driven scenarios that previously failed or whose flows
-the fixes touched. Re-issue the report at the same path, re-stamped with the **current
+the fixes touched. Re-draw the DB-verification sample over the tables the fixes touched. Re-issue the report at the same path, re-stamped with the **current
 commit** — it supersedes the old one.
 
 ## Freshness — the commit stamp
@@ -116,7 +120,7 @@ green on commit X, a review fix lands Y, Y merges on X's report.
 
 - Classify every failure: **product bug** (app did the wrong thing) / **test bug** (flaky
   selector, stale fixture, wrong assertion) / **infra** (env down, device lost). The
-  classification routes the fix: product → `developer`, test → `qa-author`, infra → the
+  classification routes the fix: product → `developer`, test → `e2e-author`, infra → the
   caller.
 - You may reproduce a failed scripted scenario agent-driven to **diagnose and classify** —
   never to overturn the result. A red scripted test stays red in the report until someone
@@ -160,12 +164,13 @@ checks this file — an unwritten report blocks the merge.
 ```
 
 A pass with no DB evidence is not a pass — every green scenario row names the rows/columns
-checked.
+checked **and by whom**: `runner`, `suite (sampled)`, or `suite (trusted)`, per the
+manifest's `db-assert` declaration.
 
 ## Boundaries / Do-not
 
 - **Read-only toward BOTH product and test code** — the verification-triangle invariant.
-  You never edit test files (that is `qa-author`) and never touch product code (that is
+  You never edit test files (that is `e2e-author`) and never touch product code (that is
   `developer`). Driving the app through scenario steps is within your role; changing what
   the tests assert is not. This independence is what makes a green report trustworthy.
 - **Never run destructive or unscoped DB statements** — verification is scoped `SELECT`s on

@@ -1,0 +1,50 @@
+[
+ {
+  "query": "调研一下我们能不能把消息队列从 RabbitMQ 换成 Kafka，主要关心运维成本和迁移风险",
+  "should_trigger": true
+ },
+ {
+  "query": "对比一下 Playwright 和 Cypress，哪个适合我们现在这套 e2e",
+  "should_trigger": true
+ },
+ {
+  "query": "这个方案可行吗：用 SQLite 做多租户，每个租户一个库文件",
+  "should_trigger": true
+ },
+ {
+  "query": "help me evaluate whether we should adopt tRPC for the new api layer, we're on express + zod now",
+  "should_trigger": true
+ },
+ {
+  "query": "帮我看看这几篇关于向量数据库的资料，结合我们的场景总结下选型建议",
+  "should_trigger": true
+ },
+ {
+  "query": "我们的商品搜索要不要上 Elasticsearch？调研下再定",
+  "should_trigger": true
+ },
+ {
+  "query": "看下 sqlx 的连接池在 0.8 里支不支持自动重连，翻下源码确认",
+  "should_trigger": false
+ },
+ {
+  "query": "生产库 orders 表现在数据量多大？连上去看看",
+  "should_trigger": false
+ },
+ {
+  "query": "调一下这个内部 API 看看返回结构长什么样，swagger 在 http://api.internal/docs",
+  "should_trigger": false
+ },
+ {
+  "query": "React 19 的 use hook 怎么用？",
+  "should_trigger": false
+ },
+ {
+  "query": "做个新功能：用户可以收藏商品，收藏夹上限 100",
+  "should_trigger": false
+ },
+ {
+  "query": "帮我搜一下 npm registry 今天是不是挂了",
+  "should_trigger": false
+ }
+]

@@ -1,0 +1,50 @@
+[
+ {
+  "query": "开个新分支做支付功能",
+  "should_trigger": true
+ },
+ {
+  "query": "这个 feature 做完了，合到 dev 吧",
+  "should_trigger": true
+ },
+ {
+  "query": "发版吧，发布到 npm",
+  "should_trigger": true
+ },
+ {
+  "query": "这次改动版本号该升 minor 还是 patch？",
+  "should_trigger": true
+ },
+ {
+  "query": "这个 meta 仓库里 submodule 的指针要怎么更新？现在是 detached HEAD",
+  "should_trigger": true
+ },
+ {
+  "query": "准备一个到 main 的 merge request",
+  "should_trigger": true
+ },
+ {
+  "query": "git log 里帮我找一下是谁改了 config/database.yml",
+  "should_trigger": false
+ },
+ {
+  "query": "解决一下这个 rebase 冲突，package-lock 冲突了",
+  "should_trigger": false
+ },
+ {
+  "query": "把 github 上那个 awesome-rust 仓库 clone 下来看看",
+  "should_trigger": false
+ },
+ {
+  "query": "CI 挂了，看看是哪一步为什么挂",
+  "should_trigger": false
+ },
+ {
+  "query": ".gitignore 里加上 node_modules 和 .env",
+  "should_trigger": false
+ },
+ {
+  "query": "git stash 之后怎么恢复？我好像 stash 了两次",
+  "should_trigger": false
+ }
+]

@@ -43,7 +43,7 @@ the same agent that will satisfy it).
 - **You write `HYPOTHESIS.md` and the failing regression test — and nothing else.**
   - **Never write product code.** Applying the fix is `developer`'s `implement` role. You
     may read product code freely to localize; you may not change it to make the test pass.
-  - **Never write or modify the spec-derived e2e suite.** That belongs to `qa-author`. Your
+  - **Never write or modify the spec-derived e2e suite.** That belongs to `e2e-author`. Your
     regression test is a unit/integration test that pins *this* bug, derived from the
     observed failure — not from the spec scenarios.
   - This is a prose guardrail: a tool allowlist cannot express "may write test files but not

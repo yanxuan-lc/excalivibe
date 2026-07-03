@@ -1,0 +1,50 @@
+[
+ {
+  "query": "新服务要接 Nacos 读配置，bootstrap 和业务配置怎么分？",
+  "should_trigger": true
+ },
+ {
+  "query": "给这个服务加上健康检查接口",
+  "should_trigger": true
+ },
+ {
+  "query": "how should this service expose prometheus metrics? it's a small go api",
+  "should_trigger": true
+ },
+ {
+  "query": "APP_PROFILE 是怎么隔离环境的？新服务要配 staging 和 prod",
+  "should_trigger": true
+ },
+ {
+  "query": "设计一下这个库存服务的对外接口",
+  "should_trigger": true
+ },
+ {
+  "query": "业务配置要支持热更新，不重启生效，怎么做？",
+  "should_trigger": true
+ },
+ {
+  "query": "本地开发起个 mysql + redis 的 docker-compose",
+  "should_trigger": false
+ },
+ {
+  "query": "PromQL 怎么查这个接口的 p99 延迟？",
+  "should_trigger": false
+ },
+ {
+  "query": "nginx 反向代理怎么配 websocket？",
+  "should_trigger": false
+ },
+ {
+  "query": "kafka consumer 老是 rebalance，帮我查查",
+  "should_trigger": false
+ },
+ {
+  "query": "给这个 REST handler 写单元测试",
+  "should_trigger": false
+ },
+ {
+  "query": "grafana 面板怎么配一个 QPS 大盘？",
+  "should_trigger": false
+ }
+]

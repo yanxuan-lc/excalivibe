@@ -73,7 +73,7 @@
 | “Claude Code” / “Claude”（指代理本体处） | “Codex” |
 | slash 命令名 `/opsx:*` `/project-init` 等 | Codex 中作为 skill / prompt 触发；按语义改为技能名或“运行 X 流程” |
 
-**不要改**：与 Agent 无关的纯方法论 / 规约正文（dba / develop / devops / middleware / docs / research-* / tdd / vcs / spec-review 的主体内容），它们两侧通用。frontmatter 的 `name` 保持不变；`description` 如含 Claude 专属触发词按上表微调。删除 Claude 专属 frontmatter 字段（`color` / `memory` / `model` 等非 Codex skill 字段；保留 `name` / `description`，`disable-model-invocation` 若存在必须为 false）。
+**不要改**：与 Agent 无关的纯方法论 / 规约正文（dba / coding / devops / middleware / docs / research-* / tdd / vcs / review-doc 的主体内容），它们两侧通用。frontmatter 的 `name` 保持不变；`description` 如含 Claude 专属触发词按上表微调。删除 Claude 专属 frontmatter 字段（`color` / `memory` / `model` 等非 Codex skill 字段；保留 `name` / `description`，`disable-model-invocation` 若存在必须为 false）。
 
 ## 4. Command → Skill
 

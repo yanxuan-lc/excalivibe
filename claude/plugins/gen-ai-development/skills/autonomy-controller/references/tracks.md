@@ -16,15 +16,17 @@ controller runs the lane at `spot-check`.
 | `decompose` | unit-DAG (no-op on single intent) | inline (controller pre-step) |
 | `grill` | `BRIEF.md` (+ for novel-core: domain framing + glossary seeds) | inline (`grill` skill) |
 | `design-spec` | `openspec/changes/<id>/` (4 contracts; module design via glossary terms) | subagent (`planner`) |
+| `inline-spec` | minimal spec in `openspec/changes/<id>/` (small generic feature only; all 4 contracts, n/a ones explicitly marked; stable-ID scenarios) | inline (controller) |
+| `existing-suite` | project's existing test suite run green, commit-stamped in `PIPELINE.md` (the small lane's e2e evidence) | inline (test runner) |
 | `arch-review` | `arch-review.md` | subagent (`arch-reviewer`) — core / schema only |
 | `intent-loop` | 意图门: a disposable running slice the human reacts to, iterated until intent is confirmed (then the formal pipeline builds the real thing) | prototype build + ⟦human⟧ |
-| `human-confirm` | 架构门: `REVIEW.md` — architecture review (framing + domain model + the 4 contracts module/interface/db/use-cases + key decisions + cross-cutting), scaled by depth dial | inline + ⟦human⟧ (`spec-review` skill) |
+| `human-confirm` | 架构门: `REVIEW.md` — architecture review (framing + domain model + the 4 contracts module/interface/db/use-cases + key decisions + cross-cutting), scaled by depth dial | inline + ⟦human⟧ (`review-doc` skill) |
 | `reproduce` | `HYPOTHESIS.md` | subagent (`debugger`) — confirm only for flaky repros |
 | `safety-net` | characterization suite + green baseline | subagent (`developer`) |
 | `smell-scan` | `SMELL.md` / `CANDIDATES.md` | inline (`smell-scan` skill) |
 | `prototype` | live `docs/ued/<dt>/` | inline (`app-ux-design` skill) |
 | `implement` | commits + unit tests | subagent (`developer`, `tdd`) |
-| `qa-author` | e2e tests + `e2e-manifest.md` (from spec only) | subagent (`qa-author`) |
+| `e2e-author` | e2e tests + `e2e-manifest.md` (from spec only) | subagent (`e2e-author`) |
 | `e2e-run` | `e2e-report.md` (read-only) | subagent (`e2e-runner`, `e2e-test`) |
 | `code-review` | `CHECKLIST.md` (two-verdict, read-only) | subagent (`code-reviewer`) |
 | `security-gate` | SAST + dep-audit + secret-scan report | inline (`security-scan` skill) |
@@ -75,9 +77,29 @@ safety-net(characterization) → smell-scan(auto-pick) → implement(no-new-beha
 
 ### feature_generic `[spot-check]`
 ```
-grill → design-spec → security-gate ∥ a11y-gate ∥ perf-gate → implement ∥ qa-author
+grill → design-spec → implement ∥ e2e-author → security-gate ∥ a11y-gate ∥ perf-gate
       → e2e-run ∥ code-review → ⟦async spot-check⟧ → merge → canary → archive → docs-sync
 ```
+The machine gates run after `implement` — they scan the produced diff; pre-code there is
+nothing to scan — and, **on light lanes**, before the LLM verifiers (deterministic-first,
+SKILL.md Step 7). Human-gated lanes keep the feature_core ordering below.
+
+### feature_generic — small `[spot-check]`
+Size signal: single module + no DDL + no new external contract + no new UI flow. Any
+violated condition routes to the full feature_generic track above.
+```
+grill(light) → inline-spec → implement → security-gate ∥ perf-gate (∥ a11y-gate if UI)
+      → code-review(scoped) ∥ existing-suite → ⟦async spot-check⟧ → merge → docs-sync
+```
+`inline-spec`: the controller authors the minimal spec itself in `openspec/changes/<id>/`
+— **all 4 contracts, with non-applicable ones explicitly marked absent** (so the spec gate
+and developer pre-flight hold unchanged) — plus stable-ID scenarios and execution-carrier
+`existing-suite`, with **no planner dispatch**. Verification collapses to `code-review` +
+`existing-suite`: the project's suite runs green, **commit-stamped in `PIPELINE.md` == the
+merge candidate's HEAD** (re-run after any fix round). The coverage formula does not apply
+— record `coverage: n/a (small lane)`; the inline scenarios are discharged by the unit
+tests named in `tdd-evidence.md` plus code-review Verdict A. This collapse is legal on
+this lane only; no other track may omit its e2e node.
 
 ### feature_core `[human-gated]`
 ```
@@ -86,7 +108,7 @@ grill(deep; frames domain + seeds glossary) → prototype(disposable)
       → design-spec(domain model + 4 contracts, model-self-delegated)
       → [arch-review (AI design pre-check) only if DDL / cross-module]
       → ⟦架构门 ARCH GATE: human reviews REVIEW.md — domain model + module/interface/db/use-cases + decisions + cross-cutting⟧
-      → implement(plan/task) ∥ qa-author → e2e-run ∥ code-review
+      → implement(plan/task) ∥ e2e-author → e2e-run ∥ code-review
       → security-gate ∥ a11y-gate ∥ perf-gate → merge → canary → ⟦publish consent⟧ → archive → docs-sync
 ```
 The heart of the dual-track design: two human gates that judge different things and do NOT

@@ -1,6 +1,6 @@
 ---
 name: tdd
-description: Test-driven development with a red-green-refactor loop. The workflow is language-agnostic, with toolchain guides for TypeScript, JavaScript, React, React Native, Python, Go, Rust, Swift, and Flutter/Dart. Use when the user wants to build features or fix bugs test-first, mentions "red-green-refactor", asks for unit or regression tests around a change, or says "write tests first". Also triggered when the developer agent enters the implementation phase via opsx:apply. This is development-time unit/widget testing — running e2e suites against an already-running app is the e2e-test skill.
+description: Red-green-refactor TDD loop with per-toolchain guides — invoked by name from developer/debugger at implementation time, or on explicit test-first requests.
 ---
 
 # Test-Driven Development

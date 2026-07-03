@@ -1,6 +1,6 @@
 ---
 name: e2e-test
-description: Execute end-to-end tests against an already-running application and verify the outcome — both the user-visible/API result AND the resulting database writes. Three modes — (1) GUI-driven full-functional suites that drive the real UI, (2) API-only tests that start from an endpoint call, and (3) agent-driven scenario execution for scenarios no suite covers (live browser driving via the graceful-browser skill). Covers Web (Playwright), Flutter on device/emulator (integration_test + flutter drive, ADB), React Native on device/simulator (Detox), and Tauri desktop (tauri-driver + WebdriverIO), with MySQL/PostgreSQL write verification over an env connection string. Use this skill whenever asked to run e2e / end-to-end / smoke tests, to verify a feature works through its UI or API, to confirm a flow "actually wrote to the database", or before merge to validate a running build. This is end-to-end execution, NOT unit/red-green TDD (use the tdd skill for that).
+description: Execute e2e tests against a running app and verify both the interface result and the database writes (Playwright / Detox / flutter drive / tauri-driver) — invoked by name from e2e-author and e2e-runner, or on explicit run-the-e2e-suite requests.
 ---
 
 # End-to-End Testing
@@ -52,7 +52,7 @@ sleep — fixed sleeps are the main reason an agent-driven pass feels slow. When
 mode is being invoked under the autonomy-controller and a *large fraction* of scenarios
 would need it (the threshold: non-scripted `> 5` or `≥ 20%`), that is a
 signal to **escalate to the user** rather than grind through — this `> 5` / `≥ 20%`
-threshold is the `qa-author` agent's non-scripted-ratio flag, surfaced via its
+threshold is the `e2e-author` agent's non-scripted-ratio flag, surfaced via its
 `e2e-manifest.md`; the `autonomy-controller` skill (Step 7) governs verification
 intensity more broadly.
 

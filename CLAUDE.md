@@ -41,7 +41,7 @@ See [AGENTS.md](./AGENTS.md) for project facts shared across agents.（项目简
 | arch-reviewer | plugin (gen-ai-development) | spec 含 DDL / 新接口 / 跨模块时，apply 前设计审查 | 纯逻辑小 spec（跳过留痕）；审实现代码 |
 | developer | plugin (gen-ai-development) | OpenSpec apply 阶段的 TDD 实施（spec 已就绪） | 缺少 spec 时禁用；e2e 测试代码 |
 | debugger | plugin (gen-ai-development) | bug / failure / stack-trace 出现时的假设驱动调试会话 | spec 创建；无 bug 背景的功能实现 |
-| qa-author | plugin (gen-ai-development) | spec 声明脚本化载体后写 e2e 测试代码（与 developer 并行） | 改产品代码；agent 驱动载体的变更 |
+| e2e-author | plugin (gen-ai-development) | spec 声明脚本化载体后写 e2e 测试代码（与 developer 并行） | 改产品代码；agent 驱动载体的变更 |
 | code-reviewer | plugin (gen-ai-development) | merge 进 dev 前的增量审查（门禁，两判定）；全量仅显式要求 | 一次性脚本；审设计（那是 arch-reviewer） |
 | e2e-runner | plugin (gen-ai-development) | 实施 + QA 交付后的 E2E 验收（先拉起应用） | 单测验证；写 / 改任何代码 |
 | release-coordinator | plugin (gen-ai-development) | 发布准备（SemVer 决策、版本同步点核验、release notes 草稿） | 执行 merge/push/publish（不可逆动作由主 Agent 在用户同意下做） |
@@ -60,7 +60,7 @@ See [AGENTS.md](./AGENTS.md) for project facts shared across agents.（项目简
   - 调研 / 对比 / 可行性 → `research-pipeline` skill（`researcher` 仅执行单元；或主 Agent 直接用 Context7）
   - 提议新能力 plugin / 大重构 → `planner` 走 OpenSpec
   - spec 含 DDL / 新接口 → apply 前 `arch-reviewer` 设计审查
-  - spec 已就绪、进入实施 → `developer`（TDD）∥ `qa-author`（e2e 测试代码）
+  - spec 已就绪、进入实施 → `developer`（TDD）∥ `e2e-author`（e2e 测试代码）
   - bug / failure / stack-trace → `debugger` 假设驱动调试
   - merge 进 dev 前 → `code-reviewer`（增量）∥ `e2e-runner`（验收），同消息并行
   - 发布准备 → `release-coordinator`（只准备，主 Agent 在用户同意下执行 merge/push/publish）

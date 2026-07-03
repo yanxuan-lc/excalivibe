@@ -1,0 +1,50 @@
+[
+ {
+  "query": "用 Go 写一个令牌桶限流中间件",
+  "should_trigger": true
+ },
+ {
+  "query": "这个 React 组件帮我重构下，现在 500 多行了什么都干",
+  "should_trigger": true
+ },
+ {
+  "query": "add proper error handling to scripts/sync_inventory.py, right now it just crashes",
+  "should_trigger": true
+ },
+ {
+  "query": "新模块的目录结构该怎么组织？TypeScript 的服务端项目",
+  "should_trigger": true
+ },
+ {
+  "query": "帮我 review 这段 Rust，unsafe 用得对不对",
+  "should_trigger": true
+ },
+ {
+  "query": "命名问题：fetchUserData 还是 getUserData？我们项目里两种都有",
+  "should_trigger": true
+ },
+ {
+  "query": "写个 bash 脚本把这个目录下的文件按日期批量重命名",
+  "should_trigger": false
+ },
+ {
+  "query": "这段 SQL 帮我优化下，explain 显示全表扫了",
+  "should_trigger": false
+ },
+ {
+  "query": "给这个 go 服务写个 Dockerfile",
+  "should_trigger": false
+ },
+ {
+  "query": "PHP 的 laravel 项目里 service 层一般怎么组织？",
+  "should_trigger": false
+ },
+ {
+  "query": "把这段 python 代码用大白话解释一下给产品听",
+  "should_trigger": false
+ },
+ {
+  "query": "excel 里 vlookup 匹配不到值显示 N/A 怎么处理？",
+  "should_trigger": false
+ }
+]

@@ -1,0 +1,50 @@
+[
+ {
+  "query": "帮我设计一个运营数据看板，能看每日订单量和转化率",
+  "should_trigger": true
+ },
+ {
+  "query": "这个登录页太丑了，重新做一个，要有点设计感",
+  "should_trigger": true
+ },
+ {
+  "query": "make me a landing page for my coffee subscription startup, warm and minimal",
+  "should_trigger": true
+ },
+ {
+  "query": "改下这个列表的布局，换成卡片式的，加点过渡动效",
+  "should_trigger": true
+ },
+ {
+  "query": "我想做个记账 app，先出个能点的原型看看",
+  "should_trigger": true
+ },
+ {
+  "query": "一起做个后台管理界面的设计吧，先从侧边栏导航开始",
+  "should_trigger": true
+ },
+ {
+  "query": "把 src/components/Button.tsx 里按钮的 padding 从 8px 改成 12px",
+  "should_trigger": false
+ },
+ {
+  "query": "给 UserCard 组件写单元测试，覆盖空头像的情况",
+  "should_trigger": false
+ },
+ {
+  "query": "这个页面首屏加载 4 秒，帮我查查慢在哪",
+  "should_trigger": false
+ },
+ {
+  "query": "把 assets 下的 svg 图标批量转成 png",
+  "should_trigger": false
+ },
+ {
+  "query": "give me some general UX principles for mobile form design, just advice",
+  "should_trigger": false
+ },
+ {
+  "query": "帮我把这张产品图的背景抠掉",
+  "should_trigger": false
+ }
+]

@@ -4,7 +4,7 @@
 
 定位：把基于生成式 AI 的研发工作流沉淀成可复用的 Claude Code 能力。相比 1.x 的「一张相位图 + 一个人工门」，2.0 的核心是一个**自治控制器（autonomy-controller）**——它对每个任务先判断「这件事能放手到什么程度」，再据此组装**轨道（哪些节点）**、**门禁形状（几个人工触点）**与**验证强度**。范式收敛为 **SDD（spec 契约）+ TDD（测试）**两条，架构是**三层 + 专人专事的 subagent + 独立内聚的功能 skill**。
 
-> **状态：2.0，已替代并移除 1.x。** 插件名 `gen-ai-development`，版本 `2.0.0`，命令 / skill 命名空间均为 `gen-ai-development:*`。Claude 与 Codex 两端均已切到 2.0，走同一主流程（求同存异）。
+> **状态：2.0，已替代并移除 1.x。** 插件名 `gen-ai-development`，版本 `2.0.1`，命令 / skill 命名空间均为 `gen-ai-development:*`。Claude 与 Codex 两端均已切到 2.0，走同一主流程（求同存异）。
 
 ## 快速开始（每个项目一次性 onboarding）
 
@@ -51,14 +51,14 @@
 | `autonomy-controller` | 任何要建 / 改可运行产品代码的开发任务起步、续作在途 `openspec/changes/<id>/`、复合意图一句话、或判断「能否无人发布」 | **主 Agent 的研发编排规约**：三信号分类 → 设自治档位 → `decompose` 拆复合意图为 unit-DAG → 组装轨道并向 `PIPELINE.md` 写四件输出（节点图 / 档位 / 门形 / 验证强度）→ 派发 subagent → 按档位定门 → 按强度路由验证；含 Phase A→B→C rollout 与交付边界 |
 | `research-pipeline` | 任何调研 / 对比 / 可行性（「调研一下 X」「A 和 B 怎么选」「这方案可行吗」），或 autonomy-controller 的 research 轨道展开 | **主 Agent 的调研编排规约**：路由 → 苏格拉底澄清（AskUserQuestion）→ 结论确认 → 计划（按子任务路由 deep-research / researcher / inline，模型按任务选）→ 并行派发 → 汇总追问循环 → synthesize 落盘 REPORT.md + PROPOSAL.md。**所有用户交互在主 Agent**，researcher 是纯执行单元 |
 
-### 功能 skill（Tier-1，自动触发，独立可用）
+### 功能 skill（Tier-1，独立可用；入口型自动触发，内部型按名调用）
 
 意图 / 设计 / 验收：
 
 | Skill | 触发场景 | 内容 |
 |-------|----------|------|
 | `grill` | 需求含糊、只给结果不给行为、「做个 X」「加个能做 Y 的东西」、无验收标准的特性想法 | 交互式意图输入：一次一问 + **带推荐答案**的苏格拉底澄清，产出行为化 `BRIEF.md`（现状 / 期望 / 验收 / out-of-scope）。两档深度；deep+binding 模式额外定型领域、播种 glossary，并**主动盘问**冲突 / 重载术语、用边界场景压测、拿现有代码交叉核对。**能查代码就先查，别耗用户回合** |
-| `spec-review` | spec 走到 human-confirm 人审、生成人审文档、「四件套确认」「查看 REVIEW」 | **四件套人审文档规约**：`REVIEW.md` 由 spec **单向派生**（模块 → 协议 → 库表 → 用例；表格 / Mermaid / DDL 优先于散文）；spec-hash 新鲜度戳供 human-confirm 门机检；用户直接以 markdown 查看；下游 agent 禁读——spec 才是实施输入 |
+| `review-doc` | spec 走到 human-confirm 人审、生成人审文档、「四件套确认」「查看 REVIEW」 | **四件套人审文档规约**：`REVIEW.md` 由 spec **单向派生**（模块 → 协议 → 库表 → 用例；表格 / Mermaid / DDL 优先于散文）；spec-hash 新鲜度戳供 human-confirm 门机检；用户直接以 markdown 查看；下游 agent 禁读——spec 才是实施输入 |
 | `app-ux-design` | UI / 视觉设计、原型、视觉轨道的 prototype 节点 | 设计产出落 `docs/ued/<dt>/`（依赖 `ui-ux-pro-max`） |
 
 实施 / 测试 / 调试：
@@ -83,7 +83,7 @@
 
 | Skill | 触发场景 | 内容 |
 |-------|----------|------|
-| `develop-guideline` | 写新代码 / 改文件 / 加组件函数 / 实现特性 / 修 bug / 评审代码 | 多语言编码规约（TS/JS/React/RN/Python/Go/Rust/Swift/Dart/Flutter）+ 命名 / 错误处理 / 组织 / 注释通用篇 |
+| `coding-guideline` | 写新代码 / 改文件 / 加组件函数 / 实现特性 / 修 bug / 评审代码 | 多语言编码规约（TS/JS/React/RN/Python/Go/Rust/Swift/Dart/Flutter）+ 命名 / 错误处理 / 组织 / 注释通用篇 |
 | `dba-guideline` | 任何数据库工作：建表 / 改表 / 迁移 / ORM / 非平凡查询 / review SQL | MySQL、PostgreSQL 的 DDL/DML/DQL 规约（含 SQL 审核红线，强制 / 推荐分级） |
 | `devops-guideline` | 写 / 改任务运行器、统一多语言或 monorepo 命令入口、本地中间件 compose、服务 Dockerfile、「怎么跑 X」 | 单一命令入口、委托原生工具、聚合动词→分域目标、自文档化 help；compose 只编排本地中间件；Dockerfile 多阶段 + 非 root + 国内源 |
 | `middleware-guideline` | 接平台中间件与监控：Nacos / 配置中心、运行时配置、PROFILE、热更、健康检查 / `/metrics`、新起服务骨架 | bootstrap 与业务配置两层分离、`<APP>_PROFILE` 单开关、必选中间件 fast-fail、辅助降级；**服务必备监控面** `/healthz` + `/readyz` + Prometheus `/metrics`（含 Go/Python/Rust/Node.js 接线） |
@@ -100,17 +100,17 @@
 
 ## Subagents（按场景委派）
 
-> 下表是**能力摘要**，便于路由选型；具体行为以 `agents/` 下各定义为准，冲突时定义文件赢。验证三角（developer ≠ qa-author ≠ e2e-runner / code-reviewer，写权分离、文件路径交接、干净上下文复核）是 2.0 信任的根基，原样保留。
+> 下表是**能力摘要**，便于路由选型；具体行为以 `agents/` 下各定义为准，冲突时定义文件赢。验证三角（developer ≠ e2e-author ≠ e2e-runner / code-reviewer，写权分离、文件路径交接、干净上下文复核）是 2.0 信任的根基，原样保留。
 
 | Agent | 触发场景 | 备注 |
 |-------|----------|------|
 | `researcher` | 调研的**纯执行单元**，由 `research-pipeline` 派发（快速 scoped 查证也可直接派） | investigate（一 dispatch 答一 scoped 子问题，结论带出处、fact/inference 强制标注，待拍板事项以 `open_questions` 带回）/ synthesize（汇总落盘 REPORT.md + PROPOSAL.md）。**不与用户交互**；广域 web 扫描归主 Agent 调 deep-research |
-| `planner` | 复杂 / 新特性 / 架构变更的设计提案（`opsx:propose`） | 写 OpenSpec 四契约（模块设计 / 外部协议 / 库表 / 场景级 e2e 用例，稳定 ID `S1/S2/…` + 执行载体声明）；模块设计用 glossary 术语；随 spec 派生 `REVIEW.md`（按 `spec-review`，spec 每改重生）；不实现；open_questions 不直接问用户 |
+| `planner` | 复杂 / 新特性 / 架构变更的设计提案（`opsx:propose`） | 写 OpenSpec 四契约（模块设计 / 外部协议 / 库表 / 场景级 e2e 用例，稳定 ID `S1/S2/…` + 执行载体声明）；模块设计用 glossary 术语；随 spec 派生 `REVIEW.md`（按 `review-doc`，spec 每改重生）；不实现；open_questions 不直接问用户 |
 | `arch-reviewer` | spec 含 DDL / 新改接口面 / 跨模块时，**实施前**设计审查（裁量触发） | 审 schema / 接口契约 / 模块边界 / 验收可测性；产出 `arch-review.md`，闭环走 planner 改 spec；**只审设计、不审实现代码**（那是 code-reviewer 的活） |
-| `developer` | spec 已就绪的实施阶段 | 严格 TDD（产品代码 + 单测）；**不写 e2e 测试**；输入是 spec 不是 REVIEW.md；组合 `tdd` + `develop-guideline` +（涉库）`dba-guideline` + `glossary-conformance`；信任信号用 mutation/property oracle |
-| `qa-author` | spec 确认且声明脚本化载体后，与 developer **并行派发** | 黑盒 SDET：按 spec 场景（**非实现**）写 Playwright / 接口 / DB 校验测试，交付 `e2e-manifest.md`（场景→用例映射 + 有意留空清单）；两阶段（spec-only 草稿 ∥ developer，应用起来后定型选择器）；**绝不改产品代码** |
+| `developer` | spec 已就绪的实施阶段 | 严格 TDD（产品代码 + 单测）；**不写 e2e 测试**；输入是 spec 不是 REVIEW.md；组合 `tdd` + `coding-guideline` +（涉库）`dba-guideline` + `glossary-conformance`；信任信号用 mutation/property oracle |
+| `e2e-author` | spec 确认且声明脚本化载体后，与 developer **并行派发** | 黑盒 SDET：按 spec 场景（**非实现**）写 Playwright / 接口 / DB 校验测试，交付 `e2e-manifest.md`（场景→用例映射 + 有意留空清单）；两阶段（spec-only 草稿 ∥ developer，应用起来后定型选择器）；**绝不改产品代码** |
 | `code-reviewer` | **merge 进 dev 的门禁**：增量审 diff（与 e2e-runner 同消息并行）；全量仅显式要求 | 两判定（spec 合规 ≠ 代码质量）、干净上下文、只读；**「不信报告，从 diff 重推」**；门禁车道用异模型族；全量模式 consult `smell-scan`；产出 `CHECKLIST.md`（P0/P1 全 Resolved 才合并） |
-| `e2e-runner` | 实施 + QA 交付后跑端到端验收（主 agent 先拉起应用） | 按 manifest 查表路由：有映射跑脚本（**零 LLM**），无映射经 graceful-browser 驱动；两路统一写库校验；只读、不改判（product/test/infra 分类）；报告落盘 `e2e-report.md` 含覆盖 N/M——merge 门禁消费它 |
+| `e2e-runner` | 实施 + QA 交付后跑端到端验收（主 agent 先拉起应用） | 按 manifest 查表路由：有映射跑脚本（**零 LLM**），无映射经 graceful-browser 驱动；写库校验（manifest 声明 `db-assert: suite` 的场景抽样复核，其余 runner 亲验）；只读、不改判（product/test/infra 分类）；报告落盘 `e2e-report.md` 含覆盖 N/M——merge 门禁消费它 |
 | `debugger` | bug / 失败 / 栈回溯出现时的假设驱动调试 | 组合 `debug` skill；bug 轨道与 fix-loop 的一等节点；产出 `HYPOTHESIS.md`（复现 + 排序根因），**只诊断 + 写红回归测试、不改产品码**（实现归 developer）；3+ 次修复失败升级为架构性问题 |
 | `release-coordinator` | 发布**准备**（SemVer 决策、多模块版本同步点核验、release notes 草稿、证据摘要） | 组合 `vcs-workflow`；**硬边界：只准备，不执行**——merge/push/publish 由主 Agent 在用户明确同意下做，subagent 绝不执行不可逆对外动作 |
 
@@ -123,6 +123,7 @@
 | `npm/pnpm/yarn publish` | **deny** | **ask** | 不可逆对外发布（机械落实 release-coordinator「subagent 只准备、不执行」） |
 | force-push 到 `main`/`dev` | **deny** | **ask** | 改写共享历史 |
 | push 到受保护 `main` | **deny** | **ask** | main 只走 MR |
+| `gh pr merge` | **deny** | base=`main` 或无法解析→**ask**；base 为 dev 等非保护分支→放行 | PR 合并推进基线分支，main 只走人审同意 |
 | `git commit` 在 `main` 上 | **ask** | **ask** | 可逆，仅警示（trunk-based 可确认放行） |
 | `git reset --hard` / `git clean -f` | **ask** | **ask** | 销毁本地工作 |
 | 其余（feat 提交、push dev、自己 feat 的 force-push、改文件、跑测试…） | 放行 | 放行 | 可逆车道跑得自由 |
@@ -144,7 +145,7 @@
 - 调研 / 对比 / 可行性需求 → 按 `gen-ai-development:research-pipeline` skill 编排：
   澄清与追问在主 Agent，researcher 仅作执行单元派发。
 - 改 skill / agent / command / prompt / 文档本身**不算研发**，不走此编排（以 skill-creator 为权威轨道）。
-- 规约类 / 功能类 Skill（develop-guideline / tdd / grill / smell-scan 等）按描述自动触发，无需点名。
+- 入口型 Skill（coding-guideline / dba-guideline / grill / vcs-workflow 等）按描述自动触发；内部型 Skill（tdd / e2e-test / smell-scan / review-doc 等）由管线角色按名调用，描述压缩为一行、仅保留显式请求触发。
 ```
 
 > 续作纪律：一旦建了 `openspec/changes/<id>/`，承诺走完轨道或显式废弃，不允许中途静默降级。`PIPELINE.md` 是续作的事实源，**先读它，它压过会话记忆**。
@@ -176,14 +177,14 @@
 ```
 gen-ai-development/
 ├── .claude-plugin/plugin.json
-├── agents/                      # researcher / planner / arch-reviewer / developer / qa-author / code-reviewer / e2e-runner / debugger / release-coordinator
+├── agents/                      # researcher / planner / arch-reviewer / developer / e2e-author / code-reviewer / e2e-runner / debugger / release-coordinator
 ├── commands/                    # setup-gen-ai：初始化管线写权限；project-init：初始化 AGENTS.md / CLAUDE.md 并登记 Subagent
 ├── hooks/                       # Claude 侧 PreToolUse 安全网：拦不可逆动作（publish / push main / force-push / reset --hard）
 ├── skills/
 │   ├── autonomy-controller/     # Tier-3 编排脊柱：三信号 → 档位 → 轨道 → 门禁 → 强度（references: tracks / gates / pipeline-schema）
 │   ├── research-pipeline/       # Tier-3 调研编排：澄清 → 确认 → 计划 → 并行派发 → 汇总循环 → synthesize 落盘
 │   ├── grill/                   # 意图输入：苏格拉底澄清 → BRIEF.md（深档定型领域 + 播种 glossary）
-│   ├── spec-review/             # 四件套人审文档：REVIEW.md + spec-hash 新鲜度戳
+│   ├── review-doc/              # 四件套人审文档：REVIEW.md + spec-hash 新鲜度戳
 │   ├── app-ux-design/           # UI / 视觉设计原型（依赖 ui-ux-pro-max）
 │   ├── tdd/                     # 红绿重构 + 各语言测试工具链
 │   ├── e2e-test/                # 端到端执行：GUI(Web/Flutter/RN/Tauri) + API + agent 驱动，写库校验
@@ -193,7 +194,7 @@ gen-ai-development/
 │   ├── perf-budget/             # 性能预算对照（验证门）
 │   ├── smell-scan/              # 架构 / 代码坏味道检测（删除测试 + 推荐强度）
 │   ├── glossary-conformance/    # 命名一致性机检（防漂移，不带信任额度）
-│   ├── develop-guideline/       # 多语言编码规约
+│   ├── coding-guideline/        # 多语言编码规约
 │   ├── dba-guideline/           # MySQL / PostgreSQL 规约
 │   ├── devops-guideline/        # 任务运行器 / docker-compose 本地中间件 / Dockerfile
 │   ├── middleware-guideline/    # 中间件接入 Nacos + 监控面

@@ -1,0 +1,50 @@
+[
+ {
+  "query": "给用户中心加一个手机号验证码登录，按流程来",
+  "should_trigger": true
+ },
+ {
+  "query": "线上订单偶发重复扣款，帮我修一下这个 bug，影响面可能不小",
+  "should_trigger": true
+ },
+ {
+  "query": "继续 add-auth 那个变更，昨天做到一半了",
+  "should_trigger": true
+ },
+ {
+  "query": "把结算模块重构一下，顺便修下价格显示的 bug，再把提交按钮改成品牌蓝",
+  "should_trigger": true
+ },
+ {
+  "query": "orders 表要加个 status 字段，写个迁移把老数据也带上",
+  "should_trigger": true
+ },
+ {
+  "query": "upgrade react from 17 to 18 across this repo, there are a few breaking changes i think",
+  "should_trigger": true
+ },
+ {
+  "query": "帮我写一个新的 skill，用来自动生成周报，参考现有 skill 的结构",
+  "should_trigger": false
+ },
+ {
+  "query": "调研一下 Rust 这边 ORM 的现状，sea-orm 和 diesel 怎么选",
+  "should_trigger": false
+ },
+ {
+  "query": "这段代码为什么会报 TypeError: cannot read properties of undefined？给我讲讲原理就行",
+  "should_trigger": false
+ },
+ {
+  "query": "把 CLAUDE.md 里的 subagent 表更新一下，加上新装的两个 agent",
+  "should_trigger": false
+ },
+ {
+  "query": "review 一下这个 PR 写得怎么样，不用改，说说问题就行",
+  "should_trigger": false
+ },
+ {
+  "query": "把 data/export.xlsx 转成 csv，逗号分隔",
+  "should_trigger": false
+ }
+]
