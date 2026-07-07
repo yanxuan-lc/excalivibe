@@ -151,12 +151,27 @@ implementation vehicles. This split is what keeps the toolkit portable and lean.
   large change it works its `implement-ledger.md` task-by-task and may return at a task
   boundary; re-dispatch a fresh `developer` to continue from the first unfinished ledger
   task until the ledger is done.
+- **Pass evidence, not re-work.** The dispatch brief carries the facts a role would
+  otherwise re-derive at full cost: prebuilt binary paths + the commit they were built at
+  for `e2e-runner` (so it skips its own build), and the `tdd-evidence.md` location for
+  `code-reviewer` (so it samples instead of re-running the suite). Stale or missing
+  facts → the role falls back to doing it itself; never let it re-pay by default.
 - **Judgment stays home.** Subagent outputs are inputs to the controller's decision, not
   verdicts to forward blindly. Read the key artifacts (the spec, the diff, the reports)
   yourself before acting on them.
 - **Subagents can't talk to the user.** If one returns parked questions (open_questions)
   instead of results, relay them to the user verbatim and continue the same agent with
   the answers — never answer on the user's behalf.
+- **Continuation etiquette.** When resuming/continuing a subagent (a stalled run, a
+  missing artifact, relayed answers): FIRST verify the agent-id ↔ role mapping —
+  parallel dispatches return ids in call order, and a resume message sent to the wrong
+  role costs a full round-trip (measured: a "write your missing CHECKLIST.md" message
+  landed on the e2e-runner). THEN self-identify and restate context inside the message
+  ("I am the dispatching controller; your run ended without X on disk; continue from Y").
+  A resumed agent that treats an unattributed instruction as injected content and
+  re-derives everything from scratch is behaving CORRECTLY per prompt-injection
+  hygiene — but it costs a full re-verification round (measured: ~56 min). Give it the
+  provenance it needs to trust the message.
 
 The controller may also invoke another process skill as a sub-flow — e.g. dispatch the
 **`research-pipeline`** for the `research` archetype. Process skills compose; the
@@ -207,6 +222,12 @@ Verification cost is matched to stakes via the **intensity vector** the controll
   guarantee (convergence catches variance, not shared error).
 - Standing sweeps are **event/diff-scoped**, never schedule-default. `PIPELINE.md`
   carries a per-track token budget.
+- **The full merge-gate oracle runs exactly ONCE per merge candidate — at the merge
+  node.** Role-recorded evidence (`tdd-evidence.md`, `e2e-report.md`, `CHECKLIST.md`)
+  stamped at the current HEAD satisfies the gate without re-execution; a re-run is
+  triggered only by a stamp mismatch or a concrete stated suspicion. This governs *cost*,
+  not the intensity vector — adversarial-N and verifier tiers are unchanged; the rule is
+  simply that nobody pays for the SAME oracle twice.
 
 The post-merge **unbiased audit** (different model family, non-negotiable) is a separate,
 budget-protected mechanism — see [references/gates.md](references/gates.md). It is not a

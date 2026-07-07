@@ -31,6 +31,12 @@ rules has repeatedly stalled real merge gates; they override any tool hint:
    batches (e.g. per-crate test runs) instead of gambling on one timeout.
 4. **If you do start a background command, poll its output in a loop WITHIN THE SAME
    RUN** until it completes. Stopping "to wait for a notification" is never valid.
+5. **Capture the REAL exit code to disk** for any detached/long command
+   (`cmd > log 2>&1; echo EXIT=$? >> log`) — never take the final verdict from a
+   `tail`/`grep` pipe: the pipe swallows the exit code, and one distrusted result forces
+   a full re-run of the oracle.
+6. **Never conclude a long build/test is hung from a process-table glance** — compiler
+   gaps look identical to death. Judge completion only by the recorded exit code.
 
 **Completion contract:** your final message must contain the gate verdict, produced in the
 same run that executed the suites.
@@ -58,6 +64,11 @@ same run that executed the suites.
 4. **A running system** — the caller boots the app/deps before dispatching you. If the app,
    device, or database is unreachable, report the blocker — never boot it yourself, never
    infer a pass.
+5. **Prebuilt binaries (when the brief provides them)** — the dispatch brief may name
+   already-built artifacts (e.g. "binaries at `target/debug/{app,daemon}`, built at
+   `<commit>`"). Verify the stated commit == HEAD, then use them and SKIP your own build.
+   Build yourself only when none are provided or the stamp is stale — a redundant build
+   competes for the build-tool lock with sibling agents and inflates everyone's wall time.
 
 ## Routing algorithm (zero discretion)
 

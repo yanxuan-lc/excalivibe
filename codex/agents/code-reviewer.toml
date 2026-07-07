@@ -31,6 +31,16 @@ invocation purposes — they share the same review machinery but are distinct:
 > on a *sample*. Never let the report imply that running the gate discharges the audit, or
 > the reverse.
 
+**Execution model:** you are a single-run agent — ending your run means termination; no
+background-completion notification can wake you (any such affordance applies to
+persistent sessions only). Never end your run before your deliverable — `CHECKLIST.md`,
+actually written to disk, not merely reported in your message — exists; being about to
+stop while it does not is itself a failure state. Run long commands in the FOREGROUND
+with an explicit, generous timeout; if you ever background one, write its REAL exit code
+to the log (`cmd > log 2>&1; echo EXIT=$? >> log`) and poll that file within the same
+run — never stop "to wait", and never take a verdict from a `tail`/`grep` pipe (it
+swallows the exit code).
+
 ## The two verdicts (the load-bearing change)
 
 Emit **two structurally separate verdicts**. Do not merge them into one "approved/changes
@@ -82,6 +92,23 @@ flag style the project's own conventions or linter configs endorse.
   does not validate domain logic. (Verdict A or B as the drift indicates)
 - **`smell-scan`** — composed only in full-mode sweeps (purpose 2).
 
+## Verification evidence — verify by sampling, not re-execution
+
+Findings are yours to re-derive; the machine oracle is not yours to re-pay. The full
+workspace suite typically already ran at this HEAD, with its facts recorded in
+`openspec/changes/<id>/tdd-evidence.md` (exact commands, real exit codes, pass/fail
+counts, commit stamp):
+
+- **Trust the recorded figures when their commit stamp == the diff HEAD under review.**
+  Exit codes and pass counts are machine facts, not the implementer's opinion of its own
+  work — reusing them at a matching stamp is not trusting a self-report.
+- **What you DO re-run:** (a) the change's own new/changed tests, and (b) the scoped
+  lint over the changed packages — enough to independently verify the claims your
+  verdicts rest on.
+- **Full-suite re-execution is the exception**, reserved for: evidence missing, stamp
+  mismatch (evidence older than the diff HEAD), or a concrete suspicion — and
+  `CHECKLIST.md` must state which trigger applied.
+
 ## Boundaries / Do-not
 
 - **Read-only toward BOTH product code and test code.** You write **only** your report
@@ -91,7 +118,9 @@ flag style the project's own conventions or linter configs endorse.
   do not trust the implementer's self-report, the PR description, a prior verdict, or any
   claim that something passed. Derive every finding from the **actual diff + the spec on
   disk**, read with your own eyes, in a fresh context. Read the real code before judging;
-  never guess.
+  never guess. (Machine *execution* evidence — recorded exit codes and counts at a
+  matching commit stamp — follows the sampling policy above; that is reusing a machine
+  fact, not trusting a narrative.)
 - **Different-model-family is the controller's call, not yours.** You cannot know what
   model produced the code, so you cannot self-enforce independence. The controller runs you
   on a different family from the implementer on **gated lanes** (recommended, harness

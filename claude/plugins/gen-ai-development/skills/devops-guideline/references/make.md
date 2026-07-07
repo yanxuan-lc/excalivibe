@@ -123,11 +123,52 @@ deps-reset: ## wipe MySQL data volume and restart   ← danger is in the name
 
 Never hide a volume wipe or DB reset behind an innocuous verb like `clean` or `setup`.
 
+## Two-Tier Quality Gate (`check` vs `check-diff`)
+
+One full gate paid once, one scoped gate for every inner loop. Without the second tier,
+every pipeline role re-runs the full oracle and a 20-minute suite gets paid 3–4× per
+change (measured):
+
+- **`check`** — the full merge gate: fmt-check + lint + ALL tests. Run **once**, at the
+  merge node. Nobody else re-runs it; they read its recorded result (command, real exit
+  code, commit stamp).
+- **`check-diff`** — the scoped iteration gate: map `git diff` (committed vs merge-base +
+  staged + unstaged + untracked) to changed packages, expand to workspace **reverse
+  dependencies** (`cargo tree -i <pkg> --workspace` or the ecosystem's equivalent), then
+  run fmt + lint + tests on that subset only. Escalate to full `check` when
+  workspace-root files changed (root manifest, lockfile, Makefile, `scripts/`). Pipeline
+  roles use `check-diff` for inner loops; only the merge gate pays for `check`.
+
+Hard-won sub-rules (all measured in a real Rust workspace; the principles generalize):
+
+- **Lint trust via warnings-as-errors.** `clippy -- -D warnings` makes INCREMENTAL lint
+  results trustworthy: a crate with a warning fails and is never cached green, so there
+  is no "must cold-relint to trust it" tax (that tax was ~9 min/run).
+- **Test-runner parallelism.** Workspaces with many small integration-test binaries:
+  plain `cargo test` runs binaries strictly sequentially; `cargo-nextest` schedules all
+  tests globally in parallel. Caveats: doctests don't run under nextest — keep a
+  `cargo test --doc` step if the workspace has any; tests spawning real servers must use
+  OS-assigned ephemeral ports to be parallel-safe.
+- **Nested-build antipattern.** Test harnesses that invoke `cargo build` from INSIDE test
+  code serialize on the build tool's file lock under concurrent load (a 2-test suite
+  measured 430 s waiting on the lock). Pre-build required binaries once at the
+  task-runner level; keep the in-test build only as an idempotent fallback.
+- **Feature-resolution discipline.** Package-subset invocations (`cargo <cmd> -p a -p b`,
+  `--exclude`) resolve dependency features differently from full-workspace invocations,
+  flipping compilation fingerprints and recompiling already-built deps from scratch
+  (measured: heavyweight deps fully rebuilt by a `-p` build immediately after a workspace
+  build of the same tree). Rule: every gate command selects the FULL workspace
+  (`--workspace`) so features resolve one canonical way and the cache stays warm; scope
+  at the RUN level instead (e.g. nextest `-E 'package(x)'` filtersets), never at the
+  build-selection level.
+
 ## Conventions Checklist
 
 - `.DEFAULT_GOAL := help` — bare `make` shows help, never builds.
 - Every public target is `.PHONY` and has an inline `## description`.
 - Aggregate verbs (`build/test/lint/fmt/check`) delegate to per-domain targets.
+- Two-tier gate: `check` (full, merge node only) + `check-diff` (scoped inner loop);
+  gate commands always build the full workspace, scoping happens at the run level.
 - `help` renders targets grouped by domain; groups mirror the repo's real toolchains/services.
 - Cross-tool ordering is expressed as prerequisites, not comments.
 - Config via `.env` (+ `.env.example`); `-include .env` + `export`; `.env` gitignored.

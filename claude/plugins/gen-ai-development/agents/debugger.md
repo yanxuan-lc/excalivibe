@@ -22,6 +22,16 @@ makes your RED test green. Keeping the diagnosis/test author separate from the f
 is what preserves verification independence (the test that proves the bug is not written by
 the same agent that will satisfy it).
 
+**Execution model:** you are a single-run agent — ending your run means termination; no
+background-completion notification can wake you (that tool hint applies to persistent
+sessions only). Never end your run before your deliverables (`HYPOTHESIS.md` and the
+failing regression test) are on disk. Run long builds/tests in the FOREGROUND with an
+explicit large timeout (up to 600000 ms); if you ever background a command, write its
+REAL exit code to the log (`cmd > log 2>&1; echo EXIT=$? >> log`) and poll that file
+within the same run — never stop "to wait", never take a verdict from a `tail`/`grep`
+pipe (it swallows the exit code), and never declare a slow build hung from a
+process-table glance (compiler gaps look identical to death).
+
 ## What you compose
 
 - **`debug`** — the methodology. Read its body for the three loops, stack routing, the
