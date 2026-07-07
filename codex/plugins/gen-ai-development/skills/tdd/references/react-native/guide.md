@@ -25,6 +25,22 @@ module.exports = {
 
 Add `"test": "jest"` and `"test:cov": "jest --coverage"` to `package.json` scripts. Prefer the project's existing script.
 
+## Verification Discipline
+
+React-Native-specific facts (the generic rules live in SKILL.md):
+
+- **A green Jest run does NOT typecheck.** The `react-native` preset transpiles via
+  Babel — `tsc --noEmit` is a separate, necessary pass. Run it at task boundaries and
+  in the gate pass, not chained after every inner-loop test run.
+- **Scope the inner loop.** `jest path/to/file.test.tsx`, `-t "name"`, or `-o` (only
+  changed files). `--watch` is for interactive human sessions only — a single-run
+  agent's watch process never exits. First runs are slow (the RN preset's Babel
+  transform); the transform cache is what makes scoped iteration cheap — never
+  `--clearCache` habitually.
+- **`jest --coverage` is the Coverage Gate's run** — it re-runs everything with
+  coverage enabled and enforces the gate; keep it out of the inner loop.
+- **Gate pass composition**: full `jest` + `tsc --noEmit` + ESLint.
+
 ## v14 essentials (don't skip — they change how tests are written)
 
 - **`render` is async** — always `await render(<Component />)`.

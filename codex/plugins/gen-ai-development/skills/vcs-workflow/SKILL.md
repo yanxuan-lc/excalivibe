@@ -54,7 +54,11 @@ When the task is done (scope complete, tests/lints/validation passing):
 ```bash
 git checkout dev && git pull origin dev   # in the main checkout
 git merge --no-ff feat/<name>             # keep the feature boundary visible in history
-# re-run the repo's test/validate target on the merged result
+# validate the merged result — but don't re-verify a tree that was already verified:
+#   if dev had NOT moved past the merge base, the merged tree is identical to the one
+#   the recorded pre-merge gate ran on — that recorded result (command + exit code +
+#   commit) stands; re-run the repo's test/validate target ONLY when dev diverged and
+#   the merge produced a new tree, and record that run the same way.
 git push origin dev                       # only on explicit user request — see Commit & Push Policy below
 ```
 

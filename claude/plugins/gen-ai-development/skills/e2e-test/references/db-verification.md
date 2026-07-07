@@ -39,7 +39,7 @@ Don't just check "a row exists" — verify the write is *correct*:
 
 ## Timing — account for async writes
 
-The interface often returns before the write settles (event handlers, queues, workers). Don't assert instantly — **poll** the table with a short bounded timeout (e.g. retry every 200ms up to a few seconds) and fail only if the row never appears. An immediate-assert false-negative is a classic e2e flake.
+The interface often returns before the write settles (event handlers, queues, workers). Don't assert instantly — **poll** the table with a short bounded timeout (e.g. retry every 200ms up to a few seconds) and fail only if the row never appears. Implement the retry INSIDE one foreground command (a suite assertion helper, or a single script/query with built-in retry) — never as a shell `while`/`sleep` loop around the query. An immediate-assert false-negative is a classic e2e flake.
 
 ## Isolation & cleanup
 

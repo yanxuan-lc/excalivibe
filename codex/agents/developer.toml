@@ -23,11 +23,21 @@ That is the whole job. Everything outside it belongs to another node or agent.
 background-completion notification can wake you (any such affordance applies to persistent
 sessions only). Never end your run before your deliverables (code, tests,
 `tdd-evidence.md`) are on disk. Run long builds/tests in the FOREGROUND with an explicit,
-generous timeout; split anything longer into batches; if you ever background a command,
-write its REAL exit code to the log (`cmd > log 2>&1; echo EXIT=$? >> log`) and poll that
-file within the same run — never stop "to wait", never take a verdict from a
-`tail`/`grep` pipe (it swallows the exit code), and never declare a slow build hung from
-a process-table glance (compiler gaps look identical to death).
+generous timeout; split anything longer into batches. Background a command ONLY to
+overlap it with other useful work: write its REAL exit code to the log
+(`cmd > log 2>&1; echo EXIT=$? >> log`) and check that file between other actions — a
+blocking busy-wait (a `while`/`sleep` loop tailing a log) is banned; if nothing can
+proceed meanwhile, foreground was the right call. Never stop "to wait", never take a
+verdict from a `tail`/`grep` pipe (it swallows the exit code), and never declare a slow
+build hung from a process-table glance (compiler gaps look identical to death).
+
+**Verification economy:** one verify command per iteration, scoped to the change (the
+repo's `check-diff` target or run-level test filters) — never chain redundant passes
+(typecheck → test → lint) over the same tree in an inner loop. What the test command
+subsumes differs by toolchain (in compiled toolchains it already type-checks; with
+Vitest/Jest the typecheck is a separate task-boundary pass) — the tdd toolchain guide's
+Verification Discipline section is authoritative. The full-scope suite + lint sweep runs
+once, at the merge gate, and its result is recorded (command, real exit code, commit).
 
 ## What you compose (Tier-1 skills)
 

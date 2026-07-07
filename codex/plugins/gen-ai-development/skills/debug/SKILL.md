@@ -7,6 +7,15 @@ description: Hypothesis-driven debugging loops (log-loop / exit-code convergence
 
 A structured, hypothesis-driven debugging workflow with deterministic cleanup. Three loops cover the dominant debug scenarios; pick the one that matches the symptom.
 
+> Long-running builds/tests during a loop follow the **Execution model** hard rules in the
+> dispatching agent's definition (foreground with explicit timeout; background only to
+> overlap with other work; blocking busy-wait loops banned). When this skill is invoked
+> outside an agent, apply the same rules. Each loop iteration is ONE scoped run of the
+> reproduction command — no redundant command chains around it (what the test command
+> subsumes differs by toolchain; the tdd toolchain guide's Verification Discipline
+> section is authoritative). Record the final green verification (command, real exit
+> code, commit) so downstream roles read the result instead of re-running it.
+
 ## Stack Routing
 
 Before starting, identify the language/stack in play and open the corresponding reference guide for probe syntax, run commands, and debugger invocation:

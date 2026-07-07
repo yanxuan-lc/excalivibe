@@ -19,6 +19,9 @@ flutter devices                 # what Flutter sees (id column)
 adb devices                     # Android specifically (emulator-5554, or a serial)
 flutter emulators               # list configured AVDs
 flutter emulators --launch <avd-id>   # boot one if none is running
+# Android readiness: adb-visible is NOT booted — wait for sys.boot_completed, bounded,
+# as ONE foreground command (the retry lives inside it, not in your shell):
+timeout 120 adb wait-for-device shell 'while [ "$(getprop sys.boot_completed)" != "1" ]; do sleep 1; done'
 ```
 
 If nothing is connected, report it as a precondition failure — don't proceed.

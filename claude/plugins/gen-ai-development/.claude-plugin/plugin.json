@@ -1,6 +1,6 @@
 {
   "name": "gen-ai-development",
-  "version": "2.1.0",
+  "version": "2.1.1",
   "description": "生成式 AI 开发套件 —— 自治控制器按「变更原型 × 可逆性」给每条轨道定自动化档位（全自动/抽检/人审），架构门 + 意图门双门人审，SDD+TDD 两范式，专人专事 subagent + 独立功能 skill 的三层架构，PreToolUse 不可逆动作护栏。双端（Claude/Codex）同构。",
   "author": {
     "name": "ExcaliVibe Contributors"

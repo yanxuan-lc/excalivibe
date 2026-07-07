@@ -97,6 +97,8 @@ Before executing, verify (and report clearly if any fails — do not silently pr
 ### 4. Run the suite
 Execute via the platform/API reference. Capture full output (and machine-readable reporter output where available — JSON reporters, JUnit XML). Scope to the requested feature when the runner supports filtering (`-g`/`--grep`, a test path, a tag) rather than always running everything.
 
+**Fix rounds are scoped — in the fixing loop.** While iterating on a fix, re-run only the previously-failed specs (`--last-failed`, a title/tag filter, the failing file) — not the whole suite. One full confirmation run happens at the end, once, and is what the report records; when this skill is invoked as the acceptance pass (the e2e-runner dispatch), that full run IS the dispatch — run it once directly. In every case, reuse a build already produced at the current commit (by the developer role or a prior round) instead of rebuilding the binary under test.
+
 ### 5. Verify database writes
 After the run (or after the specific action), follow [references/db-verification.md](references/db-verification.md): query the affected tables with the env connection, assert the rows/columns the feature should have written, and account for our conventions (e.g. logical delete via `is_deleted`, `created_time`/`updated_time`) — cross-check schema expectations against the `dba-guideline` skill. Allow for async writes (poll/wait rather than asserting instantly).
 
@@ -110,6 +112,8 @@ Distinguish a **product bug** (the app did the wrong thing) from a **test/infra 
 
 - **Mode**: GUI (Web/Flutter/React Native/Tauri) / API / both
 - **Scope**: <what was tested>
+- **Commit**: <SHA the suite ran against>
+- **Command**: `<exact invocation>` → exit code <N>
 - **Total**: X    Passed: X ✅    Failed: X ❌    Skipped: X ⏭️
 
 ### Interface assertions

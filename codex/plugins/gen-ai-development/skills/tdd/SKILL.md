@@ -78,11 +78,27 @@ REFACTOR: Check candidates (see references/common/design.md) → run tests → a
   until it fails cleanly before writing any production code.
 - Write only the code needed to pass the current test — no speculative features.
 - Never refactor while RED. Get to GREEN first, then improve.
-- Run the full test suite after every change, not just the new test.
+- Each loop step runs the **scoped** suite for the module/package under work (the
+  toolchain guide gives the filter syntax) — not just the new test, and not the whole
+  project. The full suite runs at task boundaries and the Coverage Gate.
+
+### Verification Discipline (every loop step)
+
+- **One verify command per step.** Run the toolchain's test command once; never chain
+  redundant passes (typecheck → test → lint) over the same tree in the inner loop.
+  What the test command does and does NOT subsume differs by toolchain (`cargo test`
+  type-checks; Vitest/Jest do not — there `tsc --noEmit` is a separate task-boundary
+  pass): the toolchain guide's **Verification Discipline** section is authoritative.
+- **Scope the inner loop** to the file/module/package under work via the toolchain's
+  filter syntax; reserve the full suite for task boundaries.
+- **Coverage runs once, at the Coverage Gate (Step 4)** — never in the inner loop.
+- **Record the final verification** (exact command, real exit code, commit SHA) in the
+  completion report — downstream roles (code review, merge gate) consume the record
+  instead of re-running it.
 
 ### 4. Coverage Gate (mandatory)
 
-Run the test suite with coverage enabled (see your language's toolchain guide for the command). Two targets, both mandatory:
+Run the test suite with coverage enabled (see your language's toolchain guide for the command). This is the task's **single** instrumented run — the inner loop never runs coverage, and the merge gate reads this recorded result rather than re-running it. Two targets, both mandatory:
 
 - **Interface coverage: 100%.** Every public/exported interface — exported functions, public methods/classes, API endpoints, the module's outward contract — must be exercised by at least one test. No public surface ships untested. Coverage tools report line/function coverage, not interface coverage (function metrics also count private functions), so judge this directly: enumerate the module's exported symbols and confirm each has at least one test that calls it. Where the toolchain reports per-function coverage (e.g. Istanbul/Vitest `% Funcs`), use it as a proxy, but the gate is the exported surface, not the proxy number.
 - **Line coverage: >= 90%.** If below, add tests for impactful uncovered paths — not trivial tests to inflate numbers.
@@ -93,6 +109,7 @@ Run the test suite with coverage enabled (see your language's toolchain guide fo
 - List of new/modified tests
 - Deferred behaviors (if any)
 - Coverage gate: PASS/FAIL — interface coverage (must be 100%) and line coverage (actual %, must be >= 90%)
+- Verification record: exact command(s), real exit code, commit SHA
 
 ## Integration
 

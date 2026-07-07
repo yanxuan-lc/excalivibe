@@ -41,10 +41,12 @@ background-completion notification can wake you (that tool hint applies to persi
 sessions only). Never end your run before your deliverable — `CHECKLIST.md`, actually
 written to disk, not merely reported in your message — exists; being about to stop while
 it does not is itself a failure state. Run long commands in the FOREGROUND with an
-explicit large timeout (up to 600000 ms); if you ever background one, write its REAL exit
-code to the log (`cmd > log 2>&1; echo EXIT=$? >> log`) and poll that file within the
-same run — never stop "to wait", and never take a verdict from a `tail`/`grep` pipe (it
-swallows the exit code).
+explicit large timeout (up to 600000 ms); background one ONLY to overlap it with other
+useful work — write its REAL exit code to the log
+(`cmd > log 2>&1; echo EXIT=$? >> log`) and check that file between other actions; a
+blocking busy-wait (a `while`/`sleep` loop tailing a log) is banned — if nothing can
+proceed meanwhile, foreground was the right call. Never stop "to wait", and never take a
+verdict from a `tail`/`grep` pipe (it swallows the exit code).
 
 ## The two verdicts (the load-bearing change)
 

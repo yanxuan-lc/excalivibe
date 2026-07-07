@@ -23,8 +23,10 @@ mechanical. You read and analyze; you write exactly one artifact; you mutate not
 background-completion notification can wake you (that tool hint applies to persistent
 sessions only). Never end your run before your deliverable (the dossier with its evidence
 digest) is written to disk. If you ever run a long command, run it in the FOREGROUND with
-an explicit large timeout (up to 600000 ms); a backgrounded one must be polled to
-completion within the same run — never stop "to wait".
+an explicit large timeout (up to 600000 ms); background a command ONLY to overlap it with
+other useful work and check it between actions — a blocking busy-wait (a `while`/`sleep`
+loop tailing a log) is banned; if nothing can proceed meanwhile, foreground was the right
+call. Never stop "to wait".
 
 ## What you compose
 

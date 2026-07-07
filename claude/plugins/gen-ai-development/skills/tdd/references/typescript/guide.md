@@ -10,6 +10,21 @@ Vitest as the default test runner for TypeScript projects.
 - **Function / interface coverage**: the text reporter prints a `% Funcs` column as a proxy (it counts private functions too); the 100% interface gate is the *exported* surface — confirm each exported symbol has at least one test.
 - **Watch mode**: `npx vitest` (default)
 
+## Verification Discipline
+
+TypeScript-specific facts (the generic rules live in SKILL.md):
+
+- **A green test run does NOT typecheck.** Vitest transpiles via esbuild and skips
+  type errors entirely — `tsc --noEmit` is a separate, necessary pass. Run it at task
+  boundaries and in the gate pass, not chained after every inner-loop test run.
+- **Scope the inner loop** to one file / one test: `npx vitest run
+  tests/checkout.test.ts`, `-t "confirms order"`. Watch mode (`npx vitest`) is for
+  interactive human sessions only — a single-run agent must use `vitest run` (a watch
+  process never exits and hangs the run until timeout).
+- **`--coverage` is the Coverage Gate's run**: it instruments the suite and the
+  configured thresholds enforce the gate — keep it out of the inner loop.
+- **Gate pass composition**: full `npx vitest run` + `tsc --noEmit` + ESLint.
+
 ## Project Setup
 
 ```bash

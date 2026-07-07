@@ -26,11 +26,20 @@ the same agent that will satisfy it).
 background-completion notification can wake you (that tool hint applies to persistent
 sessions only). Never end your run before your deliverables (`HYPOTHESIS.md` and the
 failing regression test) are on disk. Run long builds/tests in the FOREGROUND with an
-explicit large timeout (up to 600000 ms); if you ever background a command, write its
-REAL exit code to the log (`cmd > log 2>&1; echo EXIT=$? >> log`) and poll that file
-within the same run — never stop "to wait", never take a verdict from a `tail`/`grep`
-pipe (it swallows the exit code), and never declare a slow build hung from a
-process-table glance (compiler gaps look identical to death).
+explicit large timeout (up to 600000 ms). Background a command ONLY to overlap it with
+other useful work: write its REAL exit code to the log
+(`cmd > log 2>&1; echo EXIT=$? >> log`) and check that file between other actions — a
+blocking busy-wait (a `while`/`sleep` loop tailing a log) is banned; if nothing can
+proceed meanwhile, foreground was the right call. Never stop "to wait", never take a
+verdict from a `tail`/`grep` pipe (it swallows the exit code), and never declare a slow
+build hung from a process-table glance (compiler gaps look identical to death).
+
+**Verification economy:** one verify command per probe, scoped to the crate/module under
+investigation (run-level test filters) — never chain redundant passes (typecheck → test →
+lint) over the same tree while iterating on hypotheses. What the test command subsumes
+differs by toolchain (compiled toolchains type-check in the test run; Vitest/Jest do
+not) — the tdd toolchain guide's Verification Discipline section is authoritative.
+Re-run only what the last edit could have changed.
 
 ## What you compose
 

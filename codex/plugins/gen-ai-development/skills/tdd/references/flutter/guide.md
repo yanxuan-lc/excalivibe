@@ -9,6 +9,18 @@
 - **Coverage command**: `flutter test --coverage` → `coverage/lcov.info`; summarize with `lcov --summary coverage/lcov.info` or `genhtml`
 - **Mocking**: [mocktail](https://pub.dev/packages/mocktail) (no codegen) as the default; `mockito` + `build_runner` only if the project already uses it
 
+## Verification Discipline
+
+Flutter-specific facts (the generic rules live in SKILL.md):
+
+- **Scope the inner loop** with the forms above (one file / `--plain-name`); reserve
+  bare `flutter test` for task boundaries.
+- **`flutter test` does not run the analyzer.** `flutter analyze` is a separate pass —
+  run it at task boundaries or in the gate pass, not chained after every edit.
+- **`flutter test --coverage` is the Coverage Gate's run** — it re-runs the full
+  suite with coverage collection enabled (slow); keep it out of the inner loop.
+- **Gate pass composition**: full `flutter test --coverage` + `flutter analyze`.
+
 ## Setup
 
 ```yaml

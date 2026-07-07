@@ -48,7 +48,7 @@ concrete; treat any other budgeted resource the same way (measure → threshold 
 
 | Dimension | What to measure | How |
 |-----------|-----------------|-----|
-| **Bundle size** | Size of the shipped client assets (per entry/route chunk, gzipped), and the delta vs baseline | Build the project, read the build output / stats; compare chunk sizes against the baseline build. A new dependency or a heavy import is the usual cause. |
+| **Bundle size** | Size of the shipped client assets (per entry/route chunk, gzipped), and the delta vs baseline | Reuse a build that already exists at the current commit (a pipeline-recorded build, CI artifact, or fresh `dist/`) before building; likewise take the baseline from a recorded prior measurement or CI artifact rather than rebuilding the baseline commit. Read the build output / stats; compare chunk sizes. A new dependency or a heavy import is the usual cause. |
 | **Query count / N+1** | Number of DB queries per logical operation (request / handler / job), and whether a query runs inside a loop over N rows | Instrument the data layer for the path under test (query log / ORM hook / statement counter), exercise the operation once, count queries per operation. A query count that scales with row count is an N+1 — flag it explicitly. |
 | **Latency** | Wall-clock time of the hot path or endpoint (p50/p95 where it makes sense), and the delta vs baseline | Benchmark the function/endpoint with a repeatable harness (warm up, run N iterations, report percentiles); for a page, drive a browser and capture load/interaction timings. Pin the environment as much as possible so the delta is signal, not noise. |
 
@@ -85,6 +85,9 @@ Produce a per-dimension table and an overall verdict:
   number they can only stare at.
 - **State what was NOT measured and why** (no baseline available, dimension not affected
   by this diff, no harness for this stack) — silence reads as a pass and hides gaps.
+- **Commit stamp + measurement commands**: the SHA measured and each dimension's exact
+  command/harness invocation, so a later consumer can tell the report is current and
+  trust it (or reuse its numbers as the next baseline) instead of re-measuring.
 
 ## Cost discipline
 

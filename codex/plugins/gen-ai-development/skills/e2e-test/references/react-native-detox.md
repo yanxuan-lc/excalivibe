@@ -24,18 +24,23 @@ applesimutils --list                 # what Detox uses to match iOS devices
 emulator -list-avds
 adb devices                          # emulator-5554, or a serial
 emulator -avd <avd-name> &           # boot one if none is running
+# readiness: adb-visible is NOT booted — wait for sys.boot_completed, bounded, as ONE
+# foreground command (the retry lives inside it, not in your shell):
+timeout 120 adb wait-for-device shell 'while [ "$(getprop sys.boot_completed)" != "1" ]; do sleep 1; done'
 ```
 
 The device `type`/`avdName` in `.detoxrc` must match an available device. If nothing matches, report it as a precondition failure — don't proceed.
 
 ## Build the binary under test
 
-Detox attaches to a **built debug binary**, not `react-native start` alone (Metro must also be running for a debug build):
+Detox attaches to a **built debug binary**, not `react-native start` alone (Metro must also be running for a debug build). **Reuse before rebuilding**: if the binary at the path recorded in `.detoxrc` already exists at the current commit (built by the developer role or a prior round), skip the build. Build only when it's missing or stale:
 
 ```bash
 detox build -c ios.sim.debug         # or android.emu.debug
 # delegates to the build command in .detoxrc; binary path is recorded there
 ```
+
+Build once, then iterate on tests against the same binary — re-running specs must never trigger a native rebuild.
 
 Match the `-c <configuration>` to one defined in `.detoxrc`. Use a `.release` configuration for a self-contained binary that doesn't need Metro (closer to what CI runs).
 
