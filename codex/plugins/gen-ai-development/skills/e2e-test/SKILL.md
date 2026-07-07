@@ -14,6 +14,11 @@ An end-to-end test is only trustworthy if you check *both* halves of the result:
 
 A green UI assertion with no row in the table is a false pass. Always verify the write.
 
+> Long-running suites: subagents follow the **Execution model** hard rules in their own
+> agent definition (the `e2e-runner` agent TOML, installed under `~/.codex/agents/` or the
+> project's `.codex/agents/`) — foreground with explicit timeout, never stop-and-wait on a
+> background command. The rules live there, not here, to avoid drift.
+
 ## Three Test Modes
 
 Pick the mode from the request; a task may mix them (e.g. run the scripted suite for covered scenarios, agent-drive the rest, assert the DB for all).

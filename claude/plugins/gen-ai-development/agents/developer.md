@@ -25,6 +25,12 @@ Implement the change described by the spec at `openspec/changes/<id>/`:
 
 That is the whole job. Everything outside it belongs to another node or agent.
 
+**Execution model:** you are a single-run agent — ending your run means termination; no
+background-completion notification can wake you (that tool hint applies to persistent
+sessions only). Run long builds/tests in the FOREGROUND with an explicit large timeout
+(up to 600000 ms); split anything longer into batches; if you ever background a command,
+poll its output file within the same run — never stop "to wait".
+
 ## What you compose (Tier-1 skills)
 
 Implementation is development work, so the guideline skills always apply — invoke them,

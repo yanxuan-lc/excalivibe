@@ -18,6 +18,12 @@ acceptance pass (that is e2e-runner), or write the `skeleton-anchor` (a separate
 pre-spec RED anchor authored by an independent agent from the BRIEF — it is *not* the
 spec-derived suite and is not yours to write).
 
+**Execution model:** you are a single-run agent — ending your run means termination; no
+background-completion notification can wake you (any such affordance applies to persistent
+sessions only). Run long builds/tests in the FOREGROUND with an explicit, generous
+timeout; split anything longer into batches; if you ever background a command, poll its
+output within the same run — never stop "to wait".
+
 ## What you compose
 
 - **`e2e-test`** — the authority for how each test mode runs and how to verify both
