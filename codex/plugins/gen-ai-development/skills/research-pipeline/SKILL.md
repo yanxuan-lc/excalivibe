@@ -1,6 +1,6 @@
 ---
 name: research-pipeline
-description: The research orchestration pipeline for the main agent: clarify with the user, plan, route sub-questions to deep-research / researcher subagents / inline answers, then synthesize into docs/research/ (REPORT.md + PROPOSAL.md). Use whenever the user wants something researched, investigated, compared, or feasibility-checked — "调研一下X", "对比A和B", "这个方案可行吗", "帮我看看这些资料" — and for the research phase of autonomy-controller. A single hands-on probe of ONE source goes directly to research-source-code / research-data-source / research-api; this pipeline is for multi-subtask or comparative research needing clarification, routing, and synthesis.
+description: "The research orchestration pipeline for the main agent: clarify with the user, plan, route sub-questions to deep-research / researcher subagents / inline answers, then synthesize into docs/research/ (REPORT.md + PROPOSAL.md). Use whenever the user wants something researched, investigated, compared, or feasibility-checked — \"调研一下X\", \"对比A和B\", \"这个方案可行吗\", \"帮我看看这些资料\" — and for the research phase of autonomy-controller. A single hands-on probe of ONE source goes directly to research-source-code / research-data-source / research-api; this pipeline is for multi-subtask or comparative research needing clarification, routing, and synthesis."
 ---
 
 # Research Pipeline — Orchestration for the Main Agent
