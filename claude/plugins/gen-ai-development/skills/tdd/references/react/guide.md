@@ -10,6 +10,7 @@ Vitest + React Testing Library for component and hook testing. Read the TypeScri
 - **DOM assertions**: `@testing-library/jest-dom`
 - **DOM environment**: `jsdom`
 - **Function / interface coverage**: inherits the TypeScript Vitest setup; interface coverage here = every exported component/hook rendered or invoked by at least one test (`% Funcs` is the proxy).
+- **Verification Discipline**: the TypeScript guide's section applies unchanged (a green run does NOT typecheck; coverage and `tsc --noEmit` + lint are gate passes). Extra here: jsdom-environment component tests are markedly slower than node-env tests — one more reason to scope the inner loop to the component file under work.
 
 ## Setup
 

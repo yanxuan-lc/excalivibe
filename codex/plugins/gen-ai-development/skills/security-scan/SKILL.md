@@ -99,6 +99,9 @@ mechanically. It contains:
   `not-clean`, with per-severity counts (e.g. `not-clean — Critical: 1, High: 2, Medium: 4`).
 - **The scope** scanned — change vs codebase, and whether the secret scan covered full
   history or just the diff.
+- **The commit stamp and tool invocations** — the SHA scanned, and each tool's exact
+  command + real exit code, so a later consumer can tell the report is current for the
+  tree and trust it instead of re-scanning.
 - **The three dimensions** each marked run / not-run (with the reason if not-run).
 - **Per finding**, a row carrying:
   - `severity` — one bucket from the taxonomy above;

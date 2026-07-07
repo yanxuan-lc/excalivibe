@@ -21,14 +21,14 @@ If the dev machine is a Mac, decide the macOS strategy up front (Docker-Linux / 
 
 ## Build the binary under test
 
-WebDriver attaches to a built debug binary, not `tauri dev`:
+WebDriver attaches to a built debug binary, not `tauri dev`. **Reuse before rebuilding**: if a debug binary already exists at the current commit (built by the developer role or a prior round — check `src-tauri/target/debug/<app>` mtime vs the last source change, or a recorded build in the pipeline evidence), attach to it. Build only when it's missing or stale:
 
 ```bash
 npm run tauri build -- --debug      # or: cargo tauri build --debug
 # binary lands under src-tauri/target/debug/<app>
 ```
 
-The `application` capability in `wdio.conf` should point at that path.
+Build once, then iterate on tests against the same binary — re-running specs must never trigger a Rust recompile. The `application` capability in `wdio.conf` should point at that path.
 
 ## Run
 
@@ -36,6 +36,8 @@ The `application` capability in `wdio.conf` should point at that path.
 # tauri-driver brokers between WDIO and the native WebDriver.
 # Many setups start it via a wdio onPrepare hook; otherwise start it yourself:
 tauri-driver &        # listens on 4444 by default
+# readiness: one bounded foreground check, e.g. `curl -s --retry 10 --retry-connrefused --retry-delay 1 http://127.0.0.1:4444/status`
+# — not a shell while/sleep loop
 
 npx wdio run wdio.conf.js          # whole suite
 npx wdio run wdio.conf.js --spec ./test/specs/login.e2e.js   # one spec

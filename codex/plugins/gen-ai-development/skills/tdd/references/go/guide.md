@@ -10,6 +10,22 @@ The standard `testing` package — no external framework needed.
 - **Function / interface coverage**: `go tool cover -func` already prints per-function coverage (final line = total). The 100% interface gate is that every *exported* (capitalized) function shows non-zero coverage; unexported helpers are not part of the gate.
 - **Mocking**: Interface-based fakes (no framework required)
 
+## Verification Discipline
+
+Go-specific facts (the generic rules live in SKILL.md):
+
+- **`go test` already runs a `go vet` subset** (the high-confidence checks) — don't
+  chain a separate `go vet ./...` after every inner-loop test run; the full vet +
+  lint pass belongs to the gate.
+- **Scope the inner loop.** `go test ./internal/auth/` (one package),
+  `-run 'TestCheckout'` (test filter). Trust the build/test caches — unchanged
+  packages re-verify nearly for free; reach for `-count=1` only when you must defeat
+  the result cache.
+- **`-coverprofile` is the Coverage Gate's run**: it compiles instrumented and falls
+  outside Go's cacheable flags — keep it out of the inner loop.
+- **Gate pass composition**: full `go test ./...` + `go vet ./...` + golangci-lint
+  where configured.
+
 ## File Organization
 
 Tests live alongside source in the same package:

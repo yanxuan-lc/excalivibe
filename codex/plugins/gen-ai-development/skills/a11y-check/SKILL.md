@@ -99,6 +99,8 @@ Write a structured report (default `a11y-report.md`, caller may override the pat
   or `needs-human` so none is silently passed.
 - **Surfaces & states audited** — which routes/components and which states (so the scope of
   the verdict is clear; an untested route is not a passed route).
+- **Commit stamp** — the SHA the audited build/serve came from, so a later consumer can
+  tell the report is current and trust it instead of re-auditing.
 
 Keep the report skimmable: the verdict and the violation table are what a caller acts on.
 

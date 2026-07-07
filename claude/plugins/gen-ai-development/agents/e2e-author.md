@@ -28,10 +28,12 @@ spec-derived suite and is not yours to write).
 background-completion notification can wake you (that tool hint applies to persistent
 sessions only). Never end your run before your deliverables (the test code and
 `e2e-manifest.md`) are on disk. Run long builds/tests in the FOREGROUND with an explicit
-large timeout (up to 600000 ms); split anything longer into batches; if you ever
-background a command, write its REAL exit code to the log
-(`cmd > log 2>&1; echo EXIT=$? >> log`) and poll that file within the same run — never
-stop "to wait", never take a verdict from a `tail`/`grep` pipe (it swallows the exit
+large timeout (up to 600000 ms); split anything longer into batches; background a command
+ONLY to overlap it with other useful work: write its REAL exit code to the log (`cmd > log
+2>&1; echo EXIT=$? >> log`) and check that file between other actions — a blocking busy-
+wait (a `while`/`sleep` loop tailing a log) is banned; if nothing can proceed meanwhile,
+foreground was the right call. Never stop "to wait", never take a verdict from a
+`tail`/`grep` pipe (it swallows the exit
 code), and never declare a slow build hung from a process-table glance (compiler gaps
 look identical to death).
 

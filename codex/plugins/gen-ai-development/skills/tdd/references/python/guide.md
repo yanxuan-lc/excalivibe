@@ -10,6 +10,19 @@ pytest as the default test framework for Python projects.
 - **Function / interface coverage**: coverage.py reports lines, not functions — judge interface coverage manually: every public symbol (no leading underscore) in the module's API must be exercised by at least one test.
 - **Mocking**: `unittest.mock` (stdlib) + `pytest-mock` plugin
 
+## Verification Discipline
+
+Python-specific facts (the generic rules live in SKILL.md):
+
+- **Scope the inner loop.** `pytest tests/services/test_auth.py` (one file),
+  `pytest tests/services/test_auth.py::test_rejects_expired` (one test),
+  `-k "expression"`, or `--lf` (last failed). Reserve bare `pytest` for task
+  boundaries.
+- **`--cov` is the Coverage Gate's run**: it adds tracing overhead and `fail_under`
+  turns any coverage run into a gate check — keep it out of the inner loop.
+- **Gate pass composition**: full `pytest --cov` + ruff / mypy where the project
+  configures them.
+
 ## Setup
 
 ```bash

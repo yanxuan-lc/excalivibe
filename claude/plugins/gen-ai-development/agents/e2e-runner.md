@@ -37,8 +37,12 @@ hint:
    background execution.
 3. **A command expected to exceed 10 minutes must be split** into smaller foreground
    batches (e.g. per-crate test runs) instead of gambling on one timeout.
-4. **If you do start a background command, poll its output file in a loop WITHIN THE SAME
-   RUN** until it completes. Stopping "to wait for a notification" is never valid.
+4. **Background a command ONLY to overlap it with other useful work** (e.g. the
+   scripted suite in background while you prepare the DB-verification queries),
+   checking its output file between other actions WITHIN THE SAME RUN. A blocking
+   busy-wait (a `while`/`sleep` loop tailing a log) is banned — if nothing can proceed
+   meanwhile, foreground was the right call. Stopping "to wait for a notification" is
+   never valid.
 5. **Capture the REAL exit code to disk** for any detached/long command
    (`cmd > log 2>&1; echo EXIT=$? >> log`) — never take the final verdict from a
    `tail`/`grep` pipe: the pipe swallows the exit code, and one distrusted result forces
@@ -137,9 +141,12 @@ honor them per Step 2/5 above.
 
 ### Fix-verification re-runs
 
-When dispatched after a fix round, re-run the FULL scripted suite (it costs no tokens —
-don't ration it) plus only the agent-driven scenarios that previously failed or whose flows
-the fixes touched. Re-draw the DB-verification sample over the tables the fixes touched. Re-issue the report at the same path, re-stamped with the **current
+When dispatched after a fix round, this dispatch IS the final confirmation pass: run the
+FULL scripted suite once — reusing the already-built binary; a re-run must never trigger
+a rebuild — plus only the agent-driven scenarios that previously failed or whose flows
+the fixes touched. (Scoped failed-first re-runs belong to the fixing role's inner loop,
+not to this acceptance pass.) Re-draw the DB-verification sample over the tables the
+fixes touched. Re-issue the report at the same path, re-stamped with the **current
 commit** — it supersedes the old one.
 
 ## Freshness — the commit stamp

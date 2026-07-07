@@ -96,4 +96,6 @@ When writing each test, verify:
 [ ] No speculative features added
 [ ] Refactor candidates checked
 [ ] Test file placed in correct location
+[ ] One scoped verify for this cycle — no redundant command chains (see
+    Verification Discipline in SKILL.md and your toolchain guide)
 ```

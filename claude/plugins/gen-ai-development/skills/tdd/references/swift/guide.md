@@ -10,6 +10,22 @@ Swift Testing (Swift 6+) as the primary framework, with XCTest as fallback for o
 - **Function / interface coverage**: `llvm-cov report` shows per-file function coverage / `Missed Functions` (proxy — includes internal funcs); the 100% interface gate is that every `public`/`open` symbol is exercised by a test.
 - **Mocking**: Protocol-based fakes (no framework required)
 
+## Verification Discipline
+
+Swift-specific facts (the generic rules live in SKILL.md) — builds are as expensive
+as Rust's:
+
+- **`swift test` already builds** — never chain `swift build` → `swift test` over
+  the same tree in one iteration.
+- **Scope at the RUN level.** `swift test --filter CheckoutTests` (one suite) or
+  `--filter CheckoutTests/confirmsOrder` (one test); in Xcode projects,
+  `xcodebuild test -only-testing:MyAppTests/CheckoutTests`. The build stays
+  canonical; the filter narrows only the run.
+- **Toggling coverage forces rebuilds.** `--enable-code-coverage` changes build
+  flags and invalidates the build cache, so alternating plain and coverage runs
+  double-compiles. Run coverage once, at the Coverage Gate.
+- **Gate pass composition**: full `swift test` + lint (SwiftLint where configured).
+
 ## Setup (Swift Package Manager)
 
 Tests go in the `Tests/` directory, declared in `Package.swift`:

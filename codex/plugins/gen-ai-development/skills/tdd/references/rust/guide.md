@@ -4,11 +4,31 @@
 
 ## Stack
 
-- **Test runner**: `cargo test`
+- **Test runner**: `cargo test` (prefer `cargo nextest run` when installed — see Verification Discipline)
 - **Run command**: `cargo test`
 - **Coverage command**: `cargo llvm-cov --lcov --output-path lcov.info` (requires `cargo-llvm-cov`)
 - **Function / interface coverage**: `cargo llvm-cov --summary-only` adds a `Functions` coverage column (proxy — counts private fns too); the 100% interface gate is that every `pub` item is exercised by a test.
 - **Mocking**: Trait-based fakes, optionally `mockall` crate
+
+## Verification Discipline
+
+Rust-specific facts (the generic rules live in SKILL.md):
+
+- **The test command already type-checks** everything it builds — `cargo test` /
+  `cargo nextest run` implies `cargo check`. A `check` before or a `clippy` after the
+  test run in the inner loop recompiles the same tree again (clippy uses its own
+  driver); clippy belongs to the gate pass.
+- **Scope at the RUN level, not the build level.** Prefer the repo's `make check-diff`
+  when it exists. Otherwise keep the build canonical (`--workspace`) and narrow the
+  run with nextest filtersets (`-E 'package(x)'`). Package-subset builds (`-p`,
+  `--exclude`) flip feature resolution and rebuild warm deps from scratch — the
+  measured mechanism is documented in devops-guideline `references/make.md`
+  (canonical source).
+- **Prefer `cargo-nextest`** in workspaces with many integration-test binaries:
+  plain `cargo test` runs test binaries sequentially, nextest schedules all tests
+  globally in parallel. Doctests don't run under nextest — keep a `cargo test --doc`
+  step if the workspace has any.
+- **Gate pass composition**: full `--workspace` build + tests + `clippy -- -D warnings`.
 
 ## Setup
 
