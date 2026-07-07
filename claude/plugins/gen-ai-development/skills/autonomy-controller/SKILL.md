@@ -1,6 +1,6 @@
 ---
 name: autonomy-controller
-description: Use at the START of any development task that builds or changes runnable product code — a feature, a bug, a visual/UI change, a refactor, a schema migration, a docs change, a dependency bump ("做个新功能", "改个 bug", "走流程", "按 openspec 来") — to set how much of it can run unattended and route it through the right track. Also when RESUMING an in-flight change (`openspec/changes/<id>/PIPELINE.md` exists, or "继续 xxx"), or when one utterance bundles several intents. NOT for authoring skills/agents/commands/prompts (skill-creator owns that) or research-only work.
+description: Use at the START of any development task that builds or changes runnable product code — a feature, a bug, a visual/UI change, a refactor, a schema migration, a docs change, a dependency bump ("做个新功能", "改个 bug", "走流程", "按 openspec 来") — to set how much of it can run unattended and route it through the right track. Also when RESUMING an in-flight change (`openspec/changes/<id>/PIPELINE.md` exists, or "继续 xxx"), when one utterance bundles several intents, or when PICKING WORK FROM the idea backlog (`openspec/BACKLOG.md` exists and the user says "把 backlog 里的 X 做了", "把队列里的都做了", "清一下 backlog"). NOT for authoring skills/agents/commands/prompts (skill-creator owns that) or research-only work.
 ---
 
 # Autonomy Controller — Orchestration for the Main Agent
@@ -101,6 +101,41 @@ Run **`decompose`** as a cheap router pre-step *before* setting per-task ceiling
 
 `grill` runs once at the bundle level; each unit inherits its slice of the `BRIEF.md`,
 and the novel-core unit gets the deep grill.
+
+### Backlog intake — queued briefs as decompose input
+
+When the work comes from the idea backlog (`openspec/BACKLOG.md` — the user names queued
+entries or says "work the queue"), each entry already carries a grill-produced `BRIEF.md`
+(`openspec/backlog/<id>/`; enqueue side owned by the `backlog` skill — never re-grill
+from scratch). Three things happen *before* the normal Step 1 classification:
+
+- **Freshness check first.** A queued brief describes the codebase as it was at enqueue
+  time, and code moves on its own timeline. Verify the brief's "Current behavior" still
+  holds; where the code contradicts it, run a short grill re-confirmation with the user
+  before building. Never implement against a stale brief — the pipeline would faithfully
+  deliver against a world that no longer exists.
+- **Whole-queue view, not just the named entries.** Scan the full index: a named entry's
+  `depends-on` prerequisite may still be queued (surface it — "A has to come first or
+  come along"), and heavy-overlap entries (`same-batch?` tags, or footprints that
+  collide) are candidates for merging into ONE change. Merging is worth proposing
+  because pipeline fixed costs — spec, design review, e2e pass, merge gate — are
+  per-change: folding N overlapping entries into one change saves N−1 full passes, more
+  than parallelism ever recovers.
+- **Then the normal machinery.** Each resulting unit enters Step 1 with its inherited
+  brief; multiple units are exactly a decompose input, and the unit-DAG rules above
+  decide parallel / sequence / escalate. Two batch-shaping rules the DAG edges don't
+  encode: **same-domain gated units go into one batch (reviewed together) or in
+  sequence** — approving related designs in parallel invites locally-fine, globally
+  inconsistent decisions (two vocabularies, two patterns for one problem); and **keep a
+  parallel batch around 3** — every merge after the first re-verifies against the moved
+  HEAD, so parallel gains decay as the batch grows. Parallel units get isolated e2e
+  environments (own database instance / ports); two units running migrations against
+  one shared local database corrupt each other's verification.
+
+Write status back to the index as work proceeds: `queued → in-progress(<change-id>)` at
+intake, `→ done(<change-id>)` when the change archives. The controller is the only
+writer of these two transitions (the enqueue-side schema:
+`../backlog/references/backlog-schema.md`).
 
 ## Step 4 — Compose the track and emit four outputs
 

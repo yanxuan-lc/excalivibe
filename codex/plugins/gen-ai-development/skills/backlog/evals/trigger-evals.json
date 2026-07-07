@@ -1,0 +1,50 @@
+[
+ {
+  "query": "这个想法先记下来，别现在做：给报表页加个按周对比的视图",
+  "should_trigger": true
+ },
+ {
+  "query": "记到 backlog：导出功能应该支持异步，大文件别卡住用户",
+  "should_trigger": true
+ },
+ {
+  "query": "i have a few ideas i want to park while the current pipeline runs — first one is letting admins impersonate users for support",
+  "should_trigger": true
+ },
+ {
+  "query": "我还有几个想法，一个一个说，你先帮我记着，回头一起排",
+  "should_trigger": true
+ },
+ {
+  "query": "backlog 里现在都有什么？帮我看看哪些还值得做",
+  "should_trigger": true
+ },
+ {
+  "query": "刚想到的：通知太吵了，能不能做个每日摘要。先别开工，排队",
+  "should_trigger": true
+ },
+ {
+  "query": "把 backlog 里的 report-export 做了吧",
+  "should_trigger": false
+ },
+ {
+  "query": "把队列里能做的都做了，能并行就并行",
+  "should_trigger": false
+ },
+ {
+  "query": "给后台加个导出功能吧",
+  "should_trigger": false
+ },
+ {
+  "query": "调研一下竞品的定价策略，出个对比报告",
+  "should_trigger": false
+ },
+ {
+  "query": "这个函数报错了帮我修一下，栈回溯贴在下面了",
+  "should_trigger": false
+ },
+ {
+  "query": "帮我把 TODO 注释都清一遍，该修的修该删的删",
+  "should_trigger": false
+ }
+]

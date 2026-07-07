@@ -48,7 +48,7 @@
 
 | Skill | 触发场景 | 内容 |
 |-------|----------|------|
-| `autonomy-controller` | 任何要建 / 改可运行产品代码的开发任务起步、续作在途 `openspec/changes/<id>/`、复合意图一句话、或判断「能否无人发布」 | **主 Agent 的研发编排规约**：三信号分类 → 设自治档位 → `decompose` 拆复合意图为 unit-DAG → 组装轨道并向 `PIPELINE.md` 写四件输出（节点图 / 档位 / 门形 / 验证强度）→ 派发 subagent → 按档位定门 → 按强度路由验证；含 Phase A→B→C rollout 与交付边界 |
+| `autonomy-controller` | 任何要建 / 改可运行产品代码的开发任务起步、续作在途 `openspec/changes/<id>/`、复合意图一句话、从 idea backlog 取活（「把 backlog 里的 X 做了」「把队列里的都做了」）、或判断「能否无人发布」 | **主 Agent 的研发编排规约**：三信号分类 → 设自治档位 → `decompose` 拆复合意图为 unit-DAG → 组装轨道并向 `PIPELINE.md` 写四件输出（节点图 / 档位 / 门形 / 验证强度）→ 派发 subagent → 按档位定门 → 按强度路由验证；含 Phase A→B→C rollout 与交付边界 |
 | `research-pipeline` | 任何调研 / 对比 / 可行性（「调研一下 X」「A 和 B 怎么选」「这方案可行吗」），或 autonomy-controller 的 research 轨道展开 | **主 Agent 的调研编排规约**：路由 → 苏格拉底澄清（AskUserQuestion）→ 结论确认 → 计划（按子任务路由 deep-research / researcher / inline，模型按任务选）→ 并行派发 → 汇总追问循环 → synthesize 落盘 REPORT.md + PROPOSAL.md。**所有用户交互在主 Agent**，researcher 是纯执行单元 |
 
 ### 功能 skill（Tier-1，独立可用；入口型自动触发，内部型按名调用）
@@ -58,6 +58,7 @@
 | Skill | 触发场景 | 内容 |
 |-------|----------|------|
 | `grill` | 需求含糊、只给结果不给行为、「做个 X」「加个能做 Y 的东西」、无验收标准的特性想法 | 交互式意图输入：一次一问 + **带推荐答案**的苏格拉底澄清，产出行为化 `BRIEF.md`（现状 / 期望 / 验收 / out-of-scope）。两档深度；deep+binding 模式额外定型领域、播种 glossary，并**主动盘问**冲突 / 重载术语、用边界场景压测、拿现有代码交叉核对。**能查代码就先查，别耗用户回合** |
+| `backlog` | 想法只记录、先不开工（「先记下来」「记到 backlog」「回头再做」）、想法连发排队、问「backlog 里有什么」 | **想法队列（入队侧）**：读索引定调（新想法与在队条目相关时先问「改旧条还是新开」）→ grill 澄清出 BRIEF → 收尾**定点整合**（覆盖即改写旧条 / 克制合并 / 关系标注；有发现攒一条确认消息，无发现静默落盘）→ `openspec/BACKLOG.md` 索引 + `backlog/<id>/BRIEF.md`。只动相关条目、只由事件触发、绝不全队列重整；出队（保鲜检查 + 全队列合批 / 依赖 / 并行）在 autonomy-controller 的 backlog intake |
 | `review-doc` | spec 走到 human-confirm 人审、生成人审文档、「四件套确认」「查看 REVIEW」 | **四件套人审文档规约**：`REVIEW.md` 由 spec **单向派生**（模块 → 协议 → 库表 → 用例；表格 / Mermaid / DDL 优先于散文）；spec-hash 新鲜度戳供 human-confirm 门机检；用户直接以 markdown 查看；下游 agent 禁读——spec 才是实施输入 |
 | `app-ux-design` | UI / 视觉设计、原型、视觉轨道的 prototype 节点 | 设计产出落 `docs/ued/<dt>/`（依赖 `ui-ux-pro-max`） |
 
@@ -184,6 +185,7 @@ gen-ai-development/
 │   ├── autonomy-controller/     # Tier-3 编排脊柱：三信号 → 档位 → 轨道 → 门禁 → 强度（references: tracks / gates / pipeline-schema）
 │   ├── research-pipeline/       # Tier-3 调研编排：澄清 → 确认 → 计划 → 并行派发 → 汇总循环 → synthesize 落盘
 │   ├── grill/                   # 意图输入：苏格拉底澄清 → BRIEF.md（深档定型领域 + 播种 glossary）
+│   ├── backlog/                 # 想法队列入队侧：索引定调 → grill → 定点整合 → BACKLOG.md + backlog/<id>/BRIEF.md
 │   ├── review-doc/              # 四件套人审文档：REVIEW.md + spec-hash 新鲜度戳
 │   ├── app-ux-design/           # UI / 视觉设计原型（依赖 ui-ux-pro-max）
 │   ├── tdd/                     # 红绿重构 + 各语言测试工具链
