@@ -281,6 +281,12 @@ artifact-gates are the readers.
 - **On resume, read `PIPELINE.md` first — it outranks memory.** The presence of the
   change dir is the activation marker; the file's rows are the source of truth for what
   is done, skipped (with reason), or pending.
+- **Stamp every transition.** Flip a node to `[~]` and stamp its start the moment you
+  begin (or dispatch) it, then to `[x]` and stamp its end when it completes — every time
+  from `date -u`, never from memory. Each worked node then carries a `start → end` range,
+  so per-phase durations (parallel nodes included) and run history are analysable after
+  the fact, and an interrupted `[~]` node is visible on resume. Set the header
+  `started:`/`completed:` at run creation / archive. Format in references/pipeline-schema.md.
 - **Compaction durability.** The controller's working context can be compacted away
   mid-flight. Two things make a resume reliable and symmetric across harnesses: the
   **`AGENTS.md` resume directive** (a standing instruction to re-read `PIPELINE.md` and

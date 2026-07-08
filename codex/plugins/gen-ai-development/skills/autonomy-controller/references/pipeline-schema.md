@@ -29,6 +29,8 @@ escalations:      []                 # surfaces that forced the ceiling up (one-
 anomaly-rate:     n/a                # n/a until actually measured — never invent a number
 budget-B:         n/a                # human review-units/day; n/a until the project sets one
 downgrade-state:  none               # none | <ceiling>→<lower> (window=<n>d, since=<date>)
+started:          2026-07-08T14:02:11Z   # UTC, stamped via `date -u` when the change dir is created — never from memory
+completed:        n/a                    # UTC, stamped when the archive row is flipped; n/a until the run finishes
 ```
 
 The fourth controller output, **the node-graph itself**, is the phase checklist below
@@ -46,13 +48,13 @@ Any gate-consumed node the composed track *omits* (e.g. `e2e-run` on the small l
 gets a `[-]`-with-reason row, so the merge gate has a deterministic row to read.
 
 ```markdown
-- [x] grill         → BRIEF.md (deep, binding; glossary seeded in CONTEXT.md)
-- [x] prototype     → docs/ued/<dt>/ or a thin stub  (disposable; drives the intent loop)
+- [x] grill         → BRIEF.md (deep, binding; glossary seeded in CONTEXT.md)   @ 2026-07-08T14:00:10Z → 2026-07-08T14:05:33Z
+- [x] prototype     → docs/ued/<dt>/ or a thin stub  (disposable; drives the intent loop)   @ 2026-07-08T14:06:00Z → 2026-07-08T14:31:09Z
 - [ ] intent-loop   human reacts to the running slice until intent confirmed; incl. decomposition confirm (if composite)
-- [x] design-spec   → openspec/changes/<id>/  (domain model + 4 contracts)
-- [-] arch-review   (skipped: no DDL / no cross-module)  or  → arch-review.md
+- [x] design-spec   → openspec/changes/<id>/  (domain model + 4 contracts)   @ 2026-07-08T14:35:00Z → 2026-07-08T15:12:44Z
+- [-] arch-review   (skipped: no DDL / no cross-module)  or  → arch-review.md   @ 2026-07-08T15:13:02Z
 - [ ] human-confirm REVIEW.md (architecture review — domain model + 4 contracts + decisions + cross-cutting; spec fingerprint matches)
-- [ ] implement     developer: unit tests ✅ mutation/property oracles ✅ lint ✅
+- [~] implement     developer: unit tests ✅ mutation/property oracles ✅ lint ✅   @ 2026-07-08T15:30:00Z → …
 - [ ] e2e-author    → e2e-manifest.md (Phase 1 draft / Phase 2 final)
 - [ ] e2e-run       → e2e-report.md (all green; executed + manually-verified + waived = M)
 - [ ] code-review   → CHECKLIST.md (two verdicts; P0/P1 all Resolved)
@@ -66,8 +68,10 @@ gets a `[-]`-with-reason row, so the merge gate has a deterministic row to read.
 ```
 
 Conventions:
-- `[x]` done (with artifact pointer) · `[-]` skipped **with reason** · `[ ]` pending.
+- `[x]` done (with artifact pointer) · `[~]` in-progress · `[-]` skipped **with reason** · `[ ]` pending. To a reader-gate `[~]` counts as not-yet-done (same as `[ ]`); it exists so an **interrupted** node is visible on resume — distinct from one that never started.
 - Use the node names from references/tracks.md verbatim so cross-file references resolve.
+- **Start & completion stamps.** Flip a node to `[~]` and record its start the moment you begin (or dispatch) it; flip it to `[x]` and record its end the moment it completes. A worked node therefore ends as a **range** — `@ <start UTC ISO 8601> → <end>` (e.g. `@ 2026-07-08T14:35:00Z → 2026-07-08T15:12:44Z`); while in-progress the end is `…` (`@ 2026-07-08T15:30:00Z → …`). A `[-]` skip — and any instantaneous node with no real work window — carries a single stamp `@ <UTC ISO 8601>` instead. Get every time from `date -u +%Y-%m-%dT%H:%M:%SZ` at the moment of the flip — **never from memory** (a fabricated stamp corrupts the very duration analysis it exists for — same discipline as `anomaly-rate`). Backfilled phases use `@ unknown`.
+- **Reading durations.** A ranged row's duration is `end − start`, independent per node — so **parallel** nodes (implement ∥ e2e-author, code-review ∥ e2e-run) each report their own true duration, with no approximation. `completed: − started:` gives the whole-run wall-clock.
 
 ## Manual / waived rows (e2e coverage)
 
