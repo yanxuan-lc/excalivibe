@@ -1,5 +1,7 @@
 # ExcaliVibe ⚔️
 
+**中文** · [English](./README.en.md)
+
 > Excalibur + Vibe —— 像亚瑟王圣剑一样的 **Vibe Working** 圣器。
 
 ExcaliVibe 是一套 **Vibe Working** 能力套件。概念源自 Vibe Coding，但不止于 Coding，而是面向更广的业务场景，把 Agent 打造成更强大的综合体。
@@ -8,11 +10,13 @@ ExcaliVibe 是一套 **Vibe Working** 能力套件。概念源自 Vibe Coding，
 
 ## 插件一览
 
-| 插件 | 作用 |
-|---|---|
-| `gen-ai-development` | 生成式 AI 开发套件：类 OpenSpec 的结构化研发流程、编码 / 数据库规约、交互式 UI-UX 设计、开发子代理与自治控制器 |
-| `plugin-infra` | 通用基础设施：浏览器自动化（Chrome DevTools / Playwright MCP，Claude 侧含 graceful-browser 决策） |
-| `opc-workflow` | 一人公司工作流：面向内容 / 运营等非研发场景的能力位（当前暂无技能） |
+| 插件 | 作用 | 详细用法 |
+|---|---|---|
+| `gen-ai-development` | 生成式 AI 研发工作流套件：核心是**自治控制器**，按「变更原型 × 关键度 × 可逆性」为每个任务定自治档位、组装轨道与人工门禁；SDD（spec 契约）+ TDD 两范式，三层架构（编排 skill + 专人专事 subagent + 独立功能 skill）| [Claude](./claude/plugins/gen-ai-development/README.md) · [Codex](./codex/plugins/gen-ai-development/README.md) |
+| `plugin-infra` | 通用基础设施：浏览器自动化（Chrome DevTools / Playwright MCP，Claude 侧含 graceful-browser 决策） | [Claude](./claude/plugins/plugin-infra/README.md) · [Codex](./codex/plugins/plugin-infra/README.md) |
+| `opc-workflow` | 一人公司工作流：面向内容 / 运营等非研发场景的能力位（当前暂无技能） | [Claude](./claude/plugins/opc-workflow/README.md) · [Codex](./codex/plugins/opc-workflow/README.md) |
+
+> 每个插件的命令、技能、子代理与具体用法以其自身 README 为准；两侧主流程一致，实现细节按「求同存异」各自最优。
 
 ## 从 GitHub 安装
 
