@@ -1,6 +1,6 @@
 # ExcaliVibe ⚔️
 
-[中文](./README.md) · **English**
+**English** · [中文](./README.zh-CN.md)
 
 > Excalibur + Vibe — a **Vibe Working** relic, like King Arthur's legendary sword.
 

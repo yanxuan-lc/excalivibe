@@ -1,6 +1,6 @@
 # ExcaliVibe ⚔️
 
-**中文** · [English](./README.en.md)
+[English](./README.md) · **中文**
 
 > Excalibur + Vibe —— 像亚瑟王圣剑一样的 **Vibe Working** 圣器。
 
