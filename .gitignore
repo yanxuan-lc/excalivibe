@@ -6,3 +6,9 @@ __pycache__/
 
 # zread generated wiki (derivable build artifact, regenerate with `zread generate`)
 .zread/
+
+# 本仓库开发期用的 OpenSpec/opsx 集成（由 openspec 生成）。
+# 仅供在本仓库内开发时使用，不应随 git-源 marketplace 分发给消费者
+# （否则会被 clone 进消费者机器、注入 opsx 技能并触发未受信项目警告）。
+/.codex/
+/.claude/
