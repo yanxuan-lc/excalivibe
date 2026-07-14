@@ -10,17 +10,17 @@
     {
       "name": "plugin-infra",
       "description": "通用基础设施 plugin —— Chrome DevTools 浏览器 MCP。",
-      "source": "./plugins/plugin-infra"
+      "source": "./claude/plugins/plugin-infra"
     },
     {
       "name": "gen-ai-development",
       "description": "生成式 AI 开发套件 2.0 —— 自治控制器按「变更原型 × 可逆性」给每条轨道定自动化档位，架构门 + 意图门双门人审，SDD+TDD 两范式，专人专事 subagent + 独立功能 skill 三层架构，PreToolUse 不可逆动作护栏。",
-      "source": "./plugins/gen-ai-development"
+      "source": "./claude/plugins/gen-ai-development"
     },
     {
       "name": "opc-workflow",
       "description": "一人公司（One Person Company）工作流套件 —— 面向非研发场景（内容 / 运营等多顶帽子）的能力位，当前暂无技能。",
-      "source": "./plugins/opc-workflow"
+      "source": "./claude/plugins/opc-workflow"
     }
   ]
 }

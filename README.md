@@ -2,90 +2,113 @@
 
 > Excalibur + Vibe —— 像亚瑟王圣剑一样的 **Vibe Working** 圣器。
 
-ExcaliVibe 是一套 **Vibe Working** 能力套件。概念源自 Vibe Coding，但不局限于 Coding，而是面向更广的业务场景，把 Agent 打造成更强大的综合体。
+ExcaliVibe 是一套 **Vibe Working** 能力套件。概念源自 Vibe Coding，但不止于 Coding，而是面向更广的业务场景，把 Agent 打造成更强大的综合体。
 
-项目**同时支持 Claude 与 Codex 两个智能体**，能力均以各自的 **marketplace + plugin** 机制承载。
+项目**同时支持 Claude Code 与 Codex 两个智能体**，能力均以各自的 **marketplace + plugin** 机制承载。同一能力在两侧解决同样的问题、走同样的主流程，只是用各自最契合的原语（command / skill / subagent / hooks / MCP）实现——即下文的「求同存异」。
+
+## 插件一览
+
+| 插件 | 作用 |
+|---|---|
+| `gen-ai-development` | 生成式 AI 开发套件：类 OpenSpec 的结构化研发流程、编码 / 数据库规约、交互式 UI-UX 设计、开发子代理与自治控制器 |
+| `plugin-infra` | 通用基础设施：浏览器自动化（Chrome DevTools / Playwright MCP，Claude 侧含 graceful-browser 决策） |
+| `opc-workflow` | 一人公司工作流：面向内容 / 运营等非研发场景的能力位（当前暂无技能） |
+
+## 从 GitHub 安装
+
+本仓库为公开仓库，两侧 marketplace 清单都放在**仓库根**，因此可以**一条命令直接从 GitHub 拉取安装**，无需先手动 clone。
+
+**前置**
+
+- **Claude Code**：较新版本（含 `plugin marketplace` 支持）。
+- **Codex CLI**：v0.117.0+（本文的 GitHub 直装步骤在 v0.137.0 实测通过）。
+
+### Claude Code
+
+```bash
+# 1. 添加 marketplace（直接从 GitHub 拉取；固定分支/标签可用 @main、@v1.0）
+claude plugin marketplace add yanxuan-lc/excalivibe
+
+# 2. 按需安装插件
+claude plugin install gen-ai-development@excalivibe
+claude plugin install plugin-infra@excalivibe
+claude plugin install opc-workflow@excalivibe
+
+# 之后拉取仓库更新
+claude plugin marketplace update excalivibe
+```
+
+### Codex（CLI v0.117.0+）
+
+```bash
+# 1. 添加 marketplace（owner/repo 简写，或 HTTPS/SSH Git URL；固定 ref 用 --ref main）
+codex plugin marketplace add yanxuan-lc/excalivibe
+
+# 2. 按需安装插件；安装后**新开 thread** 让 skills / MCP 生效
+codex plugin add gen-ai-development@excalivibe
+codex plugin add plugin-infra@excalivibe
+codex plugin add opc-workflow@excalivibe
+```
+
+`gen-ai-development` 的 **9 个 subagent** 以独立 TOML 提供（Codex 的 plugin 机制无法捆绑 subagent），需单独放入 agents 目录。GitHub 直装时本地没有仓库副本，clone 一份取用即可：
+
+```bash
+git clone https://github.com/yanxuan-lc/excalivibe.git
+cp excalivibe/codex/agents/*.toml ~/.codex/agents/      # 或放到项目级 .codex/agents/
+```
+
+## 本地开发安装
+
+改动插件、需要边改边调时，指向**本地目录**安装（marketplace 清单在仓库根，故 SOURCE 为 `.`）。
+
+**Claude**
+
+```bash
+claude plugin marketplace add .                     # 注册本地 marketplace（仓库根）
+claude plugin install gen-ai-development@excalivibe # 按需安装
+claude plugin marketplace update excalivibe         # 改动后刷新
+```
+
+**Codex**
+
+```bash
+codex plugin marketplace add .                      # 注册本地 marketplace（仓库根）
+codex plugin add gen-ai-development@excalivibe       # 安装；新开 thread 后生效
+cp codex/agents/*.toml ~/.codex/agents/              # 安装 subagent
+# 迭代：update_plugin_cachebuster.py <plugin> → codex plugin add <plugin>@excalivibe → 新开 thread
+```
 
 ## 设计原则：求同存异
 
-整体 **workflow / pipeline / architecture 保持一致**；具体细节、能力实现围绕各 Agent 的特点（command / tools / skills / hooks / MCP）**独立设计**，不为兼容而折中。例如：
+**架构与主流程两侧一致；实现细节各自最优，不为兼容而折中。** 例如：
 
-| 场景 | Claude 侧 | Codex 侧 |
-|---|---|---|
-| 调研 | `deep_research` + dynamic workflow | 常规 subagent |
-| 浏览器 | `claude --chrome` | computer-use / `@Chrome` |
-| 浏览器兜底 | chrome-devtools MCP / Playwright | chrome-devtools MCP / Playwright |
+| 场景 | Claude 侧 | Codex 侧 | 共同兜底 |
+|---|---|---|---|
+| 调研 | `deep-research` + dynamic workflow | 常规 subagent | — |
+| 浏览器 | `claude --chrome` | computer-use / `@Chrome` | chrome-devtools MCP / Playwright |
 
 ## 目录结构
 
 ```
 excalivibe/
-├── claude/                              # Claude 智能体能力（marketplace 机制）
-│   ├── .claude-plugin/marketplace.json  # Claude marketplace 清单（name: excalivibe）
-│   └── plugins/
-│       ├── plugin-infra/                # 通用基础设施：graceful-browser + chrome-devtools MCP
-│       ├── gen-ai-development/          # 生成式 AI 开发套件：2 命令 + 7 子代理 + 开发/设计技能（含 app-ux-design）
-│       └── opc-workflow/                # 一人公司工作流（非研发场景，当前暂无技能）
-│
-├── codex/                               # Codex 智能体能力（marketplace 机制，v0.117.0+）
-│   ├── .agents/plugins/marketplace.json # Codex marketplace 清单（name: excalivibe）
-│   ├── plugins/
-│   │   ├── plugin-infra/                # 同上，浏览器第 1 优先级改用 Codex 原生栈
-│   │   ├── gen-ai-development/          # 命令→skill、技能内容按 Codex 改写
-│   │   └── opc-workflow/                # 同上
-│   ├── agents/                          # 7 个 Codex subagent TOML（plugin 无法捆绑，独立安装）
-│   └── ADAPTING-FROM-CLAUDE.md          # Claude→Codex 求同存异适配手册
-│
-├── AGENTS.md / CLAUDE.md
+├── .claude-plugin/marketplace.json       # Claude marketplace 清单（仓库根，name: excalivibe）
+├── .agents/plugins/marketplace.json      # Codex marketplace 清单（仓库根，name: excalivibe）
+├── claude/                               # Claude 侧插件（commands / agents / skills / hooks / .mcp.json）
+│   └── plugins/{plugin-infra, gen-ai-development, opc-workflow}/
+├── codex/                                # Codex 侧插件（skills / .mcp.json / .app.json）
+│   ├── plugins/{plugin-infra, gen-ai-development, opc-workflow}/
+│   ├── agents/*.toml                     # 9 个 Codex subagent（独立安装）
+│   └── ADAPTING-FROM-CLAUDE.md           # Claude→Codex 求同存异适配手册
+├── openspec/                             # OpenSpec 规范流程产物
+├── AGENTS.md                             # 跨 Agent 的项目事实与协作规范
+├── CLAUDE.md                             # Claude Code 专属偏好与协作规则
 └── README.md
 ```
 
-> 两侧的 marketplace 名均为 `excalivibe`；`source.path` 都写作 `./plugins/<name>`，
-> 分别相对各自 scaffold 根目录（`claude/`、`codex/`）解析。
+> 两侧 marketplace 名均为 `excalivibe`；plugin 的 `source` 相对**仓库根**解析，分别指向 `./claude/plugins/<name>` 与 `./codex/plugins/<name>`。
 
-## 本地安装与调试
+## 更多文档
 
-两侧 marketplace 均支持**指向本地目录**安装，便于开发期调试。
-
-### Claude
-
-```bash
-# 1. 注册本地 marketplace（directory source）
-claude plugin marketplace add ./claude
-
-# 2. 安装插件（按需）
-claude plugin install plugin-infra@excalivibe
-claude plugin install gen-ai-development@excalivibe
-claude plugin install opc-workflow@excalivibe
-```
-
-迭代时改动 plugin 后，刷新 marketplace 即可：`claude plugin marketplace update excalivibe`。
-
-### Codex（CLI v0.117.0+）
-
-```bash
-# 1. 注册本地 marketplace（repo/team marketplace 需显式 add）
-codex plugin marketplace add ./codex
-
-# 2. 安装插件（按需）；新开 thread 后 skills / MCP 生效
-codex plugin add plugin-infra@excalivibe
-codex plugin add gen-ai-development@excalivibe
-codex plugin add opc-workflow@excalivibe
-
-# 3. 安装 gen-ai-development 的 7 个 subagent（plugin 无法捆绑，文件级安装）
-cp codex/agents/*.toml ~/.codex/agents/        # 或项目级 .codex/agents/
-```
-
-> 开发期更新本地 plugin：用 cachebuster + 重装流程
-> （`update_plugin_cachebuster.py <plugin>` → `codex plugin add <plugin>@excalivibe`），
-> 然后**新开 thread** 让 Codex 重新加载 skills / tools。
-
-## 插件清单
-
-| 插件 | Claude 侧 | Codex 侧（求同存异） |
-|---|---|---|
-| `plugin-infra` | graceful-browser skill + chrome-devtools MCP | 浏览器第 1 优先级改用 Codex 原生栈（`@Chrome`/`@Browser`），MCP 兜底两侧共用 |
-| `gen-ai-development` | 2 命令 + 7 子代理 + 开发/设计技能（含 app-ux-design，依赖 ui-ux-pro-max） | 命令→skill；子代理→`codex/agents/*.toml`；技能仅改写 Agent 专属机制引用；app-ux-design 框架代码原样移植、inspect 反馈环走 Codex Browser Annotation |
-| `opc-workflow` | 暂无技能 | 暂无技能 |
-
-> Claude→Codex 的适配规则见 [`codex/ADAPTING-FROM-CLAUDE.md`](./codex/ADAPTING-FROM-CLAUDE.md)。
+- [AGENTS.md](./AGENTS.md) —— 跨 Agent 的项目事实、marketplace / plugin 结构规范、校验与新增能力流程。
+- [CLAUDE.md](./CLAUDE.md) —— Claude Code 专属的 primitives、Subagent 协作与委派规则。
+- [codex/ADAPTING-FROM-CLAUDE.md](./codex/ADAPTING-FROM-CLAUDE.md) —— Claude→Codex 的适配规则。

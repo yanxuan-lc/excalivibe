@@ -8,7 +8,7 @@
       "name": "plugin-infra",
       "source": {
         "source": "local",
-        "path": "./plugins/plugin-infra"
+        "path": "./codex/plugins/plugin-infra"
       },
       "policy": {
         "installation": "AVAILABLE",
@@ -20,7 +20,7 @@
       "name": "gen-ai-development",
       "source": {
         "source": "local",
-        "path": "./plugins/gen-ai-development"
+        "path": "./codex/plugins/gen-ai-development"
       },
       "policy": {
         "installation": "AVAILABLE",
@@ -32,7 +32,7 @@
       "name": "opc-workflow",
       "source": {
         "source": "local",
-        "path": "./plugins/opc-workflow"
+        "path": "./codex/plugins/opc-workflow"
       },
       "policy": {
         "installation": "AVAILABLE",

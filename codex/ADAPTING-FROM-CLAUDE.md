@@ -46,12 +46,12 @@
 
 ## 2. marketplace 清单
 
-`codex/.agents/plugins/marketplace.json`，`name: "excalivibe"`，每个 plugin 一个条目：
+仓库根的 `.agents/plugins/marketplace.json`，`name: "excalivibe"`，每个 plugin 一个条目（`path` 相对仓库根）：
 
 ```json
 {
   "name": "<plugin-name>",
-  "source": { "source": "local", "path": "./plugins/<plugin-name>" },
+  "source": { "source": "local", "path": "./codex/plugins/<plugin-name>" },
   "policy": { "installation": "AVAILABLE", "authentication": "ON_INSTALL" },
   "category": "Developer Tools"
 }
@@ -101,7 +101,7 @@ developer_instructions = """
 ## 6. 安装与校验
 
 ```bash
-codex plugin marketplace add ./codex
+codex plugin marketplace add .                    # 本地调试（仓库根）；GitHub 直装用 yanxuan-lc/excalivibe
 codex plugin add <plugin>@excalivibe
 # subagent：cp codex/agents/*.toml ~/.codex/agents/   （或项目 .codex/agents/）
 python3 ~/.codex/skills/.system/plugin-creator/scripts/validate_plugin.py codex/plugins/<plugin>

@@ -35,14 +35,14 @@
 
 ```
 excalivibe/
-├── claude/                              # Claude 智能体能力（marketplace 机制）
-│   ├── .claude-plugin/marketplace.json  # Claude marketplace 清单（name: excalivibe）
+├── .claude-plugin/marketplace.json      # Claude marketplace 清单（仓库根，name: excalivibe）
+├── .agents/plugins/marketplace.json     # Codex marketplace 清单（仓库根，name: excalivibe）
+├── claude/                              # Claude 智能体能力
 │   └── plugins/<plugin>/
 │       ├── .claude-plugin/plugin.json
 │       ├── commands/  agents/  skills/  hooks/  .mcp.json   # Claude 可用 primitives
 │       └── ...
-├── codex/                               # Codex 智能体能力（marketplace 机制，v0.117.0+）
-│   ├── .agents/plugins/marketplace.json # Codex marketplace 清单（name: excalivibe）
+├── codex/                               # Codex 智能体能力（marketplace v0.117.0+）
 │   └── plugins/<plugin>/
 │       ├── .codex-plugin/plugin.json
 │       └── skills/  .mcp.json  .app.json                     # Codex 可用 primitives
@@ -51,13 +51,13 @@ excalivibe/
 └── AGENTS.md / CLAUDE.md
 ```
 
-> 两侧 marketplace 名均为 `excalivibe`，`source.path` 都写作 `./plugins/<name>`，分别相对各自 scaffold 根目录（`claude/`、`codex/`）解析。
+> 两侧 marketplace 名均为 `excalivibe`，清单置于**仓库根**（`.claude-plugin/marketplace.json` 与 `.agents/plugins/marketplace.json`，两条路径不冲突），使 `<owner>/<repo>` 可从 GitHub 直接安装。plugin 的 `source` 相对仓库根解析，分别指向 `./claude/plugins/<name>` 与 `./codex/plugins/<name>`。
 
 ## 两侧 marketplace / plugin 结构规范
 
 | | **Claude** | **Codex**（CLI v0.117.0+） |
 |---|---|---|
-| Marketplace 清单 | `claude/.claude-plugin/marketplace.json`（`name`/`owner`/`plugins[].source` 为字符串路径） | `codex/.agents/plugins/marketplace.json`（`name`/`interface`/`plugins[]` 含 `source.path`/`policy`/`category`） |
+| Marketplace 清单 | `.claude-plugin/marketplace.json`（仓库根；`name`/`owner`/`plugins[].source` 为字符串路径，指向 `./claude/plugins/<name>`） | `.agents/plugins/marketplace.json`（仓库根；`name`/`interface`/`plugins[]` 含 `source.path`/`policy`/`category`，`path` 指向 `./codex/plugins/<name>`） |
 | Plugin 清单 | `<plugin>/.claude-plugin/plugin.json`（`name`/`version`/`description`/`author`/`keywords`） | `<plugin>/.codex-plugin/plugin.json`（**JSON**；必填 `name`/`version`(semver)/`description`/`author.name` + `interface`，`interface` 必含 `displayName`/`capabilities`/`defaultPrompt`） |
 | 承载单元 | `commands/` `agents/` `skills/` `hooks/` `.mcp.json` | `skills/` `.mcp.json` `.app.json` |
 
@@ -68,21 +68,23 @@ excalivibe/
 - Codex 的 `plugin.json` **不要写 `hooks` 字段**（validator 拒绝）；Codex 运行时本身具备 hooks 能力（`config.toml` 途径），但非交互式 exec 下触发未经验证（trust-gated）；`mcpServers` / `apps` 仅在 `.mcp.json` / `.app.json` 实际存在时才声明；路径以 `./` 开头。
 - skill 的 `SKILL.md` frontmatter 必含 `name` + `description`。
 
-## 本地安装与调试
+## 安装与调试
 
-两侧均支持指向**本地目录**安装，便于开发期调试。
+清单在仓库根，故 GitHub 直装用 `<owner>/<repo>`、本地调试用 `.`（仓库根）。用户向文档见 [README.md](./README.md)。
 
 **Claude**
 ```bash
-claude plugin marketplace add ./claude          # 注册本地 marketplace（directory source）
-claude plugin install <plugin>@excalivibe        # 安装
-claude plugin marketplace update excalivibe      # 迭代后刷新
+claude plugin marketplace add yanxuan-lc/excalivibe   # GitHub 直装
+claude plugin marketplace add .                       # 或本地调试（仓库根）
+claude plugin install <plugin>@excalivibe             # 安装
+claude plugin marketplace update excalivibe           # 迭代后刷新
 ```
 
 **Codex（CLI v0.117.0+）**
 ```bash
-codex plugin marketplace add ./codex             # repo/team marketplace 需显式 add
-codex plugin add <plugin>@excalivibe             # 安装；新开 thread 后 skills 生效
+codex plugin marketplace add yanxuan-lc/excalivibe    # GitHub 直装（或 . 本地调试）
+codex plugin add <plugin>@excalivibe                  # 安装；新开 thread 后 skills 生效
+cp codex/agents/*.toml ~/.codex/agents/               # subagent 独立安装（plugin 无法捆绑）
 # 迭代：update_plugin_cachebuster.py → codex plugin add <plugin>@excalivibe → 新开 thread
 ```
 
