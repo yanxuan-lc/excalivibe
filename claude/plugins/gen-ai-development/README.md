@@ -58,7 +58,7 @@
 | Skill | 触发场景 | 内容 |
 |-------|----------|------|
 | `grill` | 需求含糊、只给结果不给行为、「做个 X」「加个能做 Y 的东西」、无验收标准的特性想法 | 交互式意图输入：一次一问 + **带推荐答案**的苏格拉底澄清，产出行为化 `BRIEF.md`（现状 / 期望 / 验收 / out-of-scope）。两档深度；deep+binding 模式额外定型领域、播种 glossary，并**主动盘问**冲突 / 重载术语、用边界场景压测、拿现有代码交叉核对。**能查代码就先查，别耗用户回合** |
-| `backlog` | 想法只记录、先不开工（「先记下来」「记到 backlog」「回头再做」）、想法连发排队、问「backlog 里有什么」 | **想法队列（入队侧）**：读索引定调（新想法与在队条目相关时先问「改旧条还是新开」）→ grill 澄清出 BRIEF → 收尾**定点整合**（覆盖即改写旧条 / 克制合并 / 关系标注；有发现攒一条确认消息，无发现静默落盘）→ `openspec/BACKLOG.md` 索引 + `backlog/<id>/BRIEF.md`。只动相关条目、只由事件触发、绝不全队列重整；出队（保鲜检查 + 全队列合批 / 依赖 / 并行）在 autonomy-controller 的 backlog intake |
+| `backlog` | 想法只记录、先不开工（「先记下来」「记到 backlog」「回头再做」）、想法连发排队、问「backlog 里有什么」 | **想法队列（入队侧）**：读索引定调（新想法与在队条目相关时先问「改旧条还是新开」）→ grill 澄清出 BRIEF → 收尾**定点整合**（覆盖即改写旧条 / 克制合并 / 关系标注；有发现攒一条确认消息，无发现静默落盘）→ `openspec/BACKLOG.md`（只含活跃条目 queued/in-progress）+ `backlog/<id>/BRIEF.md`；条目进入终态（done/dropped）随该次写入搬迁到 `backlog/archive/`（索引 + `<date>-<id>/` 目录），让入队开头的索引读取恒定小。只动相关条目、只由事件触发、绝不全队列重整；出队（保鲜检查 + 全队列合批 / 依赖 / 并行）在 autonomy-controller 的 backlog intake |
 | `review-doc` | spec 走到 human-confirm 人审、生成人审文档、「四件套确认」「查看 REVIEW」 | **四件套人审文档规约**：`REVIEW.md` 由 spec **单向派生**（模块 → 协议 → 库表 → 用例；表格 / Mermaid / DDL 优先于散文）；spec-hash 新鲜度戳供 human-confirm 门机检；用户直接以 markdown 查看；下游 agent 禁读——spec 才是实施输入 |
 | `app-ux-design` | UI / 视觉设计、原型、视觉轨道的 prototype 节点 | 设计产出落 `docs/ued/<dt>/`（依赖 `ui-ux-pro-max`） |
 
@@ -185,7 +185,7 @@ gen-ai-development/
 │   ├── autonomy-controller/     # Tier-3 编排脊柱：三信号 → 档位 → 轨道 → 门禁 → 强度（references: tracks / gates / pipeline-schema）
 │   ├── research-pipeline/       # Tier-3 调研编排：澄清 → 确认 → 计划 → 并行派发 → 汇总循环 → synthesize 落盘
 │   ├── grill/                   # 意图输入：苏格拉底澄清 → BRIEF.md（深档定型领域 + 播种 glossary）
-│   ├── backlog/                 # 想法队列入队侧：索引定调 → grill → 定点整合 → BACKLOG.md + backlog/<id>/BRIEF.md
+│   ├── backlog/                 # 想法队列入队侧：索引定调 → grill → 定点整合 → 活跃索引 BACKLOG.md + backlog/<id>/BRIEF.md（终态条目搬迁至 backlog/archive/）
 │   ├── review-doc/              # 四件套人审文档：REVIEW.md + spec-hash 新鲜度戳
 │   ├── app-ux-design/           # UI / 视觉设计原型（依赖 ui-ux-pro-max）
 │   ├── tdd/                     # 红绿重构 + 各语言测试工具链

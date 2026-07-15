@@ -20,17 +20,24 @@ path). Do not duplicate that logic here; hand over and let the controller consum
 
 ## Queue structure
 
-Two kinds of file, both under `openspec/`:
+A **live** half and an **archived** half, all under `openspec/`:
 
-- **`openspec/BACKLOG.md`** — the index. One table row per entry: id, title, status,
-  footprint tags, relations. Kept to one line per entry *on purpose*: the index is read
-  at the start of every enqueue session, and that read must stay near-free no matter how
-  long the queue grows.
-- **`openspec/backlog/<id>/BRIEF.md`** — one directory per entry holding the grill-format
-  brief (current behavior / desired behavior / acceptance criteria / out-of-scope). The
-  index points at it; nothing else lives in the entry dir at enqueue time.
+- **`openspec/BACKLOG.md`** — the live index. One table row per *active* entry
+  (`queued` / `in-progress`): id, title, status, footprint tags, relations. Kept to one
+  line per entry *on purpose*, and kept to the active working set *on purpose*: the index
+  is read at the start of every enqueue session, and that read must stay near-free no
+  matter how many ideas the project ships over its life.
+- **`openspec/backlog/<id>/BRIEF.md`** — one directory per active entry holding the
+  grill-format brief (current behavior / desired behavior / acceptance criteria /
+  out-of-scope). The index points at it; nothing else lives in the entry dir at enqueue
+  time.
+- **`openspec/backlog/archive/`** — history out of the hot path. When an entry reaches a
+  terminal status (`done` / `dropped`), its row moves to the append-only archived index
+  `archive/BACKLOG-ARCHIVE.md` and its directory moves to `archive/<date>-<id>/`. This is
+  never a sweep — it is part of the same write that sets the terminal status (see schema).
+  History is preserved, just off the session-start read path.
 
-Exact formats, status values, relation kinds, and lifecycle ownership:
+Exact formats, status values, relation kinds, archive layout, and lifecycle ownership:
 [references/backlog-schema.md](references/backlog-schema.md). Read it before your first
 write to the queue.
 
@@ -40,10 +47,12 @@ Consolidation is not a separate phase and never a background job. It hangs on tw
 built into the recording session itself: a coarse check at the start, a precise one at
 the end.
 
-### 1. Session start — read the index, always (coarse, free)
+### 1. Session start — read the live index, always (coarse, free)
 
-Before the first question, read `BACKLOG.md`. It is one line per entry; reading it costs
-nothing, so there is no "should I check" judgment call — just read it every time.
+Before the first question, read `BACKLOG.md` — the live index only. It is one line per
+active entry; reading it costs nothing, so there is no "should I check" judgment call —
+just read it every time. Do **not** read the archive here: that is what keeps this read
+free as the project ships more and more ideas.
 
 The purpose is to **aim the conversation**, not to consolidate. If the raw idea plainly
 relates to an existing entry, the *first* question becomes: "this sounds related to
@@ -72,16 +81,21 @@ deliberately coarse — they exist for adjacency matching, not for design.
 ### 3. Session end — targeted consolidation (precise, silent-first)
 
 After the BRIEF converges and *before* writing it into the queue, compare it against the
-**candidates**: entries flagged at session start, plus index entries whose footprint tags
-overlap the new entry's. Now the comparison has a full brief with acceptance criteria to
-work with — far sharper than the raw utterance the start-hook saw. Three possible
-findings, in order of value:
+**candidates**: live-index entries flagged at session start or whose footprint tags
+overlap the new entry's, **plus a targeted grep of the archived index
+(`archive/BACKLOG-ARCHIVE.md`) by the same footprint tags**. The archive grep is what
+catches "this idea already shipped as X" or "we already dropped this, for reason Y" —
+history the free session-start read deliberately skipped. Grep by tag, not a full read, so
+its cost tracks matches, not archive size. Now the comparison has a full brief with
+acceptance criteria to work with — far sharper than the raw utterance the start-hook saw.
+Findings, in order of value:
 
 | Finding | Action |
 |---------|--------|
 | The new entry **supersedes or invalidates** an old one — extends it wholesale, or breaks one of its premises | Propose rewriting or deleting the old entry. This is the highest-value case: left alone, the queue carries a brief that is already doomed, and nobody notices until dequeue. |
 | **Heavy overlap** — same modules, same domain concept; plausibly one change | Propose merging into one entry — but be restrained. A merge is a commitment made on incomplete information, and an over-merged entry grows large and vague. When unsure, keep them separate and tag `same-batch?` instead; the real merge decision belongs to dequeue, where the controller sees the whole picture. |
 | **Dependency or plain relatedness** | Add `depends-on:` / `related:` tags to the index rows. Tags are hints, re-validated at dequeue — adding them silently is fine. |
+| **Archive match** — the new idea is what an archived `done`/`dropped` entry already covered | Surface it, don't act on it: "we already shipped/dropped `<id>` for this — record anyway, or is this the same thing?" Never rewrite or resurrect an archived entry; if the user still wants it, record a fresh `queued` entry (add `related:<archived-id>` so the history is one hop away). |
 
 ### 4. Confirm — at most one message, often zero
 
@@ -98,10 +112,12 @@ your judgment for a confirmation the user already gave.
 
 ### 5. Write
 
-New entry dir + BRIEF, edits to affected entries (post-confirmation), index refreshed —
-new row, updated tags/relations on touched rows. Status of a new entry is always
-`queued`; this skill never sets any other status (see schema: the controller owns the
-rest of the lifecycle).
+New entry dir + BRIEF, edits to affected entries (post-confirmation), live index
+refreshed — new row, updated tags/relations on touched rows. A new entry's status is
+always `queued`. The only other status this skill sets is `dropped`, on an entry it
+supersedes or merges away (post-confirmation) — and `dropped` is terminal, so the same
+write relocates that entry (row + dir) into the archive (paths in schema). Everything else
+in the lifecycle belongs to the controller.
 
 ## Hard rules
 

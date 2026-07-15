@@ -114,10 +114,13 @@ from scratch). Three things happen *before* the normal Step 1 classification:
   holds; where the code contradicts it, run a short grill re-confirmation with the user
   before building. Never implement against a stale brief — the pipeline would faithfully
   deliver against a world that no longer exists.
-- **Whole-queue view, not just the named entries.** Scan the full index: a named entry's
-  `depends-on` prerequisite may still be queued (surface it — "A has to come first or
-  come along"), and heavy-overlap entries (`same-batch?` tags, or footprints that
-  collide) are candidates for merging into ONE change. Merging is worth proposing
+- **Whole-queue view, not just the named entries.** Scan the full live index: a named
+  entry's `depends-on` prerequisite may still be queued (surface it — "A has to come first
+  or come along"), and heavy-overlap entries (`same-batch?` tags, or footprints that
+  collide) are candidates for merging into ONE change. Resolve relation targets against the
+  archive too: a `depends-on` whose target is now `done` in `archive/BACKLOG-ARCHIVE.md` is
+  *satisfied*, not blocking — drop that edge instead of treating the prerequisite as
+  missing. Merging is worth proposing
   because pipeline fixed costs — spec, design review, e2e pass, merge gate — are
   per-change: folding N overlapping entries into one change saves N−1 full passes, more
   than parallelism ever recovers.
@@ -132,10 +135,14 @@ from scratch). Three things happen *before* the normal Step 1 classification:
   environments (own database instance / ports); two units running migrations against
   one shared local database corrupt each other's verification.
 
-Write status back to the index as work proceeds: `queued → in-progress(<change-id>)` at
-intake, `→ done(<change-id>)` when the change archives. The controller is the only
-writer of these two transitions (the enqueue-side schema:
-`../backlog/references/backlog-schema.md`).
+Write status back to the live index as work proceeds: `queued → in-progress(<change-id>)`
+at intake, `→ done(<change-id>)` when the change archives. `→ done` is a **terminal
+write**: in the same step, relocate the entry out of the live index into the archive — its
+row moves to `archive/BACKLOG-ARCHIVE.md` and its dir to `archive/<date>-<id>/` (reuse the
+change's own archive date). This keeps `BACKLOG.md` bounded by the active working set so
+the enqueue side's session-start read stays free. The controller is the only writer of
+these two transitions and the only actor that archives a `done` entry (the enqueue-side
+schema: `../backlog/references/backlog-schema.md`).
 
 ## Step 4 — Compose the track and emit four outputs
 
