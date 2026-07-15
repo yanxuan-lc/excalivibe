@@ -1,0 +1,58 @@
+> 想法队列（idea backlog）机制的 as-built 设计与决策记录。入队侧由 `backlog` skill 拥有，出队侧由 `autonomy-controller` 拥有；本文只记**为什么这样设计**，机制细节以权威源为准。
+> 权威源：`claude/plugins/gen-ai-development/skills/backlog/`（SKILL.md + references/backlog-schema.md）与 `.../skills/autonomy-controller/SKILL.md`（Backlog intake 段）；codex/ 侧为同构镜像（求同存异）。
+
+## 怎么用（按需加载）
+
+| 我要做… | 读这里 |
+|---|---|
+| 看队列结构 / 索引字段 / 状态机 / 归档布局（权威） | [`backlog-schema.md`](../../../claude/plugins/gen-ai-development/skills/backlog/references/backlog-schema.md) |
+| 看入队流程（grill → 定点整合 → 落盘） | [`backlog/SKILL.md`](../../../claude/plugins/gen-ai-development/skills/backlog/SKILL.md) |
+| 看出队流程（保鲜检查 / 合批 / 依赖 / 并行） | [`autonomy-controller/SKILL.md`](../../../claude/plugins/gen-ai-development/skills/autonomy-controller/SKILL.md) 的 Backlog intake |
+| 理解归档机制为什么这样设计 | 本文「设计决策」↓ |
+
+## 机制概览
+
+一句话：入队花用户一次短 grill，执行等用户说 go；队列是解耦点，让用户在管线跑动时持续 ideate。队列分**活跃**与**归档**两半，均在 `openspec/` 下——活跃索引 `BACKLOG.md` + 每条 `backlog/<id>/BRIEF.md`；终态条目搬迁到 `backlog/archive/`。字段、状态机、分工表的**权威定义在 schema**，此处不复述。
+
+## 设计决策（archive 机制，2026-07 引入）
+
+问题：所有条目历史（`done`/`dropped`）原本永久留在 `BACKLOG.md` 与 `backlog/<id>/`。高吞吐使用下（Agent 持续出队、用户持续入队），活跃工作集小但历史集无界增长，而索引在**每次入队会话开头都要全量读**——热路径被历史稀释。
+
+以下是选定方案及被否的替代：
+
+### 1. 归档而非删除
+
+`done`/`dropped` 条目**移出**活跃索引，但保留在归档，不删。
+
+- **为什么不删**：终态历史有查重价值——「这个想法已经作为 X 发过了」可阻止重复立项；`dropped(<reason>)` 可防同一想法被从头 re-groom。删除会丢掉这层保护。
+- **为什么值得搬**：仅靠「删除」无法两全（丢历史）；仅靠「留着」无法两全（热路径膨胀）。搬迁同时满足两者。
+
+### 2. 两层索引，按读取成本分层
+
+活跃索引只含 `queued`/`in-progress`；归档索引 `archive/BACKLOG-ARCHIVE.md`（append-only）含终态行。
+
+- 会话**开头**粗读：只读活跃索引 → 恒定小，与项目累计产出多少想法无关。
+- 会话**收尾**定点整合：活跃候选 + 对归档索引**按 footprint tag 定向 grep**（非全量读）→ 找回「已发/已 drop」查重，成本随命中数而非归档规模增长。
+- **关键取舍**：把两个读取按成本敏感度拆开，是「保住历史查重能力」与「热路径恒定」能同时成立的支点。
+
+### 3. 终态转移即搬迁，而非定期/手动清扫
+
+搬迁是**设置终态那次写入的一部分**（`backlog` 写 `dropped` 时、`autonomy-controller` 写 `done` 时各自搬），不是独立的清扫任务。
+
+- **为什么**：保住既有硬不变量「队列恰好两个 writer、只由事件触发、无后台 groomer、用户可信任队列就是他离开时的样子」。若引入定期 sweep，就多了第三个隐形 writer，破坏该不变量。
+
+### 4. 归档命名对齐 `openspec/changes/archive`
+
+归档条目目录 `archive/<date>-<id>/`，与仓库既有的 `openspec/changes/archive/<date>-<id>/` 同构；`done` 复用其 change 的归档日期。按 id 唯一，可用 `archive/*-<id>/` 定位。
+
+- **为什么**：复用仓库自己的归档惯例（求同存异里的「求同」），读者无需学第二套心智模型。
+
+### 5. 不扩描述触发（被否）
+
+考虑过：既然归档存了已发/已 drop 历史，是否让 backlog 在用户问「我们之前做过 X 吗」时也触发。**否决**。
+
+- 归档 grep 是**入队 consolidation 的内部子步骤**，backlog 没有「独立查历史并作答」的 flow；纳入触发会把用户导进一个没有对应作答路径的 skill（over-promise），也会对一般仓库历史提问过度触发。归档是机制，不是新的用户入口。
+
+## 双端一致（求同存异）
+
+claude/ 与 codex/ 两侧走**同样的主流程**（同一套 schema、同一状态机、同一搬迁时机）；仅实现细节按各自 primitive 存异（如入队时的只读探索：claude 用 `Explore` subagent，codex 用通用只读探索 agent）。改一侧必同步另一侧。
