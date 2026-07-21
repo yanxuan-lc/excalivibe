@@ -1,7 +1,7 @@
 {
   "name": "plugin-infra",
-  "version": "0.2.1",
-  "description": "通用基础设施 plugin —— 为上层业务 plugin 提供跨场景复用的基础能力（graceful-browser 浏览器框架选择 Skill + Chrome DevTools 浏览器自动化 MCP），不绑定具体业务/数据源。",
+  "version": "0.4.0",
+  "description": "通用基础设施 plugin —— 为上层业务 plugin 提供跨场景复用的基础能力（graceful-browser 浏览器框架选择 Skill + Chrome DevTools 浏览器自动化 MCP + mdx-artifact 富文档产物生成 Skill：MDX→自包含 HTML），不绑定具体业务/数据源。",
   "author": {
     "name": "ExcaliVibe Contributors"
   },
@@ -12,6 +12,11 @@
     "playwright",
     "browser",
     "mcp",
+    "mdx-artifact",
+    "mdx",
+    "document",
+    "html",
+    "report",
     "excalivibe"
   ]
 }

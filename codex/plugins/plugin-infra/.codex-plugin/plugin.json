@@ -1,7 +1,7 @@
 {
   "name": "plugin-infra",
-  "version": "0.2.1",
-  "description": "通用基础设施 plugin —— 为上层业务 plugin 提供跨场景复用的基础能力（graceful-browser 浏览器框架选择 Skill + Chrome DevTools 浏览器自动化 MCP），不绑定具体业务/数据源。",
+  "version": "0.4.0",
+  "description": "通用基础设施 plugin —— 为上层业务 plugin 提供跨场景复用的基础能力（graceful-browser 浏览器框架选择 Skill + Chrome DevTools 浏览器自动化 MCP + mdx-artifact 富文档产物生成 Skill：MDX→自包含 HTML），不绑定具体业务/数据源。",
   "author": {
     "name": "ExcaliVibe Contributors"
   },
@@ -13,21 +13,27 @@
     "playwright",
     "browser",
     "mcp",
+    "mdx-artifact",
+    "mdx",
+    "document",
+    "html",
+    "report",
     "excalivibe"
   ],
   "skills": "./skills/",
   "mcpServers": "./.mcp.json",
   "interface": {
     "displayName": "Plugin Infra",
-    "shortDescription": "浏览器框架选择 Skill + Chrome DevTools MCP",
-    "longDescription": "通用基础设施 plugin：graceful-browser 在 Codex 原生浏览器 / chrome-devtools MCP / Playwright 之间自动选择并降级；自带 Chrome DevTools MCP（有则连、无则启）。",
+    "shortDescription": "浏览器框架选择 + Chrome DevTools MCP + 富文档产物生成",
+    "longDescription": "通用基础设施 plugin：graceful-browser 在 Codex 原生浏览器 / chrome-devtools MCP / Playwright 之间自动选择并降级；自带 Chrome DevTools MCP（有则连、无则启）；mdx-artifact 把 MDX 渲染成给人看的自包含富 HTML 文档（主题配色 / Hero / 指标 / 交互目录 / 公式，离线可用、面向扩展）。",
     "developerName": "ExcaliVibe Contributors",
     "category": "Developer Tools",
     "capabilities": [
       "Interactive"
     ],
     "defaultPrompt": [
-      "帮我打开这个网页并截图"
+      "帮我打开这个网页并截图",
+      "把这份内容整理成一份好看的 HTML 文档"
     ]
   }
 }
