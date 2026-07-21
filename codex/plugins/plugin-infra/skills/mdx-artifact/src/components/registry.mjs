@@ -5,7 +5,7 @@
    组件输出与旧 vanilla 完全一致的 .da-* 结构，复用同一套 theme.css 保证视觉平移。
    ============================================================ */
 import React from "react";
-import katex from "../../assets/vendor/katex/katex.mjs";
+import katex from "katex";
 
 const h = React.createElement;
 const F = React.Fragment;
@@ -145,15 +145,55 @@ function Math({ tex, display }) {
   const html = katex.renderToString(String(tex || ""), { displayMode: display !== "inline", throwOnError: false });
   return h("div", { className: "da-math", dangerouslySetInnerHTML: { __html: html } });
 }
-function Diagram({ engine }) { return h("div", { className: "da-diagram" }, "［图待渲染 · engine=" + (engine || "?") + "］"); }
+/* ---------- 图（Diagram）：fence 语言分派 —— dot(graphviz) / svg 构建期出图，mermaid 客户端 ---------- */
+// Graphviz(@hpcc-js/wasm) 单例：render.mjs 在检测到 dot fence 时 await 载入并注入，Pre 同步取用。
+let graphviz = null;
+export function setGraphviz(g) { graphviz = g; }
+
+// 给用户 dot 注入主题化默认属性（哨兵色），作者显式色会覆盖；随后 themed() 把哨兵色映射成 CSS 变量。
+const DOT_PRELUDE =
+  'graph [bgcolor="transparent",fontname="Helvetica",fontsize=11,color="#dfe4ea",fontcolor="#4d7c0f"];' +
+  'node [shape=box,style="rounded,filled",fillcolor="#eceff3",color="#dfe4ea",fontcolor="#131722",fontname="Helvetica",fontsize=12,penwidth=1.3,margin="0.24,0.14"];' +
+  'edge [color="#7b8595",fontcolor="#7b8595",fontname="Helvetica",fontsize=10,penwidth=1.3,arrowsize=0.7];';
+function withPrelude(src) {
+  return src.replace(/^(\s*(?:strict\s+)?(?:di)?graph\b[^{]*\{)/i, (m) => m + "\n" + DOT_PRELUDE + "\n");
+}
+// graphviz SVG → 主题感知 + 响应式：哨兵色换 CSS 变量、去 XML 头与 pt 尺寸、加 max-width。
+function themed(svg) {
+  return svg
+    .replace(/<\?xml[^>]*\?>\s*/i, "").replace(/<!DOCTYPE[^>]*>\s*/i, "").replace(/<!--[\s\S]*?-->/g, "")
+    .replace(/ (width|height)="\d+(?:\.\d+)?pt"/g, "")
+    .replace(/<svg /, '<svg style="max-width:100%;height:auto" ')
+    .replace(/#131722/gi, "var(--ink)").replace(/#eceff3/gi, "var(--surface-2)")
+    .replace(/#dfe4ea/gi, "var(--border)").replace(/#7b8595/gi, "var(--muted)")
+    .replace(/#4d7c0f/gi, "var(--accent)")
+    .replace(/font-family="Helvetica[^"]*"/gi, 'font-family="var(--font-sans,ui-sans-serif,system-ui,sans-serif)"');
+}
+function renderDot(src) {
+  if (!graphviz) return h("div", { className: "da-diagram da-diagram-err" }, "［Graphviz 未载入：dot 图渲染跳过］");
+  const svg = themed(graphviz.dot(withPrelude(String(src))));
+  return h("div", { className: "da-diagram", dangerouslySetInnerHTML: { __html: svg } });
+}
+
+// 图注 / 编号包装（可选）：包在图 fence 外，追加 figcaption。
+function Figure({ caption, children }) {
+  return h("figure", { className: "da-figure" }, children, caption ? h("figcaption", null, caption) : null);
+}
+
 function Badge({ tone, dot, children }) {
   return h("span", { className: "da-badge", ...(tone ? { "data-tone": tone } : {}), ...(dot !== undefined ? { "data-dot": "" } : {}) }, children);
 }
 
 /* ---------- markdown 内建元素覆写（代码块 / 表格） ---------- */
+// 代码块按语言分派：dot/graphviz → 构建期静态 SVG；svg → 原样透传（兜底）；mermaid → 客户端渲染块；其余 → 代码皮肤。
 function Pre({ children }) {
   const codeEl = React.Children.toArray(children)[0];
+  const cls = (codeEl && codeEl.props && codeEl.props.className) || "";
+  const lang = (String(cls).match(/language-([\w-]+)/) || [])[1] || "";
   const text = codeEl && codeEl.props ? codeEl.props.children : children;
+  if (lang === "dot" || lang === "graphviz") return renderDot(text);
+  if (lang === "svg") return h("div", { className: "da-diagram", dangerouslySetInnerHTML: { __html: String(text) } });
+  if (lang === "mermaid") return h("div", { className: "da-diagram" }, h("pre", { className: "mermaid" }, text));
   return h("div", { className: "da-code" }, h("pre", null, text));
 }
 function Table({ children }) {
@@ -165,7 +205,7 @@ export const components = {
   Hero, Footer, Colophon, Section, Callout, Card, Columns, Toggle,
   Steps, Step, Stats, Stat, Fields, Field,
   Scenario, When, And, Then,
-  Grid, Item, Code, Math, Diagram, Badge,
+  Grid, Item, Code, Math, Figure, Badge,
   // 内建元素覆写（markdown 产出的代码块/表格套上 .da-* 皮肤；其余 h/p/ul/blockquote… 由 .md 基础样式接管）
   pre: Pre, table: Table,
 };

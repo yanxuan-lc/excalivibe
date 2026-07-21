@@ -86,6 +86,19 @@ codex plugin add gen-ai-development@excalivibe
 <Step title="登记">两侧 marketplace / plugin 清单同步追加</Step>
 </Steps>
 
+<Figure caption="双端同步主流程（Graphviz 构建期静态出图）">
+
+```dot
+digraph { rankdir=LR
+  定位 -> claude实现; 定位 -> codex实现
+  claude实现 -> 校验; codex实现 -> 校验
+  校验 -> 登记 [label="求同存异"]
+  { rank=same; claude实现; codex实现 }
+}
+```
+
+</Figure>
+
 <Section number="07" eyebrow="附录" title="能力索引" />
 
 <Grid filterable facets="infra:基础设施,dev:研发,ops:运营">

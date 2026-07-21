@@ -15,12 +15,26 @@ import remarkGfm from "remark-gfm";
 import * as jsxRuntime from "react/jsx-runtime";
 import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
-import { components, resetIds } from "../src/components/registry.mjs";
+import { components, resetIds, setGraphviz } from "../src/components/registry.mjs";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const SRC = resolve(__dirname, "../src");
-const ASSETS = resolve(__dirname, "../assets");
-const KATEX = resolve(ASSETS, "vendor/katex");
+const ROOT = resolve(__dirname, "..");
+const SRC = resolve(ROOT, "src");
+const ASSETS = resolve(ROOT, "assets");
+const KATEX = resolve(ROOT, "node_modules/katex/dist"); // 构建期依赖，字体/CSS 从 node_modules 读，不入库
+
+// Mermaid 客户端初始化：主题变量取自 CSS 变量，随明暗重渲；暴露 window.__mmdRender 供切换时调用。
+const MERMAID_INIT = `(function(){var M=window.mermaid;if(M&&!M.initialize&&M.default)M=M.default;if(!M)return;
+function vars(){var cs=getComputedStyle(document.documentElement),g=function(n){return cs.getPropertyValue(n).trim()};
+return{startOnLoad:false,securityLevel:'loose',fontFamily:'inherit',theme:'base',themeVariables:{background:'transparent',
+primaryColor:g('--surface-2'),primaryTextColor:g('--ink'),primaryBorderColor:g('--border'),lineColor:g('--muted'),
+secondaryColor:g('--muted-bg'),tertiaryColor:g('--muted-bg'),textColor:g('--ink'),mainBkg:g('--surface-2'),
+nodeBorder:g('--border'),clusterBkg:'transparent',clusterBorder:g('--border'),actorBkg:g('--surface-2'),
+actorBorder:g('--accent'),signalColor:g('--muted'),signalTextColor:g('--ink'),labelBoxBkgColor:g('--surface-2'),
+labelTextColor:g('--ink'),noteBkgColor:g('--muted-bg'),noteTextColor:g('--ink')}}}
+function run(){document.querySelectorAll('pre.mermaid').forEach(function(el){if(el.dataset.src===undefined)el.dataset.src=el.textContent;
+el.removeAttribute('data-processed');el.innerHTML=el.dataset.src});M.initialize(vars());M.run({querySelector:'pre.mermaid'})}
+window.__mmdRender=run;run()})();`;
 const h = React.createElement;
 const esc = (s) => String(s == null ? "" : s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 
@@ -48,6 +62,12 @@ function katexCssInlined() {
 
 export async function render(mdx, inputUrl) {
   const { meta, body } = parseFrontmatter(mdx);
+
+  // 用到 dot/graphviz 图才载入 Graphviz(wasm)，注入组件注册表供构建期同步出图。
+  if (/```[ \t]*(dot|graphviz)\b/.test(body)) {
+    const { Graphviz } = await import("@hpcc-js/wasm/graphviz");
+    setGraphviz(await Graphviz.load());
+  }
 
   // MDX → React 组件
   const { default: Content } = await evaluate(body, { ...jsxRuntime, remarkPlugins: [remarkGfm], baseUrl: inputUrl || pathToFileURL(process.cwd() + "/").href });
@@ -88,6 +108,12 @@ export async function render(mdx, inputUrl) {
 
   const all = autoHero + content + footer + colophon;
   const mathUsed = /class="katex/.test(all);
+  // Mermaid 用到时，把自包含 UMD 包（node_modules）内联进本页 + 主题化初始化脚本；未用到则零成本。
+  let mermaidScript = "";
+  if (/<pre class="mermaid"/.test(content)) {
+    const mmSrc = readFileSync(resolve(ROOT, "node_modules/mermaid/dist/mermaid.min.js"), "utf8");
+    mermaidScript = `<script>${mmSrc}</script>\n<script>${MERMAID_INIT}</script>`;
+  }
 
   // TOC
   let toc = "";
@@ -132,6 +158,7 @@ ${autoHero}
 ${footer}
 ${colophon}
 ${toc}
+${mermaidScript}
 <script>
 ${runtimeJs}
 </script>

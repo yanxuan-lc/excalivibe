@@ -18,6 +18,7 @@
       root.dataset.theme = root.dataset.theme === "dark" ? "light" : "dark";
       try { localStorage.setItem("da-theme", root.dataset.theme); } catch (e) {}
       sync();
+      if (window.__mmdRender) setTimeout(window.__mmdRender, 0); // mermaid 随主题重渲
     });
   }
 

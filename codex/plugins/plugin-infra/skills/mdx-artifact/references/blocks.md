@@ -162,8 +162,67 @@ children = markdown。**可选**——放致谢 / 联系方式 / 版本说明，
 ```
 一般代码用 markdown 围栏（对 `<>` 安全）：<code>```ts order.ts</code> … <code>```</code>
 
-## Diagram
-`engine`（图引擎待定，暂占位）。
+## 图（Diagram）：三车道 + 场景路由
+
+图用 **fenced code block** 承载，围栏语言决定引擎（对 `<`/`{}` 天然安全，别用 `<Diagram>` 组件传源码）。
+
+**一句话原则**：能上 **Graphviz** 就 Graphviz；它做不了的**时序/状态机/甘特**用 **Mermaid**；都不合适或要**手工精确摆放**时兜底 **SVG**。
+
+### 场景 → 围栏语言（决策表）
+
+| 你要画的 | 语言 | 渲染 / 运行时 |
+|---|---|---|
+| 流程图 / 管线 / 审批流 / 工作流 | `dot` | 构建期→静态 SVG · 零运行时 |
+| 依赖 / 调用链 / 模块关系 / DAG / 有向图 | `dot` | 同上 |
+| 类图（UML class）/ 继承·关联 | `dot`（`shape=record`） | 同上 |
+| ER 图 / 数据模型 / 表关系 | `dot`（`record` + crow's-foot） | 同上 |
+| 系统架构 / 分层架构 / 部署拓扑 / 服务边界 | `dot`（`subgraph cluster`＝边界） | 同上 |
+| 树 / 层级 / 组织架构 / 目录树 / 决策树 | `dot` | 同上 |
+| **时序图 / 序列图 / 交互时序**（生命线、alt/loop） | `mermaid` | 客户端 · 用到才内联运行时（~3.4MB/页） |
+| **状态机 / statechart**（复合状态、事件转移） | `mermaid` | 同上 |
+| 甘特 / 排期 / 时间线 / 用户旅程 / git 分支图 | `mermaid` | 同上 |
+| 自定义示意 / 概念图 / 坐标·几何 / 标注图 / 图形拼合（**兜底**） | `svg` | 原样内联 · 零运行时 |
+
+### 召回词（想到这些词就用对应车道）
+
+- **`dot`（Graphviz）**：流程图、管线、pipeline、审批流、依赖关系、调用链、模块关系、类图、class diagram、ER 图、数据模型、表关系、架构图、系统架构、分层架构、部署图、拓扑、服务边界、组织架构、树形/层级、DAG、有向图
+- **`mermaid`**：时序图、序列图、sequence、交互时序、生命线、状态机、statechart、状态流转（带事件）、甘特图、gantt、排期、时间线、timeline、用户旅程、journey、git 分支图
+- **`svg`**：自定义示意图、概念图、坐标图、几何示意、标注图、示意图、需要精确摆放、非标准图、图形拼合
+
+### tie-breaker（重叠区判定）
+
+1. **流程图**：mermaid 也能画，但**默认 `dot`**——零运行时 + 可用 `cluster`/`rank` 控位置。仅当出现泳道/复杂条件片段等偏交互记法时才 `mermaid`。
+2. **状态流转 vs 状态机**：只是"方框+箭头流转"→ `dot`；要"复合/嵌套状态、事件标注转移"的正式 statechart → `mermaid`。
+3. **数据图表**（饼/柱/折线）：**不在图引擎范围**（属未来 DataView）。极简饼图可临时用 mermaid `pie`，但图表 ≠ 关系图，别用 dot/svg 硬凑。
+
+### 用法
+
+- `dot`：渲染器自动注入主题化默认（圆角填充节点、accent 簇标、muted 边）并把颜色映射为 CSS 变量→跟随明暗；作者显式设色会覆盖默认。
+- `svg`：用 `currentColor` 或 `var(--accent)`/`var(--ink)` 等上色即自动适配明暗。
+- **图注**：包一层 `<Figure caption="…">`，图注居中显示在图下方。
+
+````mdx
+```dot
+digraph { rankdir=LR
+  planner -> "arch-review" -> apply
+  apply -> QA; apply -> e2e
+}
+```
+
+<Figure caption="下单主链路时序">
+
+```mermaid
+sequenceDiagram
+  用户->>网关: 下单
+  网关-->>用户: 成功
+```
+
+</Figure>
+
+```svg
+<svg viewBox="0 0 120 40"><rect x="4" y="4" width="112" height="32" rx="6" fill="var(--surface-2)" stroke="var(--accent)"/><text x="60" y="25" text-anchor="middle" fill="var(--ink)">自定义</text></svg>
+```
+````
 
 ---
 

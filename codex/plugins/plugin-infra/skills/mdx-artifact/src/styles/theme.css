@@ -254,7 +254,14 @@ code{font-family:var(--font-code)} .mono{font-family:var(--font-mono)}
 .da-math{margin:0 0 12px;overflow-x:auto}
 
 /* diagram placeholder */
-.da-diagram{border:1px dashed var(--border);border-radius:var(--r);padding:26px;text-align:center;color:var(--muted);background:var(--surface-2);font-size:var(--fs-base);margin:0 0 12px}
+/* 图盒（graphviz/svg 内联、mermaid 客户端渲染共用）+ 可选 Figure 图注 */
+.da-diagram{border:1px solid var(--border-soft);border-radius:var(--r);padding:22px;background:var(--surface);margin:0 0 16px;overflow-x:auto;text-align:center}
+.da-diagram svg{display:block;margin:0 auto;max-width:100%;height:auto}
+.da-diagram pre.mermaid{margin:0;background:none;border:0;padding:0;font-family:inherit;text-align:center}
+.da-diagram.da-diagram-err{border-style:dashed;color:var(--muted);font-family:var(--font-mono);font-size:var(--fs-sm)}
+.da-figure{margin:0 0 16px}
+.da-figure .da-diagram{margin:0}
+.da-figure figcaption{margin-top:10px;text-align:center;font-family:var(--font-mono);font-size:var(--fs-xs);color:var(--muted);letter-spacing:.02em}
 
 /* ============================================================
    markdown 基础样式（marked 输出，包在 .md 内以隔离组件）
