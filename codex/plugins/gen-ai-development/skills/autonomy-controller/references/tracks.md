@@ -20,7 +20,7 @@ controller runs the lane at `spot-check`.
 | `existing-suite` | project's existing test suite run green, commit-stamped in `PIPELINE.md` (the small lane's e2e evidence) | inline (test runner) |
 | `arch-review` | `arch-review.md` | agent (`arch-reviewer`) — core / schema only |
 | `intent-loop` | 意图门: a disposable running slice the human reacts to, iterated until intent is confirmed (then the formal pipeline builds the real thing) | prototype build + ⟦human⟧ |
-| `human-confirm` | 架构门: `REVIEW.md` — architecture review (framing + domain model + the 4 contracts module/interface/db/use-cases + key decisions + cross-cutting), scaled by depth dial | inline + ⟦human⟧ (`review-doc` skill) |
+| `human-confirm` | 架构门: `REVIEW.mdx` — architecture review (framing + domain model + the 4 contracts module/interface/db/use-cases + key decisions + cross-cutting), scaled by depth dial | inline + ⟦human⟧ (`review-doc` skill) |
 | `reproduce` | `HYPOTHESIS.md` | agent (`debugger`) — confirm only for flaky repros |
 | `safety-net` | characterization suite + green baseline | agent (`developer`) |
 | `smell-scan` | `SMELL.md` / `CANDIDATES.md` | inline (`smell-scan` skill) |
@@ -107,7 +107,7 @@ grill(deep; frames domain + seeds glossary) → prototype(disposable)
       → ⟦意图门 INTENT GATE: human reacts to the running slice; iterate until intent confirmed⟧
       → design-spec(domain model + 4 contracts, model-self-delegated)
       → [arch-review (AI design pre-check) only if DDL / cross-module]
-      → ⟦架构门 ARCH GATE: human reviews REVIEW.md — domain model + module/interface/db/use-cases + decisions + cross-cutting⟧
+      → ⟦架构门 ARCH GATE: human reviews REVIEW.mdx — domain model + module/interface/db/use-cases + decisions + cross-cutting⟧
       → implement(plan/task) ∥ e2e-author → e2e-run ∥ code-review
       → security-gate ∥ a11y-gate ∥ perf-gate → merge → canary → ⟦publish consent⟧ → archive → docs-sync
 ```
@@ -116,7 +116,7 @@ substitute. The **意图门 (intent gate)** validates *behavior* ("is this the r
 BEFORE architecture investment — a disposable prototype iterated to confirmation, after
 which the formal pipeline builds the real thing (the prototype is never silently promoted).
 The **架构门 (architecture gate)** validates *structure* ("are the boundaries sound &
-extensible?") pre-code, via the four-layer `REVIEW.md` (scaled by the depth dial).
+extensible?") pre-code, via the four-layer `REVIEW.mdx` (scaled by the depth dial).
 Behavioral-intent decisions the architecture review parks are resolved at the intent gate;
 `publish` consent stays the only human stop after merge.
 
@@ -133,7 +133,7 @@ design-spec(DDL) → arch-review(dba) → prod-shadow dry-run → implement(fwd 
 
 ### research-only `[n/a]`
 ```
-research-pipeline → REPORT.md + PROPOSAL.md → terminate
+research-pipeline → REPORT.mdx + PROPOSAL.md → terminate
 ```
 No ceiling applies — produces no shippable change. Dispatched as a sub-flow (the
 controller invokes the `research-pipeline` skill).

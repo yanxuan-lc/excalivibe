@@ -74,7 +74,7 @@ Rules:
 - Results come back **inline in the final message**. Investigate spawns do NOT
   write to `docs/research/` — only the synthesize spawn writes files.
 
-A **synthesize** spawn returns: the artifact paths it wrote (REPORT.md +
+A **synthesize** spawn returns: the artifact paths it wrote (REPORT.mdx +
 PROPOSAL.md), plus a ≤10-line key-point digest. If file writes genuinely fail
 (attempt first, capture the verbatim error), it returns both files **in full** in
 fenced blocks labeled with their intended paths, for the main agent to persist.

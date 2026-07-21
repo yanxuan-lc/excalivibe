@@ -1,6 +1,6 @@
 ---
 name: research-pipeline
-description: "The research orchestration pipeline for the main agent: clarify with the user, plan, route sub-questions to deep-research / researcher subagents / inline answers, then synthesize into docs/research/ (REPORT.md + PROPOSAL.md). Use whenever the user wants something researched, investigated, compared, or feasibility-checked — \"调研一下X\", \"对比A和B\", \"这个方案可行吗\", \"帮我看看这些资料\" — and for the research phase of autonomy-controller. A single hands-on probe of ONE source goes directly to research-source-code / research-data-source / research-api; this pipeline is for multi-subtask or comparative research needing clarification, routing, and synthesis."
+description: "The research orchestration pipeline for the main agent: clarify with the user, plan, route sub-questions to deep-research / researcher subagents / inline answers, then synthesize into docs/research/ (REPORT.mdx + PROPOSAL.md). Use whenever the user wants something researched, investigated, compared, or feasibility-checked — \"调研一下X\", \"对比A和B\", \"这个方案可行吗\", \"帮我看看这些资料\" — and for the research phase of autonomy-controller. A single hands-on probe of ONE source goes directly to research-source-code / research-data-source / research-api; this pipeline is for multi-subtask or comparative research needing clarification, routing, and synthesis."
 ---
 
 # Research Pipeline — Orchestration for the Main Agent
@@ -13,8 +13,12 @@ subagents cannot ask the user anything, so everything interactive lives here.
 
 This is the expansion of the autonomy-controller's research phase, and also stands alone
 for research not attached to any development change. Output contract is unchanged:
-`docs/research/<YYYY-MM-DD_HH-mm-ss>-<topic>/REPORT.md + PROPOSAL.md`, with
-PROPOSAL.md consumable by planner / `opsx:propose`.
+`docs/research/<YYYY-MM-DD_HH-mm-ss>-<topic>/REPORT.mdx + PROPOSAL.md`.
+- **REPORT.mdx** is the human-facing research record — MDX, presented via plugin-infra's
+  `mdx-artifact` skill (`npm run preview -- <REPORT.mdx 路径>` for a local URL, or `npm run
+  render` for a self-contained HTML to share); the main agent hands the user that view + a digest.
+- **PROPOSAL.md** stays **Markdown** — it is the machine input to planner / `opsx:propose`,
+  so it is not converted to MDX (that would break consumption).
 
 ## Step 0 — Routing (not every question deserves the ceremony)
 
@@ -66,7 +70,7 @@ Routing rules:
   `deep-research` is an external skill, not shipped with this plugin — if it isn't
   available, degrade explicitly: split the broad question into narrower subtopics
   and dispatch them as parallel researcher investigations (each using web search /
-  context7 within its scope), then note the degradation in REPORT.md.
+  context7 within its scope), then note the degradation in REPORT.mdx.
 - **Hands-on probing or a focused subtopic** → a **`researcher` dispatch**, naming
   the method skills it should use (research-source-code / research-data-source /
   research-api / context7 / web search).
@@ -99,7 +103,7 @@ conflict and each holds only a partial view).
    Convergence = no open questions left and the goal from Step b is answerable.
 4. **Synthesize via one final researcher dispatch** (`mode: synthesize`, see
    protocols.md): input = all findings + the Step-b digest + the user's follow-up
-   answers; output = REPORT.md + PROPOSAL.md written to
+   answers; output = REPORT.mdx + PROPOSAL.md written to
    `docs/research/<YYYY-MM-DD_HH-mm-ss>-<topic>/` (this dispatch is the one that
    writes to disk; if its write genuinely fails it returns both files inline for
    you to persist). Review and edit the drafts yourself before presenting — the
@@ -112,7 +116,7 @@ conflict and each holds only a partial view).
 - **All user interaction happens here** — a researcher that "asked the user" in
   its final message has actually asked *you*; relay it in Step e, never answer on
   the user's behalf.
-- **Provenance survives synthesis**: REPORT.md keeps each conclusion's grounding
+- **Provenance survives synthesis**: REPORT.mdx keeps each conclusion's grounding
   (commit SHA / query口径 / endpoint sample / cited source); anything ungrounded is
   marked inference, not fact.
 - **Honesty over completeness**: dead ends and rejected directions go in the

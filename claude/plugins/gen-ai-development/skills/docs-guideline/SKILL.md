@@ -38,6 +38,23 @@ Don't load the reference files until you actually need them — the body here is
 
 ---
 
+## 承载与查看（as-built 文档用 MDX）【强制】
+
+`docs/tech/` 的 as-built 文档与各级 `README.mdx` 索引都写成 **MDX**（Markdown 超集 + 组件），由
+plugin-infra 的 **`mdx-artifact`** skill 渲染成主题化、可交互目录的富 HTML 查看：
+`npm run preview -- <入口>.mdx --root docs/tech` 起预览服务——**正文里指向本地 `.md`/`.mdx`/目录的
+相对链接会自动路由**（点击即在预览内互跳；目录链接按 `README.mdx` 索引解析），所以 README-as-Index
+的路由表照常工作。
+
+- **正文优先 Markdown**（表格、` ```sql `/` ```jsonc ` 直接可用）；图用 ` ```dot `（模块依赖/架构分层，
+  graphviz 构建期静态）/ ` ```mermaid `（类图/ER/状态机/时序）围栏；分节/提示/元信息可用
+  `<Section>`/`<Callout>`/`<Fields>` 增强。具体写法见 mdx-artifact 的 SKILL 与 `references/blocks.md`。
+- **Markdown 本就是合法 MDX**——`.md` 内容原样改名 `.mdx` 即可，迁移低摩擦；跨文档链接一律用**相对路径**
+  （预览自动路由，别写死 `?doc=`）。**权威源**仍写在头部（blockquote 或 frontmatter）。
+- 注意：`.mdx` 在 GitHub 上不做富渲染（显示源码），团队浏览走 `mdx-artifact` 预览服务。
+
+---
+
 ## The Taxonomy
 
 `docs/` has three top-level homes. The dividing line is **authoritativeness**, not topic:
@@ -83,7 +100,7 @@ A fact lives in exactly one place; everywhere else links to it. The daemon doc s
 
 ## README-as-Index
 
-Every directory level carries a `README.md` that is an **index, not a dumping ground**. It exists so a reader can stand at the top of `docs/` and reach the one doc they need in about two clicks, reading only what's relevant — that's progressive disclosure, and it's the whole point.
+Every directory level carries a `README.mdx` that is an **index, not a dumping ground**. It exists so a reader can stand at the top of `docs/` and reach the one doc they need in about two clicks, reading only what's relevant — that's progressive disclosure, and it's the whole point.
 
 Each README has the same three parts (exact skeletons in [references/readme-templates.md](references/readme-templates.md)):
 
@@ -143,7 +160,7 @@ Small change that only tweaks an existing contract or behavior? A one-line edit 
 
 ### 4. Build or refresh the README index
 
-For every directory you created or added a doc to, create/update its `README.md` per **README-as-Index** (header blockquote + routing table + conventions). A new sub-doc that isn't linked from its directory's README is effectively invisible — wiring it into the index is what makes recall work.
+For every directory you created or added a doc to, create/update its `README.mdx` per **README-as-Index** (header blockquote + routing table + conventions). A new sub-doc that isn't linked from its directory's README is effectively invisible — wiring it into the index is what makes recall work.
 
 ### 5. Cross-link 【强制】
 
@@ -167,13 +184,13 @@ Be specific about *what* changed and *where the truth now lives* — a bare "out
 ### 7. Walk up the tree
 
 Update the parent indexes so the new knowledge is reachable from the top:
-- The relevant `docs/tech/README.md` routing table (add the row for the new/changed area).
-- `docs/README.md` only if a whole new top-level area appeared.
+- The relevant `docs/tech/README.mdx` routing table (add the row for the new/changed area).
+- `docs/README.mdx` only if a whole new top-level area appeared.
 - If the repo's root `AGENTS.md`/`README.md` keeps an architecture pointer into `docs/`, make sure it still points correctly.
 
 ### 8. Verify recall 【推荐】
 
-Stand at `docs/README.md` and trace the path a reader would take to the knowledge you just wrote. If it takes more than ~2 hops, or a routing table is missing the row, fix the index. Then scan for the duplication smell: is anything you wrote already authoritative elsewhere? If so, delete your copy and link.
+Stand at `docs/README.mdx` and trace the path a reader would take to the knowledge you just wrote. If it takes more than ~2 hops, or a routing table is missing the row, fix the index. Then scan for the duplication smell: is anything you wrote already authoritative elsewhere? If so, delete your copy and link.
 
 ---
 
@@ -185,4 +202,4 @@ When you finish a curation pass, give the user a short map of what changed — n
 [新建|更新|STALE] docs/tech/<path> — <one line: what knowledge it now holds>
 ```
 
-End with the recall path you verified ("从 docs/README.md → tech/ → <area> 两跳可达") and call out anything you deliberately left alone (e.g. "research/<x> 未改，已加 STALE 横幅指向新文档"). If a change was small enough that a one-line edit sufficed, say so plainly rather than inflating it.
+End with the recall path you verified ("从 docs/README.mdx → tech/ → <area> 两跳可达") and call out anything you deliberately left alone (e.g. "research/<x> 未改，已加 STALE 横幅指向新文档"). If a change was small enough that a one-line edit sufficed, say so plainly rather than inflating it.

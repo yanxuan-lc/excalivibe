@@ -230,7 +230,7 @@ The number and kind of human touchpoints is a **function of the ceiling**, not a
   bad sample triggers `auto-revert`.
 - **human-gated** → two pre-merge human gates that judge different things and do not
   substitute — the **架构门 / architecture gate** (`human-confirm`: the human reviews the
-  four-layer `REVIEW.md` for structural soundness, pre-code) and the **意图门 / intent
+  four-layer `REVIEW.mdx` for structural soundness, pre-code) and the **意图门 / intent
   gate** (`intent-loop`: the human reacts to a running slice for behavioral intent, via a
   disposable prototype, iterated to confirmation) — plus the **publish consent** for the
   irreversible outward act.

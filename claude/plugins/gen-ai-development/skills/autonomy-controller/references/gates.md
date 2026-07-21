@@ -29,14 +29,14 @@ Three touchpoints, each placed where only a human can judge. **The two pre-merge
 judge different things and do not substitute**: the architecture gate evaluates *structure*
 (is it well-built), the intent gate evaluates *behavior* (is it the right thing).
 - **架构门 / architecture gate (pre-code, structural soundness)** — the human reviews the
-  architecture-review document `REVIEW.md` BEFORE implementation, to judge whether the
+  architecture-review document `REVIEW.mdx` BEFORE implementation, to judge whether the
   design's boundaries are sound and extensible while a change still costs a spec edit, not
-  a rewrite. `REVIEW.md` is the four-layer doc (framing → domain model + the four contracts
+  a rewrite. `REVIEW.mdx` is the four-layer doc (framing → domain model + the four contracts
   module/interface/database/use-cases → key decisions with alternatives & trade-offs →
   cross-cutting quality), produced by the `review-doc` skill, scaled by the depth dial.
-  Freshness: re-derive the spec fingerprint and compare with `REVIEW.md`'s stamp — stale
+  Freshness: re-derive the spec fingerprint and compare with `REVIEW.mdx`'s stamp — stale
   means the user would review an old design; regenerate first. Feedback routes to `planner`
-  as spec revisions; `REVIEW.md` is regenerated, never edited in place. (This is the
+  as spec revisions; `REVIEW.mdx` is regenerated, never edited in place. (This is the
   `human-confirm` node in `PIPELINE.md`.)
 - **意图门 / intent gate (behavioral intent, on a running slice)** — the human reacts to a
   *running slice* (a behaving artifact), saying "no, not that." This catches what the

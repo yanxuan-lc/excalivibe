@@ -145,7 +145,7 @@ not a line-coverage percentage. Lean on `tdd` for the toolchain-specific form:
   or edit it.** It was planted by a *separate* dispatch precisely so the agent that must
   pass it did not write it. Editing a test to make it pass defeats the anchor; the same
   rule applies to any e2e test.
-- **Read the spec, never `REVIEW.md`, as input.** `REVIEW.md` is a human-readability
+- **Read the spec, never `REVIEW.mdx`, as input.** `REVIEW.mdx` is a human-readability
   digest with detail trimmed; building from it would build from a lossy copy.
 - **Do not absorb the `security` / `a11y` / `perf` gates** — they are separate nodes run by
   their own skills. (The middleware monitoring surface above is the one exception: it is

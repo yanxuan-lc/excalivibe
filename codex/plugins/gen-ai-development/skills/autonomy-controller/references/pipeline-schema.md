@@ -53,7 +53,7 @@ gets a `[-]`-with-reason row, so the merge gate has a deterministic row to read.
 - [ ] intent-loop   human reacts to the running slice until intent confirmed; incl. decomposition confirm (if composite)
 - [x] design-spec   → openspec/changes/<id>/  (domain model + 4 contracts)   @ 2026-07-08T14:35:00Z → 2026-07-08T15:12:44Z
 - [-] arch-review   (skipped: no DDL / no cross-module)  or  → arch-review.md   @ 2026-07-08T15:13:02Z
-- [ ] human-confirm REVIEW.md (architecture review — domain model + 4 contracts + decisions + cross-cutting; spec fingerprint matches)
+- [ ] human-confirm REVIEW.mdx (architecture review — domain model + 4 contracts + decisions + cross-cutting; spec fingerprint matches)
 - [~] implement     developer: unit tests ✅ mutation/property oracles ✅ lint ✅   @ 2026-07-08T15:30:00Z → …
 - [ ] e2e-author    → e2e-manifest.md (Phase 1 draft / Phase 2 final)
 - [ ] e2e-run       → e2e-report.md (all green; executed + manually-verified + waived = M)
@@ -115,7 +115,7 @@ decomposition-surfaced-at: A.intent-loop   # the split is confirmed at the gated
 ## Freshness stamps
 
 Two stamps make staleness machine-checkable (the merge gate, references/gates.md):
-- `REVIEW.md` header carries the spec fingerprint; the gate re-derives it and compares.
+- `REVIEW.mdx` header carries the spec fingerprint; the gate re-derives it and compares.
 - `e2e-report.md` and `CHECKLIST.md` each name the `Commit` they were produced against;
   the merge gate requires **both == merge-candidate HEAD**. A green report from an earlier
   commit is stale evidence.

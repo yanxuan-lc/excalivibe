@@ -2,6 +2,19 @@
 
 Copy-paste starting points for each kind of README in the `docs/` tree. They are scaffolds, not fill-in-the-blank forms — keep the three structural parts (header blockquote, routing table, conventions), adapt the wording to the actual content, and delete rows that don't apply. Write in the language the rest of the repo's docs use (these examples are Chinese to match the reference project; mirror your repo).
 
+> **每个骨架产出 `README.mdx`（MDX）**，由 `mdx-artifact` 预览查看（见 SKILL「承载与查看」一节）。
+> 下面的骨架是**正文部分**——落地时在文件顶部加一段 frontmatter，例如：
+> ```yaml
+> ---
+> title: docs/tech —— 技术方案（as-built）   # 该 README 的大标题（Hero）
+> palette: teal
+> mode: auto
+> toc: true                                  # 用 <Section> 时右侧生成悬浮目录
+> ---
+> ```
+> 骨架里的**目录链接**（如 `./tech/`、`./protocol/v1.0/`）预览时自动路由到该目录的 `README.mdx`；
+> 文件链接写相对 `.mdx` 路径即可。需要更强的分节/提示时用 `<Section>`/`<Callout>`（可选，短索引页保留 `##` 亦可）。
+
 ## Table of contents
 - [docs/ root index](#docs-root-index)
 - [docs/tech/ index](#docstech-index)
@@ -26,7 +39,7 @@ The top of the tree. Its job is to explain the three-home split and the authorit
 | [`ued/`](./ued/) | **原型 / 交互设计** | 以上线 UI 为准；原型记录设计意图 |
 
 ## 该看哪
-- **要改实现 / 查当前设计** → [`tech/`](./tech/)（入口 [`tech/README.md`](./tech/README.md)）
+- **要改实现 / 查当前设计** → [`tech/`](./tech/)（入口 [`tech/README.mdx`](./tech/README.mdx)）
 - **想了解某决策的由来 / 历史推导** → [`research/`](./research/)（可能与现状不一致）
 - **看原型 / 交互意图** → [`ued/`](./ued/)
 
@@ -43,7 +56,7 @@ Routes by *intent* into the module/artifact subdirs, and states the organization
 ```markdown
 # docs/tech —— 技术方案（as-built）
 
-> 本目录是**当前实现**的权威技术文档。与 `research/`、`ued/` 的关系见 [`docs/README.md`](../README.md)。
+> 本目录是**当前实现**的权威技术文档。与 `research/`、`ued/` 的关系见 [`docs/README.mdx`](../README.mdx)。
 
 ## 怎么用（按需加载）
 不要一次读完。按你要动的部分读对应子目录：
@@ -63,7 +76,7 @@ Routes by *intent* into the module/artifact subdirs, and states the organization
 
 ## 维护规则
 - **先文档后代码**：改协议 / schema / 字段抽取时，先更新对应 tech 文档（及版本），再改实现。
-- 每篇 `README.md` 顶部标注**权威源**（对应代码路径），改实现时同步更新。
+- 每篇 `README.mdx` 顶部标注**权威源**（对应代码路径），改实现时同步更新。
 - 路径稳定性：`database/` 被代码引用，移动需同步改引用方。
 ```
 
@@ -112,10 +125,10 @@ For shared, code-coupled artifacts (`protocol/v1.0/`, `database/`). The header m
 ## 2. <逐项定义>
 ...
 
-> 字段如何从源头抽取/分类的**语义权威**在 [`../../<module>/README.md`](...)；本文件只定义形状。
+> 字段如何从源头抽取/分类的**语义权威**在 [`../../<module>/README.mdx`](...)；本文件只定义形状。
 ```
 
-> For `database/`: also note the DDL-review-unit convention (one file = one DDL = one review unit) and that the path is hard-referenced by `Makefile`/tests — see the reference project's `tech/database/README.md`.
+> For `database/`: also note the DDL-review-unit convention (one file = one DDL = one review unit) and that the path is hard-referenced by `Makefile`/tests — see the reference project's `tech/database/README.mdx`.
 
 ---
 

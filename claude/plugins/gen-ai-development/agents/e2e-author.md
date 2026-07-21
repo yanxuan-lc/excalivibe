@@ -180,7 +180,7 @@ non-scripted: 2 / M   (agent-driven + waived)   # flag if > 5 or ≥ 20%
   list it as waived with the reason; do not ship a test that asserts less than the spec
   says.
 - **Never point tests at production** — env connection strings must target test / staging.
-- **Do not derive from `REVIEW.md`** — that is the human-review view with executable detail
+- **Do not derive from `REVIEW.mdx`** — that is the human-review view with executable detail
   trimmed; building assertions from it loses precision. The spec's scenario sections are
   the source.
 - **Different model family on gated lanes.** On a gated lane the caller dispatches you

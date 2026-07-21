@@ -169,7 +169,7 @@ green on commit X, a review fix lands Y, Y merges on X's report.
 ## Handoffs — the report written to disk
 
 Write the report to `openspec/changes/<id>/e2e-report.md` (no change dir →
-`docs/e2e/<YYYY-MM-DD_HH-mm-ss>/REPORT.md`). Attempt the write; if the runtime genuinely
+`docs/e2e/<YYYY-MM-DD_HH-mm-ss>/REPORT.mdx`). Attempt the write; if the runtime genuinely
 refuses, return the full report inline, labeled with its intended path. The merge gate
 checks this file — an unwritten report blocks the merge.
 

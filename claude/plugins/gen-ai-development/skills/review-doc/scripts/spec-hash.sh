@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Stable content fingerprint of an OpenSpec change's spec inputs — the
-# freshness stamp REVIEW.md records in its header and the human-confirm gate re-checks.
+# freshness stamp REVIEW.mdx records in its header and the human-confirm gate re-checks.
 #
 # Usage: spec-hash.sh <openspec/changes/<id>/>
 #
@@ -11,8 +11,10 @@
 #
 # The fingerprint covers both the CONTENT and the RELATIVE PATH of every spec
 # input file — renaming/moving a spec file invalidates the stamp by design.
-# Derived/processual artifacts are excluded so that regenerating REVIEW.md or
+# Derived/processual artifacts are excluded so that regenerating REVIEW.mdx or
 # ticking PIPELINE.md does not invalidate it; only real spec changes do.
+# (REVIEW.mdx is a .mdx file and thus already outside the *.md glob; it is also
+#  listed below explicitly to document intent and survive any glob change.)
 set -euo pipefail
 
 DIR="${1:?usage: spec-hash.sh <change-dir>}"
@@ -33,7 +35,7 @@ fi
 LIST="$(mktemp)"
 trap 'rm -f "$LIST"' EXIT
 find . -type f -name '*.md' \
-  ! -name 'REVIEW.md' \
+  ! -name 'REVIEW.mdx' \
   ! -name 'PIPELINE.md' \
   ! -name 'arch-review.md' \
   ! -name 'e2e-manifest.md' \
