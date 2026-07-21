@@ -75,8 +75,9 @@ export async function render(mdx, inputUrl) {
   resetIds();
   const content = renderToStaticMarkup(h(Content, { components }));
 
-  const hasHero = /<Hero[\s/>]/.test(body);
-  const hasFooter = /<Footer[\s/>]/.test(body);
+  // 只认「行首的 <Hero>/<Footer>」为真实组件用法——避免散文/代码里提到 `<Hero>` 被误判、从而错误抑制自动头尾
+  const hasHero = /^\s*<Hero[\s/>]/m.test(body);
+  const hasFooter = /^\s*<Footer[\s/>]/m.test(body);
   const chromeOff = meta.chrome === "off";
 
   let autoHero = "";

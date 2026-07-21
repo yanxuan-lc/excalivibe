@@ -6,7 +6,7 @@
         npm run preview -- <mdx路径>
    ============================================================ */
 import http from "node:http";
-import { readFileSync, watch, existsSync, readdirSync } from "node:fs";
+import { readFileSync, watch, existsSync, readdirSync, statSync } from "node:fs";
 import { resolve, dirname, relative, join } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { execFile } from "node:child_process";
@@ -32,8 +32,28 @@ const resolveDoc = (p) => resolve(root, p);
 const RELOAD = (abs) => `<script>try{new EventSource('/__reload?doc=${enc(abs)}').onmessage=function(){location.reload()}}catch(e){}</script>`;
 const errPage = (msg) => `<!doctype html><meta charset="utf-8"><body style="font:14px/1.6 ui-monospace,monospace;padding:32px;color:#c0344e"><h2>渲染出错</h2><pre style="white-space:pre-wrap">${String(msg).replace(/</g, "&lt;")}</pre></body>`;
 
+// 多文档导航：把正文里指向本地 .md/.mdx/目录的相对链接改写成 ?doc= 路由，
+// 使一棵 .mdx 文档树（如 docs/tech）用自然的相对链接即可在预览内互跳。
+// 跳过外链 / 锚点 / 绝对路径 / 非文档资源；目录链接按 README.mdx 索引约定解析。
+function rewriteLinks(html, abs) {
+  const baseDir = dirname(abs);
+  return html.replace(/<a\s+([^>]*?)href="([^"#][^"]*)"/gi, (m, pre, href) => {
+    if (/^(https?:|mailto:|tel:|data:|\/|\?doc=)/i.test(href)) return m;
+    const hashIdx = href.indexOf("#");
+    let path = hashIdx >= 0 ? href.slice(0, hashIdx) : href;
+    const hash = hashIdx >= 0 ? href.slice(hashIdx) : "";
+    if (!path) return m;
+    let target = resolve(baseDir, path);
+    const isDir = path.endsWith("/") || (existsSync(target) && statSync(target).isDirectory());
+    if (isDir) target = join(target, "README.mdx");
+    else if (!/\.mdx?$/.test(target)) return m; // 只路由文档链接，别碰图片/其它资源
+    return `<a ${pre}href="/?doc=${enc(target)}${hash}"`;
+  });
+}
+
 async function renderFile(abs) {
-  const html = await render(readFileSync(abs, "utf8"), pathToFileURL(abs).href);
+  let html = await render(readFileSync(abs, "utf8"), pathToFileURL(abs).href);
+  html = rewriteLinks(html, abs);
   return html.replace("</body>", `${RELOAD(abs)}\n</body>`);
 }
 

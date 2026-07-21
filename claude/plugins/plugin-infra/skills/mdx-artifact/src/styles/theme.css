@@ -62,7 +62,7 @@
 *{box-sizing:border-box}
 html{scroll-behavior:smooth;overflow-x:clip}
 body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--font-sans);
-  font-size:17px;line-height:inherit}
+  font-size:17px;line-height:inherit;min-height:100vh;display:flex;flex-direction:column}
 code{font-family:var(--font-code)} .mono{font-family:var(--font-mono)}
 
 /* 高清屏才开灰度抗锯齿；非高清屏保留 subpixel，避免字体发虚变细 */
@@ -77,8 +77,11 @@ code{font-family:var(--font-code)} .mono{font-family:var(--font-mono)}
 ::-webkit-scrollbar-thumb{background:var(--border);border-radius:99px;border:2px solid transparent;background-clip:padding-box}
 ::-webkit-scrollbar-thumb:hover{background:var(--muted);background-clip:padding-box}
 
-.doc{max-width:var(--wrap);margin:0 auto;padding:0 var(--sp-5)}
+/* flex:1 让正文区撑满剩余高度——内容不足时把 footer/落款顶到视口底部（sticky footer）。
+   底部 padding 提供正文与页脚的间隔；无 Hero 时首个 .md 补顶部留白（有 Hero 则 Hero 满血贴顶）。 */
+.doc{max-width:var(--wrap);margin:0 auto;padding:0 var(--sp-5) var(--sp-7);flex:1 0 auto;width:100%}
 .doc>.body{min-width:0}
+.doc>.body>.md:first-child{padding-top:var(--sp-6)}
 /* 全宽分隔线（贯穿视口，内容仍居中）——供 Hero/Section 与手动使用 */
 .da-rule{border:none;height:1px;background:var(--border-soft);width:100vw;margin:0 0 0 calc(50% - 50vw)}
 
@@ -296,7 +299,7 @@ badge[tone="info"]{color:var(--info);background:var(--info-bg);border-color:var(
 .da-callout .cb>:last-child{margin-bottom:0}
 
 /* footer（全宽深色，置于 .doc 之外） */
-.da-footer{background:#26211b;color:#cbc5bc;margin-top:0;font-size:var(--fs-sm);width:100vw;margin-left:calc(50% - 50vw)}
+.da-footer{background:#26211b;color:#cbc5bc;margin-top:0;font-size:var(--fs-sm);width:100vw;margin-left:calc(50% - 50vw);flex-shrink:0}
 .da-footer .fwrap{max-width:var(--wrap);margin:0 auto;padding:var(--sp-6) var(--sp-5)}
 .da-footer .ft{color:#ece9e4;font-weight:600;font-size:var(--fs-base);margin:0 0 6px}
 .da-footer .fm{font-family:var(--font-mono);font-size:var(--fs-xs);color:#8a8175;margin:10px 0 0;letter-spacing:.03em}
@@ -304,7 +307,7 @@ badge[tone="info"]{color:var(--info);background:var(--info-bg);border-color:var(
 .da-footer .md :last-child{margin-bottom:0}
 
 /* colophon（版本记 / 落款）—— 始终位于最底部：版权 · 撰写 Agent · 生成日期 · 工具授权 */
-.da-colophon{background:#201c17;color:#8a8175;width:100vw;margin-left:calc(50% - 50vw);border-top:1px solid #332d25}
+.da-colophon{background:#201c17;color:#8a8175;width:100vw;margin-left:calc(50% - 50vw);border-top:1px solid #332d25;flex-shrink:0}
 .da-colophon .cwrap{max-width:var(--wrap);margin:0 auto;padding:var(--sp-5) var(--sp-5);text-align:center}
 .da-colophon .prov{color:#b8b1a6;font-size:var(--fs-sm);margin:0 0 6px;letter-spacing:.02em}
 .da-colophon .brand{font-family:var(--font-mono);font-size:var(--fs-2xs);color:#786f63;margin:0;letter-spacing:.04em}
