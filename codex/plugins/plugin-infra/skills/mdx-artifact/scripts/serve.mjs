@@ -37,7 +37,14 @@ const errPage = (msg) => `<!doctype html><meta charset="utf-8"><body style="font
 // 跳过外链 / 锚点 / 绝对路径 / 非文档资源；目录链接按 README.mdx 索引约定解析。
 function rewriteLinks(html, abs) {
   const baseDir = dirname(abs);
-  return html.replace(/<a\s+([^>]*?)href="([^"#][^"]*)"/gi, (m, pre, href) => {
+  // 先屏蔽 <script>/<style> 块再改写：内联 JS/CSS（如 mermaid 运行时）里可能含 `<a href="...">`
+  // 字面片段，若一并改写会破坏脚本导致解析失败（图渲染全崩）。用占位符抠出、改写正文、再还原。
+  const stash = [];
+  const masked = html.replace(/<(script|style)\b[\s\S]*?<\/\1>/gi, (block) => {
+    stash.push(block);
+    return `@@MDXMASK${stash.length - 1}@@`;
+  });
+  const rewritten = masked.replace(/<a\s+([^>]*?)href="([^"#][^"]*)"/gi, (m, pre, href) => {
     if (/^(https?:|mailto:|tel:|data:|\/|\?doc=)/i.test(href)) return m;
     const hashIdx = href.indexOf("#");
     let path = hashIdx >= 0 ? href.slice(0, hashIdx) : href;
@@ -49,12 +56,17 @@ function rewriteLinks(html, abs) {
     else if (!/\.mdx?$/.test(target)) return m; // 只路由文档链接，别碰图片/其它资源
     return `<a ${pre}href="/?doc=${enc(target)}${hash}"`;
   });
+  return rewritten.replace(/@@MDXMASK(\d+)@@/g, (_, i) => stash[+i]);
 }
 
 async function renderFile(abs) {
   let html = await render(readFileSync(abs, "utf8"), pathToFileURL(abs).href);
   html = rewriteLinks(html, abs);
-  return html.replace("</body>", `${RELOAD(abs)}\n</body>`);
+  // 注入 live-reload 脚本必须锚在「文档真正的结尾 </body>」——用 lastIndexOf，
+  // 因为内联的 mermaid 运行时 JS 里含字面 `</body></html>`（iframe 模板串），
+  // String.replace 会命中那个而把脚本塞进 bundle 中间，导致解析崩溃、全图不渲染。
+  const i = html.lastIndexOf("</body>");
+  return i < 0 ? html + RELOAD(abs) : html.slice(0, i) + `${RELOAD(abs)}\n` + html.slice(i);
 }
 
 const clients = new Map();

@@ -45,7 +45,7 @@ const GH_MARK = '<svg viewBox="0 0 16 16" width="15" height="15" fill="currentCo
 
 // ExcaliVibe 品牌 / 推广信息（固定常量，非用户数据）——每份产物都带上，为 ExcaliVibe 署名推广，用户改不了。
 // version 是版本同步点，随 plugin-infra 版本更新。
-export const BRAND = { name: "ExcaliVibe", tool: "mdx-artifact", version: "0.4.0", license: "MIT", repo: "https://github.com/yanxuan-lc/excalivibe" };
+export const BRAND = { name: "ExcaliVibe", tool: "mdx-artifact", version: "0.5.0", license: "MIT", repo: "https://github.com/yanxuan-lc/excalivibe" };
 
 // 版本记（落款）——渲染器始终追加在最底部，两行分区，职责清晰：
 //   1) 用户实际信息：© 用户org · 撰写模型 · 生成时间（到秒）——全部来自使用者的 frontmatter / 渲染时刻。

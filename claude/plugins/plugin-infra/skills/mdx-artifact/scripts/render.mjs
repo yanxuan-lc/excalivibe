@@ -130,6 +130,9 @@ export async function render(mdx, inputUrl) {
   const runtimeJs = readFileSync(resolve(ASSETS, "runtime.js"), "utf8");
   const mathCss = mathUsed ? katexCssInlined() : "";
 
+  // 有 footer（内联 <Footer> 或 frontmatter footer）时，落款紧贴 footer、不留浅色缝（CSS 用 [data-footer] 归零其 margin-top）。
+  const footerAttr = (hasFooter || footer) ? " data-footer" : "";
+
   const mode = meta.mode === "dark" || meta.mode === "auto" ? meta.mode : "light";
   const palette = meta.palette || "indigo";
   const density = meta.density === "compact" ? ' data-density="compact"' : "";
@@ -139,7 +142,7 @@ export async function render(mdx, inputUrl) {
     : "";
 
   return `<!doctype html>
-<html lang="zh-CN"${themeAttr} data-palette="${esc(palette)}"${density}>
+<html lang="zh-CN"${themeAttr} data-palette="${esc(palette)}"${density}${footerAttr}>
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
