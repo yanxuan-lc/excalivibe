@@ -103,6 +103,7 @@ excalivibe/
 │   ├── plugins/{plugin-infra, gen-ai-development, opc-workflow}/
 │   ├── agents/*.toml                     # 9 个 Codex subagent（独立安装）
 │   └── ADAPTING-FROM-CLAUDE.md           # Claude→Codex 求同存异适配手册
+├── docs/                                 # 项目文档 MDX 树（tech = 事实标准，research = 历史）
 ├── openspec/                             # OpenSpec 规范流程产物
 ├── AGENTS.md                             # 跨 Agent 的项目事实与协作规范
 ├── CLAUDE.md                             # Claude Code 专属偏好与协作规则
@@ -111,8 +112,29 @@ excalivibe/
 
 > 两侧 marketplace 名均为 `excalivibe`；plugin 的 `source` 相对**仓库根**解析，分别指向 `./claude/plugins/<name>` 与 `./codex/plugins/<name>`。
 
+## 文档（MDX 查看）
+
+项目文档位于 [`docs/`](./docs/),是一棵 **MDX 树**(`.mdx`),按**权威性**分区:[`docs/tech/`](./docs/tech/) 是已落地机制的**事实标准**,[`docs/research/`](./docs/research/) 是**历史**调研。它们面向 `plugin-infra` 的 **mdx-artifact** skill 的富文档阅读器编写——GitHub 上 `.mdx` 只显示源码,想要预期的阅读体验请用下面的预览。
+
+**预览整棵文档树(推荐):**
+
+```bash
+SKILL=claude/plugins/plugin-infra/skills/mdx-artifact
+npm --prefix $SKILL install                  # 仅首次:安装构建依赖
+node $SKILL/scripts/serve.mjs --root docs    # 浏览器打开 docs/ 的可浏览索引
+```
+
+预览会列出 `docs/` 下每一篇 `.mdx`;点开任意一篇,文档间的相对链接会在预览内互跳(改文件即热重载)。若只想把某一篇导出成**自包含、可离线**的 HTML 文件:
+
+```bash
+node claude/plugins/plugin-infra/skills/mdx-artifact/scripts/render.mjs docs/tech/README.mdx docs-tech.html
+```
+
+> 渲染器离线自包含(零外部请求)。写法约定见该 skill 的 [SKILL.md](./claude/plugins/plugin-infra/skills/mdx-artifact/SKILL.md);Codex 侧镜像同一 skill。
+
 ## 更多文档
 
+- [docs/](./docs/) —— 项目文档 MDX 树(`tech/` = 事实标准,`research/` = 历史),用上方预览查看。
 - [AGENTS.md](./AGENTS.md) —— 跨 Agent 的项目事实、marketplace / plugin 结构规范、校验与新增能力流程。
 - [CLAUDE.md](./CLAUDE.md) —— Claude Code 专属的 primitives、Subagent 协作与委派规则。
 - [codex/ADAPTING-FROM-CLAUDE.md](./codex/ADAPTING-FROM-CLAUDE.md) —— Claude→Codex 的适配规则。

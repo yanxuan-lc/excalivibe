@@ -103,6 +103,7 @@ excalivibe/
 │   ├── plugins/{plugin-infra, gen-ai-development, opc-workflow}/
 │   ├── agents/*.toml                     # 9 Codex subagents (installed separately)
 │   └── ADAPTING-FROM-CLAUDE.md           # Claude→Codex adaptation handbook
+├── docs/                                 # project docs as an MDX tree (tech = source of truth, research = historical)
 ├── openspec/                             # OpenSpec workflow artifacts
 ├── AGENTS.md                             # cross-agent project facts and collaboration norms
 ├── CLAUDE.md                             # Claude Code-specific preferences and collaboration rules
@@ -111,8 +112,29 @@ excalivibe/
 
 > Both marketplaces are named `excalivibe`; each plugin's `source` resolves relative to the **repo root**, pointing at `./claude/plugins/<name>` and `./codex/plugins/<name>` respectively.
 
+## Docs (MDX)
+
+Project docs live under [`docs/`](./docs/) as an **MDX tree** (`.mdx`), partitioned by authority: [`docs/tech/`](./docs/tech/) is the as-built source of truth, [`docs/research/`](./docs/research/) is historical. They are authored for the rich reader shipped by `plugin-infra`'s **mdx-artifact** skill — GitHub renders `.mdx` as raw source, so use the preview below for the intended experience.
+
+**View the whole tree (recommended):**
+
+```bash
+SKILL=claude/plugins/plugin-infra/skills/mdx-artifact
+npm --prefix $SKILL install                  # one-time: install build deps
+node $SKILL/scripts/serve.mjs --root docs    # opens a browsable index of docs/
+```
+
+The preview lists every `.mdx` under `docs/`; open any of them and relative links between docs route inside the preview (edit a file → it hot-reloads). To export a single doc as a **self-contained, offline HTML** file instead:
+
+```bash
+node claude/plugins/plugin-infra/skills/mdx-artifact/scripts/render.mjs docs/tech/README.mdx docs-tech.html
+```
+
+> The renderer is offline and self-contained (zero external requests). Authoring conventions live in the skill's [SKILL.md](./claude/plugins/plugin-infra/skills/mdx-artifact/SKILL.md); the Codex side mirrors the same skill.
+
 ## More docs
 
+- [docs/](./docs/) — project docs as an MDX tree (`tech/` = source of truth, `research/` = historical); view via the preview above.
 - [AGENTS.md](./AGENTS.md) — cross-agent project facts, marketplace / plugin structure norms, validation, and the flow for adding a capability.
 - [CLAUDE.md](./CLAUDE.md) — Claude Code-specific primitives, subagent collaboration, and delegation rules.
 - [codex/ADAPTING-FROM-CLAUDE.md](./codex/ADAPTING-FROM-CLAUDE.md) — the Claude→Codex adaptation rules.

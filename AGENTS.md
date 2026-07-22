@@ -46,6 +46,7 @@ excalivibe/
 │   └── plugins/<plugin>/
 │       ├── .codex-plugin/plugin.json
 │       └── skills/  .mcp.json  .app.json                     # Codex 可用 primitives
+├── docs/                                # 项目文档 MDX 树（tech = 事实标准 / research = 历史，用 plugin-infra:mdx-artifact 预览）
 ├── openspec/                            # OpenSpec 规范流程产物（specs / changes）
 ├── README.md
 └── AGENTS.md / CLAUDE.md
