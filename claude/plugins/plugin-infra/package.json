@@ -1,6 +1,6 @@
 {
   "name": "@excalivibe/plugin-infra",
-  "version": "0.2.1",
+  "version": "0.5.1",
   "description": "通用基础设施 plugin —— 为上层业务 plugin 提供跨场景复用的基础能力（graceful-browser 浏览器框架选择 Skill + Chrome DevTools 浏览器自动化 MCP），不绑定具体业务/数据源。",
   "type": "module",
   "license": "UNLICENSED",
