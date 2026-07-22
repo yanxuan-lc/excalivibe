@@ -30,21 +30,21 @@ One change, multiple homes — split it; don't write one giant `config-logging.m
 
 ## Step 3 — Write/update as-built docs
 
-- `docs/tech/nacos/README.md` — header 权威源 `ats-server/internal/config/loader.go`; documents: Nacos sole source, fail-hard on unreachable, DataId/namespace scheme, the `config.example.yaml` shape. One sentence of *why* (single source of truth). No proposal prose.
-- `docs/tech/server/README.md` — update (it likely already exists) the logging + profile + startup sections; link out to `nacos/` for config rather than restating it.
+- `docs/tech/nacos/README.mdx` — header 权威源 `ats-server/internal/config/loader.go`; documents: Nacos sole source, fail-hard on unreachable, DataId/namespace scheme, the `config.example.yaml` shape. One sentence of *why* (single source of truth). No proposal prose.
+- `docs/tech/server/README.mdx` — update (it likely already exists) the logging + profile + startup sections; link out to `nacos/` for config rather than restating it.
 
 ## Step 4 — README indexes
 
-`nacos/` is new → write its `README.md` (it's a leaf, so the routing table may just point to the example file + back to `tech/`). `server/` already had a README → refresh it.
+`nacos/` is new → write its `README.mdx` (it's a leaf, so the routing table may just point to the example file + back to `tech/`). `server/` already had a README → refresh it.
 
 ## Step 5 — Cross-link
 
-- `server/README.md` config section → links to [`../nacos/`](../nacos/).
-- `nacos/README.md` → links back to the research report as history.
+- `server/README.mdx` config section → links to [`../nacos/`](../nacos/).
+- `nacos/README.mdx` → links back to the research report as history.
 
 ## Step 6 — Mark the research STALE
 
-`research/2026-05-24-server-config-logging-k8s/README.md` proposed the OpenObserve+Vector stack that was *removed*. Add the banner at top:
+`research/2026-05-24-server-config-logging-k8s/README.mdx` proposed the OpenObserve+Vector stack that was *removed*. Add the banner at top:
 
 ```markdown
 > ⚠️ **STALE — 仅作历史参考（2026-05-26 起）**
@@ -58,23 +58,23 @@ Specific about what died and where truth lives now — not just "outdated".
 
 ## Step 7 — Walk up
 
-- `docs/tech/README.md` routing table: ensure rows exist for "改运行配置 / Nacos → `nacos/`" and "改 server → `server/`".
-- `docs/README.md`: unchanged (no new top-level *home*; `nacos/` is inside the existing `tech/`).
+- `docs/tech/README.mdx` routing table: ensure rows exist for "改运行配置 / Nacos → `nacos/`" and "改 server → `server/`".
+- `docs/README.mdx`: unchanged (no new top-level *home*; `nacos/` is inside the existing `tech/`).
 
 ## Step 8 — Verify recall
 
-Trace: `docs/README.md` → `tech/` → (routing table row "改运行配置") → `nacos/`. Two hops. ✅
+Trace: `docs/README.mdx` → `tech/` → (routing table row "改运行配置") → `nacos/`. Two hops. ✅
 Duplication check: did the server doc re-paste the Nacos config shape? If so, cut it and link to `nacos/`.
 
 ## What the final report to the user looks like
 
 ```
-[新建] docs/tech/nacos/README.md — Nacos 唯一配置源机制、DataId/namespace、不可达即 fail-hard
+[新建] docs/tech/nacos/README.mdx — Nacos 唯一配置源机制、DataId/namespace、不可达即 fail-hard
 [新建] docs/tech/nacos/config.example.yaml — 配置样例
-[更新] docs/tech/server/README.md — 日志(JSON+stdout)/profile/启动校验，配置部分链到 nacos/
-[更新] docs/tech/README.md — 路由表补 nacos 行
-[STALE] docs/research/2026-05-24-server-config-logging-k8s/README.md — OpenObserve/Vector 已移除，加横幅指向 tech/nacos/
+[更新] docs/tech/server/README.mdx — 日志(JSON+stdout)/profile/启动校验，配置部分链到 nacos/
+[更新] docs/tech/README.mdx — 路由表补 nacos 行
+[STALE] docs/research/2026-05-24-server-config-logging-k8s/README.mdx — OpenObserve/Vector 已移除，加横幅指向 tech/nacos/
 
-召回路径：docs/README.md → tech/（路由表「改运行配置」）→ nacos/，两跳可达。
+召回路径：docs/README.mdx → tech/（路由表「改运行配置」）→ nacos/，两跳可达。
 未改 research 内部内容，仅加 STALE 横幅。
 ```

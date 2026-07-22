@@ -46,6 +46,7 @@ excalivibe/
 │   └── plugins/<plugin>/
 │       ├── .codex-plugin/plugin.json
 │       └── skills/  .mcp.json  .app.json                     # Codex 可用 primitives
+├── docs/                                # 项目文档 MDX 树（tech = 事实标准 / research = 历史，用 plugin-infra:mdx-artifact 预览）
 ├── openspec/                            # OpenSpec 规范流程产物（specs / changes）
 ├── README.md
 └── AGENTS.md / CLAUDE.md
@@ -105,6 +106,7 @@ cp codex/agents/*.toml ~/.codex/agents/               # subagent 独立安装（
 
 - 单一 git 仓库，`claude/` 与 `codex/` 为子目录（非 submodule）。
 - 由人工审阅后再提交，**Agent 不自动 commit**。
+- **版本 bump 时机**：plugin 的 `version` 跟随**发布**（合入受保护的 `main`），而非每次提交——`dev` 上的功能提交自然累积，**不逐次 bump**；发布时按累积变更一次性定 SemVer，并核对版本同步点（两侧 `plugin.json` 等），由 `release-coordinator` 决策与核验。dev 上可预置下次发布的版本号，合入 main 时即生效。
 
 ## 术语表
 

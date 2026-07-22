@@ -1,6 +1,6 @@
 {
   "name": "gen-ai-development",
-  "version": "2.1.1",
+  "version": "2.2.0",
   "description": "生成式 AI 开发套件 2.0 —— 自治控制器按「变更原型 × 可逆性」给每条轨道定自动化档位，架构门 + 意图门双门人审，SDD+TDD 两范式，专人专事 agent + 独立功能 skill 三层架构。",
   "author": {
     "name": "ExcaliVibe Contributors"
@@ -19,7 +19,7 @@
   "interface": {
     "displayName": "Gen AI Development",
     "shortDescription": "autonomy-controller 编排 + 架构门/意图门人审 + 规约 Skills + 开发 Agents",
-    "longDescription": "生成式 AI 开发套件 2.0：autonomy-controller / research-pipeline 编排（三信号 → 自治档位 → 轨道组装），架构门（四层 REVIEW.md：框定/领域模型+四契约/审议/横切）+ 意图门（运行切片）双门人审；dba/coding/devops/middleware/docs/tdd/vcs/review-doc 规约 + e2e-test 执行 + grill/backlog/glossary-conformance/security-scan/a11y-check/perf-budget/smell-scan 功能 skill，交互式 UI/UX 设计 app-ux-design（依赖 ui-ux-pro-max），配套 9 个开发 Agent（researcher / planner / arch-reviewer / developer / e2e-author / code-reviewer / e2e-runner / debugger / release-coordinator，以 codex/agents/*.toml 形式分发）。",
+    "longDescription": "生成式 AI 开发套件 2.0：autonomy-controller / research-pipeline 编排（三信号 → 自治档位 → 轨道组装），架构门（四层 REVIEW.mdx：框定/领域模型+四契约/审议/横切）+ 意图门（运行切片）双门人审；dba/coding/devops/middleware/docs/tdd/vcs/review-doc 规约 + e2e-test 执行 + grill/backlog/glossary-conformance/security-scan/a11y-check/perf-budget/smell-scan 功能 skill，交互式 UI/UX 设计 app-ux-design（依赖 ui-ux-pro-max），配套 9 个开发 Agent（researcher / planner / arch-reviewer / developer / e2e-author / code-reviewer / e2e-runner / debugger / release-coordinator，以 codex/agents/*.toml 形式分发）。",
     "developerName": "ExcaliVibe Contributors",
     "category": "Developer Tools",
     "capabilities": [

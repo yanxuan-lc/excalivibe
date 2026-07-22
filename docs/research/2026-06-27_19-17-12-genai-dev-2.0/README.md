@@ -1,3 +1,7 @@
+> ⚠️ **STALE — 仅作历史参考（2026-07 起）**
+>
+> 本档案是 gen-ai-development 2.0 / 2.1 的**设计调研历史**。该设计已落地为当前的 **gen-ai-development 插件**——现状以插件内 skills（`autonomy-controller` 等）为准，本档案仅供追溯当时的推导与取舍。近期 pipeline 又新增「人审/as-built 文档改 MDX」的迭代，见 [`docs/tech/mdx-artifact/`](../../tech/mdx-artifact/README.mdx)。
+
 # gen-ai-development 2.0 → 2.1 — research & design dossier
 
 Dated 2026-06-27. Produced by: heavy parallel research → first design → adversarial critique → revised design. Read in this order.

@@ -104,7 +104,7 @@ which precondition failed, so the main agent never carries it to a consent promp
 ## Handoffs
 
 - **Read in:** the change dir `openspec/changes/<id>/` (PIPELINE.md, the spec contracts,
-  REVIEW.md if present), the review `CHECKLIST.md`, the `e2e-report.md`, the repo's version
+  REVIEW.mdx if present), the review `CHECKLIST.md`, the `e2e-report.md`, the repo's version
   sync points (manifests, package.json, lockfile, marketplace/registry entries), and
   `git log`/`diff` between the integration and release branches. File-path handoffs — read
   the files yourself; do not rely on pasted context.

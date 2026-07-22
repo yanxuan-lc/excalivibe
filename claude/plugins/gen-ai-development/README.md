@@ -49,7 +49,7 @@
 | Skill | 触发场景 | 内容 |
 |-------|----------|------|
 | `autonomy-controller` | 任何要建 / 改可运行产品代码的开发任务起步、续作在途 `openspec/changes/<id>/`、复合意图一句话、从 idea backlog 取活（「把 backlog 里的 X 做了」「把队列里的都做了」）、或判断「能否无人发布」 | **主 Agent 的研发编排规约**：三信号分类 → 设自治档位 → `decompose` 拆复合意图为 unit-DAG → 组装轨道并向 `PIPELINE.md` 写四件输出（节点图 / 档位 / 门形 / 验证强度）→ 派发 subagent → 按档位定门 → 按强度路由验证；含 Phase A→B→C rollout 与交付边界 |
-| `research-pipeline` | 任何调研 / 对比 / 可行性（「调研一下 X」「A 和 B 怎么选」「这方案可行吗」），或 autonomy-controller 的 research 轨道展开 | **主 Agent 的调研编排规约**：路由 → 苏格拉底澄清（AskUserQuestion）→ 结论确认 → 计划（按子任务路由 deep-research / researcher / inline，模型按任务选）→ 并行派发 → 汇总追问循环 → synthesize 落盘 REPORT.md + PROPOSAL.md。**所有用户交互在主 Agent**，researcher 是纯执行单元 |
+| `research-pipeline` | 任何调研 / 对比 / 可行性（「调研一下 X」「A 和 B 怎么选」「这方案可行吗」），或 autonomy-controller 的 research 轨道展开 | **主 Agent 的调研编排规约**：路由 → 苏格拉底澄清（AskUserQuestion）→ 结论确认 → 计划（按子任务路由 deep-research / researcher / inline，模型按任务选）→ 并行派发 → 汇总追问循环 → synthesize 落盘 REPORT.mdx + PROPOSAL.md。**所有用户交互在主 Agent**，researcher 是纯执行单元 |
 
 ### 功能 skill（Tier-1，独立可用；入口型自动触发，内部型按名调用）
 
@@ -58,8 +58,8 @@
 | Skill | 触发场景 | 内容 |
 |-------|----------|------|
 | `grill` | 需求含糊、只给结果不给行为、「做个 X」「加个能做 Y 的东西」、无验收标准的特性想法 | 交互式意图输入：一次一问 + **带推荐答案**的苏格拉底澄清，产出行为化 `BRIEF.md`（现状 / 期望 / 验收 / out-of-scope）。两档深度；deep+binding 模式额外定型领域、播种 glossary，并**主动盘问**冲突 / 重载术语、用边界场景压测、拿现有代码交叉核对。**能查代码就先查，别耗用户回合** |
-| `backlog` | 想法只记录、先不开工（「先记下来」「记到 backlog」「回头再做」）、想法连发排队、问「backlog 里有什么」 | **想法队列（入队侧）**：读索引定调（新想法与在队条目相关时先问「改旧条还是新开」）→ grill 澄清出 BRIEF → 收尾**定点整合**（覆盖即改写旧条 / 克制合并 / 关系标注；有发现攒一条确认消息，无发现静默落盘）→ `openspec/BACKLOG.md` 索引 + `backlog/<id>/BRIEF.md`。只动相关条目、只由事件触发、绝不全队列重整；出队（保鲜检查 + 全队列合批 / 依赖 / 并行）在 autonomy-controller 的 backlog intake |
-| `review-doc` | spec 走到 human-confirm 人审、生成人审文档、「四件套确认」「查看 REVIEW」 | **四件套人审文档规约**：`REVIEW.md` 由 spec **单向派生**（模块 → 协议 → 库表 → 用例；表格 / Mermaid / DDL 优先于散文）；spec-hash 新鲜度戳供 human-confirm 门机检；用户直接以 markdown 查看；下游 agent 禁读——spec 才是实施输入 |
+| `backlog` | 想法只记录、先不开工（「先记下来」「记到 backlog」「回头再做」）、想法连发排队、问「backlog 里有什么」 | **想法队列（入队侧）**：读索引定调（新想法与在队条目相关时先问「改旧条还是新开」）→ grill 澄清出 BRIEF → 收尾**定点整合**（覆盖即改写旧条 / 克制合并 / 关系标注；有发现攒一条确认消息，无发现静默落盘）→ `openspec/BACKLOG.md`（只含活跃条目 queued/in-progress）+ `backlog/<id>/BRIEF.md`；条目进入终态（done/dropped）随该次写入搬迁到 `backlog/archive/`（索引 + `<date>-<id>/` 目录），让入队开头的索引读取恒定小。只动相关条目、只由事件触发、绝不全队列重整；出队（保鲜检查 + 全队列合批 / 依赖 / 并行）在 autonomy-controller 的 backlog intake |
+| `review-doc` | spec 走到 human-confirm 人审、生成人审文档、「四件套确认」「查看 REVIEW」 | **四件套人审文档规约**：`REVIEW.mdx` 由 spec **单向派生**（模块 → 协议 → 库表 → 用例；表格 / Mermaid / DDL 优先于散文）；spec-hash 新鲜度戳供 human-confirm 门机检；用户直接以 markdown 查看；下游 agent 禁读——spec 才是实施输入 |
 | `app-ux-design` | UI / 视觉设计、原型、视觉轨道的 prototype 节点 | 设计产出落 `docs/ued/<dt>/`（依赖 `ui-ux-pro-max`） |
 
 实施 / 测试 / 调试：
@@ -105,10 +105,10 @@
 
 | Agent | 触发场景 | 备注 |
 |-------|----------|------|
-| `researcher` | 调研的**纯执行单元**，由 `research-pipeline` 派发（快速 scoped 查证也可直接派） | investigate（一 dispatch 答一 scoped 子问题，结论带出处、fact/inference 强制标注，待拍板事项以 `open_questions` 带回）/ synthesize（汇总落盘 REPORT.md + PROPOSAL.md）。**不与用户交互**；广域 web 扫描归主 Agent 调 deep-research |
-| `planner` | 复杂 / 新特性 / 架构变更的设计提案（`opsx:propose`） | 写 OpenSpec 四契约（模块设计 / 外部协议 / 库表 / 场景级 e2e 用例，稳定 ID `S1/S2/…` + 执行载体声明）；模块设计用 glossary 术语；随 spec 派生 `REVIEW.md`（按 `review-doc`，spec 每改重生）；不实现；open_questions 不直接问用户 |
+| `researcher` | 调研的**纯执行单元**，由 `research-pipeline` 派发（快速 scoped 查证也可直接派） | investigate（一 dispatch 答一 scoped 子问题，结论带出处、fact/inference 强制标注，待拍板事项以 `open_questions` 带回）/ synthesize（汇总落盘 REPORT.mdx + PROPOSAL.md）。**不与用户交互**；广域 web 扫描归主 Agent 调 deep-research |
+| `planner` | 复杂 / 新特性 / 架构变更的设计提案（`opsx:propose`） | 写 OpenSpec 四契约（模块设计 / 外部协议 / 库表 / 场景级 e2e 用例，稳定 ID `S1/S2/…` + 执行载体声明）；模块设计用 glossary 术语；随 spec 派生 `REVIEW.mdx`（按 `review-doc`，spec 每改重生）；不实现；open_questions 不直接问用户 |
 | `arch-reviewer` | spec 含 DDL / 新改接口面 / 跨模块时，**实施前**设计审查（裁量触发） | 审 schema / 接口契约 / 模块边界 / 验收可测性；产出 `arch-review.md`，闭环走 planner 改 spec；**只审设计、不审实现代码**（那是 code-reviewer 的活） |
-| `developer` | spec 已就绪的实施阶段 | 严格 TDD（产品代码 + 单测）；**不写 e2e 测试**；输入是 spec 不是 REVIEW.md；组合 `tdd` + `coding-guideline` +（涉库）`dba-guideline` + `glossary-conformance`；信任信号用 mutation/property oracle |
+| `developer` | spec 已就绪的实施阶段 | 严格 TDD（产品代码 + 单测）；**不写 e2e 测试**；输入是 spec 不是 REVIEW.mdx；组合 `tdd` + `coding-guideline` +（涉库）`dba-guideline` + `glossary-conformance`；信任信号用 mutation/property oracle |
 | `e2e-author` | spec 确认且声明脚本化载体后，与 developer **并行派发** | 黑盒 SDET：按 spec 场景（**非实现**）写 Playwright / 接口 / DB 校验测试，交付 `e2e-manifest.md`（场景→用例映射 + 有意留空清单）；两阶段（spec-only 草稿 ∥ developer，应用起来后定型选择器）；**绝不改产品代码** |
 | `code-reviewer` | **merge 进 dev 的门禁**：增量审 diff（与 e2e-runner 同消息并行）；全量仅显式要求 | 两判定（spec 合规 ≠ 代码质量）、干净上下文、只读；**「不信报告，从 diff 重推」**；门禁车道用异模型族；全量模式 consult `smell-scan`；产出 `CHECKLIST.md`（P0/P1 全 Resolved 才合并） |
 | `e2e-runner` | 实施 + QA 交付后跑端到端验收（主 agent 先拉起应用） | 按 manifest 查表路由：有映射跑脚本（**零 LLM**），无映射经 graceful-browser 驱动；写库校验（manifest 声明 `db-assert: suite` 的场景抽样复核，其余 runner 亲验）；只读、不改判（product/test/infra 分类）；报告落盘 `e2e-report.md` 含覆盖 N/M——merge 门禁消费它 |
@@ -167,7 +167,7 @@
 | 能力 | 来源 | 用在哪 | 缺席时的降级 |
 |------|------|--------|--------------|
 | `graceful-browser` | `plugin-infra` 插件 | e2e agent 驱动模式的浏览器框架选择（优先序权威源） | 按同一优先序（claude --chrome → chrome-devtools MCP → Playwright MCP）直接探测工具族，报告注明降级 |
-| `deep-research` | 用户 / 平台级 skill | research-pipeline 的广域多源扫描 | 拆成多个窄题并行派发 researcher（各自 web search / context7），REPORT.md 注明降级 |
+| `deep-research` | 用户 / 平台级 skill | research-pipeline 的广域多源扫描 | 拆成多个窄题并行派发 researcher（各自 web search / context7），REPORT.mdx 注明降级 |
 | `ui-ux-pro-max` | 外部 skill | `app-ux-design`（visual 轨道 prototype 节点）依赖 | 手工设计文档，或 `[-]` 跳过留痕 |
 | 项目级 CD / 遥测 / 回滚 | 使用方项目 | Phase B 后置闭环（`canary` / `auto-revert`）只能**编排进**已有 CD | 无 CD 时可逆车道停在 `auto + 抽检`，不升 `full-auto`（交付边界） |
 
@@ -185,8 +185,8 @@ gen-ai-development/
 │   ├── autonomy-controller/     # Tier-3 编排脊柱：三信号 → 档位 → 轨道 → 门禁 → 强度（references: tracks / gates / pipeline-schema）
 │   ├── research-pipeline/       # Tier-3 调研编排：澄清 → 确认 → 计划 → 并行派发 → 汇总循环 → synthesize 落盘
 │   ├── grill/                   # 意图输入：苏格拉底澄清 → BRIEF.md（深档定型领域 + 播种 glossary）
-│   ├── backlog/                 # 想法队列入队侧：索引定调 → grill → 定点整合 → BACKLOG.md + backlog/<id>/BRIEF.md
-│   ├── review-doc/              # 四件套人审文档：REVIEW.md + spec-hash 新鲜度戳
+│   ├── backlog/                 # 想法队列入队侧：索引定调 → grill → 定点整合 → 活跃索引 BACKLOG.md + backlog/<id>/BRIEF.md（终态条目搬迁至 backlog/archive/）
+│   ├── review-doc/              # 四件套人审文档：REVIEW.mdx + spec-hash 新鲜度戳
 │   ├── app-ux-design/           # UI / 视觉设计原型（依赖 ui-ux-pro-max）
 │   ├── tdd/                     # 红绿重构 + 各语言测试工具链
 │   ├── e2e-test/                # 端到端执行：GUI(Web/Flutter/RN/Tauri) + API + agent 驱动，写库校验

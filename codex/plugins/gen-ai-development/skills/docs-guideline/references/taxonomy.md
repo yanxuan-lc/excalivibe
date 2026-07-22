@@ -24,7 +24,7 @@ Put it in a **module subdir** when:
 - It naturally *links out* to the shared artifacts rather than defining them. A module doc that finds itself redefining the wire shape is a signal that content belongs in `protocol/` and the module should link to it.
 
 ### Borderline calls
-- **A field's wire shape vs its extraction semantics.** The *shape* (the JSON, the types, the limits) is a shared contract → `protocol/`. *How a module derives that field from its source data* (which file, what mapping, what's skipped) is that module's story → its subdir. The reference project splits exactly this way: `protocol/v1.0/` owns the request body; `daemon/README.md §3` owns the jsonl→field mapping. Each links to the other.
+- **A field's wire shape vs its extraction semantics.** The *shape* (the JSON, the types, the limits) is a shared contract → `protocol/`. *How a module derives that field from its source data* (which file, what mapping, what's skipped) is that module's story → its subdir. The reference project splits exactly this way: `protocol/v1.0/` owns the request body; `daemon/README.mdx §3` owns the jsonl→field mapping. Each links to the other.
 - **A decision that spans modules.** Record the *decision and its why* once, in the most-owning location, and link from the others. Don't fork it.
 - **New top-level area or a module subdir?** If you're about to create a top-level dir for something only one module touches, prefer a section in that module's doc until a second consumer appears. Premature top-level dirs fragment the index.
 
@@ -49,7 +49,7 @@ Some `docs/` paths are part of the build/test surface, not just reading material
 When the schema docs double as the actual migration source (as in the reference project):
 - One file = one DDL statement = one review unit (matches review-platform constraints like `DDLMultiToCommit=OFF`). Don't merge multiple `ALTER`s into one file.
 - New change set → **new seq dir** (`<seq>-<date>-<topic>/`), files numbered `NN-<action>.sql`. This keeps each change independently reviewable/rollback-able and append-only.
-- The `README.md` here documents the engine, the DDL *process* (who applies, how, what's forbidden), and key schema decisions — not a copy of the SQL. Link to the `.sql` files; they are the authoritative DDL.
+- The `README.mdx` here documents the engine, the DDL *process* (who applies, how, what's forbidden), and key schema decisions — not a copy of the SQL. Link to the `.sql` files; they are the authoritative DDL.
 
 ## What not to over-document
 

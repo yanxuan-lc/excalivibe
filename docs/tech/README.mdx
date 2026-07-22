@@ -1,0 +1,23 @@
+---
+title: docs/tech — 技术方案（as-built）
+subtitle: 事实标准 · 只沉淀「为什么」与路由
+palette: teal
+mode: auto
+---
+
+> ExcaliVibe 的 as-built 技术设计（事实标准）。记录已落地机制的**当前设计与决策取舍**；机制的可执行细节以各 skill/manifest 权威源为准，本层只沉淀「为什么这样」和路由。
+> 权威源：`claude/plugins/`、`codex/plugins/`（两侧同构，求同存异）。历史叙事见 [`../research/`](../research/)。
+
+## 怎么用（按需加载）
+
+| 我要做… | 读这里 |
+|---|---|
+| 理解想法队列 / 归档机制的设计取舍 | [`backlog/`](./backlog/) |
+| 理解富文档产物机制（mdx-artifact）与「人审/as-built 文档改 MDX」的决策 | [`mdx-artifact/`](./mdx-artifact/) |
+
+## 组织约定
+
+- **本目录是事实标准**：与 `research/` 冲突时以此为准；`research/` 只作历史。
+- **不重复权威内容**：本仓库产物多为 Markdown 形式的 skill/agent/prompt + JSON manifest，它们**本身就是机制的权威规约**。`tech/` 文档因此只记 skill 里未完整记录的**设计决策 / 被否方案（why）**，机制细节一律**链接**回权威源，不复述。
+- **顶层 dir vs 模块 dir**：跨 skill 共享的机制（如 backlog 横跨 backlog + autonomy-controller）单独成 dir；单个组件的故事放模块 dir。
+- **双端同步**：任何机制在 claude/ 与 codex/ 走同样主流程，改一侧必同步另一侧。
