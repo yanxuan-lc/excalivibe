@@ -1,6 +1,6 @@
 ---
 name: mdx-artifact
-description: 把 MDX（markdown + 可扩展组件）渲染成「给人看的」精美自包含 HTML 产物——主题配色、Hero 头部/Footer、指标卡、步骤、卡片网格、可交互目录与筛选、数学公式（LaTeX），离线可用、双击即开。MDX 是一种「简化 HTML 输出」的类 Markdown 语言，目标覆盖 90% 手写 HTML 的场景。当用户想要一份给人阅读的文档 / 报告 / 方案 / 设计总览 / 看板 / 说明，或要把 Markdown、纯文本、分析结论「整理成好看的文档 / 导出成 HTML / 做成网页 / 美化排版 / 生成可交付产物」时，务必使用本 skill——即使用户没有明说 "mdx-artifact"、"HTML" 或 "组件"。不要直接手写整篇 HTML，也不要只丢一份朴素 Markdown：本 skill 用组件化 MDX 大幅节省 token 并保证整篇视觉一致、可换主题、面向扩展。不适用于：需要后端或实时数据的 Web 应用、需要多人在线协作编辑的文档、电子表格/数据库应用。
+description: 将报告、方案、Markdown 或分析结论制作成组件化 MDX，并预览或导出精美的自包含 HTML。用于“美化文档”“导出 HTML”“做成可交付网页”；不用于实时 Web 应用。
 ---
 
 # mdx-artifact — 面向 Agent，为人类输出富文档产物

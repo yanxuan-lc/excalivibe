@@ -1,5 +1,7 @@
 name = "developer"
 description = "Spawn this agent to IMPLEMENT a confirmed spec — write product code plus its unit tests, test-first (TDD), at the implement node of a development track. Use it when an openspec/changes/<id>/ spec dir with the 4 contracts and stable-ID acceptance scenarios already exists and the change is ready to build; also for the safety-net (characterization) node before a refactor. It NEVER writes e2e tests (that is e2e-author) and NEVER reviews its own work."
+model = "gpt-5.6-terra"
+model_reasoning_effort = "high"
 developer_instructions = """
 # developer — TDD implementation of product code + unit tests
 
@@ -139,7 +141,7 @@ not a line-coverage percentage. Lean on `tdd` for the toolchain-specific form:
   or edit it.** It was planted by a *separate* dispatch precisely so the agent that must
   pass it did not write it. Editing a test to make it pass defeats the anchor; the same
   rule applies to any e2e test.
-- **Read the spec, never `REVIEW.md`, as input.** `REVIEW.md` is a human-readability
+- **Read the spec, never `REVIEW.mdx`, as input.** `REVIEW.mdx` is a human-readability
   digest with detail trimmed; building from it would build from a lossy copy.
 - **Do not absorb the `security` / `a11y` / `perf` gates** — they are separate nodes run by
   their own skills. (The middleware monitoring surface above is the one exception: it is

@@ -1,0 +1,305 @@
+# ExcaliVibe Codex 全面健康审计
+
+- **Date**: 2026-07-23 00:24:44 +08:00
+- **Topic**: codex-full-health-audit
+- **Repository revision**: `33213adb50ccc85a0db3aeb8c45a9ac23bf4d7fb`
+- **Scope**: Codex marketplace、3 个 plugins、27 个 skills、9 个 agents、pipelines、安装/权限/浏览器/hooks/降级路径；Claude 侧仅作为“求同存异”的流程参照
+- **Mode**: 只读审计；未修改现有实现
+
+## Executive summary
+
+结论：**有条件健康，基础打包与角色覆盖良好，但 Codex 运行契约存在一组 P1 级漂移；在修复前不应宣称 pipeline 开箱即用或隔离/独立性已兑现。** 本次没有把普通契约漂移夸大为 P0：manifest/JSON 均有效，plugin 可安装，角色和 skill 主体齐全；但 research、review、e2e、浏览器、模型与权限的跨文件约定尚未闭环，可能让关键 gate 找错产物、调用不存在的工具、共享完整历史，或使 README 所宣称的 sandbox 与实际运行不符。
+
+最重要的修复顺序是：
+
+1. 统一 `REPORT.mdx` / `REVIEW.mdx` 等 producer-consumer 契约，并恢复 `PIPELINE.md` 单写者。
+2. 将 research-pipeline、app-ux-design、browser、hooks、用户提问改成 Codex 原生调用模型。
+3. 为 9 个 agent 明确 model / effort / fork / sandbox policy，并建立 fresh-context spawn contract。
+4. 缩短 27 个 skill descriptions，声明隐式触发与工具依赖，避免 catalog 超预算导致关键 skill 消失。
+5. 最后再处理文档、cachebuster、MCP 版本固定和安装体验。
+
+## 研究背景与审计口径
+
+项目最高原则是“求同存异”：Claude 与 Codex 的架构、主流程、用户心智模型一致；具体工具、skill、agent、hook、browser、MCP、config 和权限实现分别针对各自 runtime 优化。本报告逐项检查 Codex 侧是否真正实现了这一原则，而不是只检查文件名是否成对。
+
+事实与推论严格分开：标为“事实”的内容来自仓库 revision 上的文件、validator/解析结果或当前 Codex 官方 manual；“推论/建议”是基于这些事实得出的修复方向。优先级定义：
+
+| 级别 | 定义 |
+|---|---|
+| P0 | 当前会稳定阻断核心安装或全部主流程，且没有可行降级 |
+| P1 | 会破坏关键 pipeline/gate 的正确性、隔离性或产物交接 |
+| P2 | 可降级运行，但可靠性、可复现性、体验或维护成本明显不足 |
+| P3 | 文档、措辞和非阻断性一致性问题 |
+
+本次审计未发现符合上述严格定义的 P0。
+
+## 健康项
+
+- **插件结构健康（事实）**：三个 Codex plugin 均通过当前 `plugin-creator` validator，全部 JSON 可解析。
+- **版本同步健康（事实）**：`gen-ai-development 2.2.1`、`plugin-infra 0.5.1`、`opc-workflow 1.1.0` 的权威同步点一致。
+- **角色覆盖健康（事实）**：9 个 agent TOML 全部可解析，覆盖 planner、arch-reviewer、developer、e2e-author、e2e-runner、debugger、code-reviewer、release-coordinator、researcher。
+- **skill 覆盖健康（事实）**：Codex 27 个 skill 对应 Claude 25 个 skill；额外 `project-init`、`setup-gen-ai` 是 Claude command → Codex skill 的合理 primitive 适配，不是能力分叉。
+- **发布边界方向正确（事实）**：release-coordinator 只准备 SemVer/证据/notes，不直接 merge、push、publish；见 `codex/agents/release-coordinator.toml:54-69,95-112`。
+- **e2e 独立性意图正确（事实）**：e2e-author 从 spec scenarios 而非实现派生测试，e2e-runner 对产品与测试代码只读并要求 UI/API 与 DB 双验证；见 `codex/agents/e2e-author.toml:14-24,93-127,153-171`、`codex/agents/e2e-runner.toml:13-18,60-100,198-209`。
+- **node_modules 不构成发布膨胀（事实）**：Claude/Codex 两侧本地各约 203MB，但未被 git 跟踪。
+
+## P0
+
+**无。** 当前问题集中在关键契约和运行时适配，严重但存在人工路径或降级，不满足“稳定阻断全部核心流程且无降级”的 P0 定义。
+
+## P1 — 关键流程与运行契约
+
+### P1-1 Research pipeline 仍是 Claude 语义，且产物契约分裂
+
+**事实**：Codex 与 Claude 的 `research-pipeline/SKILL.md` 字节相同；Codex 文本仍调用 `AskUserQuestion`、`Agent tool model`，使用 `opus`/`sonnet` 和 researcher frontmatter 默认模型，并把外部 `deep-research` 当作主 agent 可直接调用的 skill。见：
+
+- `codex/plugins/gen-ai-development/skills/research-pipeline/SKILL.md:34,57-62,67-81,98-106`
+- `codex/agents/README.md:15-19`
+
+**事实**：pipeline 要求 `REPORT.mdx`，researcher TOML 要求 `REPORT.md`，protocol 又期待 `REPORT.mdx`：
+
+- `codex/plugins/gen-ai-development/skills/research-pipeline/SKILL.md:3,15-21,104-112,119`
+- `codex/plugins/gen-ai-development/skills/research-pipeline/references/protocols.md:77`
+- `codex/agents/researcher.toml:2,17-19,94-101,150,177-181`
+
+**推论**：即使 researcher 成功 synthesis，orchestrator 也可能判定报告缺失；模型路由则会静默退回继承值或形成不存在的调用。统一本仓库研究报告为 `REPORT.mdx`，并将交互改成 Codex 的用户输入机制、agent dispatch 改成 spawn contract。
+
+### P1-2 REVIEW producer/consumer 不一致
+
+**事实**：`review-doc`、autonomy-controller 和 freshness schema 使用 `REVIEW.mdx`；planner、developer、release-coordinator 使用 `REVIEW.md`：
+
+- `codex/plugins/gen-ai-development/skills/review-doc/SKILL.md:3,36-42,56-57`
+- `codex/plugins/gen-ai-development/skills/autonomy-controller/SKILL.md:233`
+- `codex/plugins/gen-ai-development/skills/autonomy-controller/references/pipeline-schema.md:56,118`
+- `codex/agents/planner.toml:48-50,104-111,144-163`
+- `codex/agents/developer.toml:142-143`
+- `codex/agents/release-coordinator.toml:103-105`
+
+**推论**：架构门 freshness、planner 输出和 release readiness 可能检查不同文件。应以当前 review-doc 模板的 `REVIEW.mdx` 为唯一派生产物，统一所有 agent 输入/输出与 hash 排除规则。
+
+### P1-3 Agent 配置、README 与实际权限模型不符
+
+**事实**：九个 TOML 只有 `name`、`description`、`developer_instructions`，没有 `model`、`model_reasoning_effort`、`sandbox_mode`；但 `codex/agents/README.md:12-19,35-45` 声称若干角色 read-only 且不支持 per-agent effort。
+
+**事实**：当前官方 agent 配置支持 `model`、`model_reasoning_effort`、`sandbox_mode`、`mcp_servers`、`skills.config`；解析优先级为 agent file → spawn → `[agents]` default → parent，且各字段独立解析。[Subagents](https://learn.chatgpt.com/docs/agent-configuration/subagents)
+
+**推论**：当前 agent 实际继承父会话，README 的隔离承诺不成立。也不能简单把 researcher/code-reviewer/e2e-runner 全部设成 `read-only`，因为它们分别要写 synthesis/report；应区分“不得改产品/测试”与“可写指定 artifact”。
+
+### P1-4 Fresh-context independence 未实现
+
+**事实**：当前 Codex spawn 默认继承完整历史；controller 没有统一 `fork_turns` policy。reviewer/e2e 的独立性文本只讨论不同模型或 fresh context，没有一个可执行的 spawn contract。
+
+**推论**：code-reviewer、arch-reviewer、e2e-author/e2e-runner 若继承 producer 的全部推理历史，会弱化验证三角。所有 verifier 默认应 `fork_turns="none"`，只传 spec、diff、commit SHA 和 artifact path；continuation 才复用原 agent。
+
+### P1-5 e2e-runner 破坏 PIPELINE 单写者
+
+**事实**：e2e-runner 硬规则要求退出前写 `e2e-report.md` 并 tick 自己的 PIPELINE row，见 `codex/agents/e2e-runner.toml:25-27`；controller 则声明 `PIPELINE.md` 是自身 durable state，其他 agent 不读写或不写，见 `codex/plugins/gen-ai-development/skills/autonomy-controller/SKILL.md:278-288`、`codex/agents/code-reviewer.toml:136`、`codex/agents/developer.toml:82,114-115`。
+
+**推论**：并行 e2e/review 时会产生多写者。runner 只写 `e2e-report.md` 并返回 commit stamp；controller 验证后独占更新 PIPELINE。
+
+### P1-6 Browser 与 app-ux-design 未按 Codex 生命周期实现
+
+**事实**：e2e/a11y/perf/research-api 把 `@Chrome`/`@Browser` 当作首选，但 browser/computer-use 仅在相应 surface/plugin/授权存在时可用；research-api 仍写 `WebFetch`。见：
+
+- `codex/plugins/gen-ai-development/skills/e2e-test/SKILL.md:36-43`
+- `codex/plugins/gen-ai-development/skills/a11y-check/SKILL.md:61-64`
+- `codex/plugins/gen-ai-development/skills/perf-budget/SKILL.md:61-64`
+- `codex/plugins/gen-ai-development/skills/research-api/SKILL.md:34-40`
+- [Browser](https://learn.chatgpt.com/docs/browser)
+
+**事实**：Claude/Codex 的 app-ux-design 主 skill 完全相同，只说后台运行 `pnpm dev` 和 watcher，没有 Codex PTY/session-id/write_stdin、审批、依赖联网与进程回收契约；见 `codex/plugins/gen-ai-development/skills/app-ux-design/SKILL.md:178-199,362-373`、`references/apply-loop.md:27-31`。
+
+**推论**：先做 capability discovery，再按 native browser/computer-use → Chrome connector → bundled chrome-devtools MCP → Playwright 逐级降级；app-ux server/watcher 使用持久 PTY session 并显式记录 session id、poll/reconnect/terminate。
+
+### P1-7 跨模型独立性不可由 Sol/Terra 冒充
+
+**事实**：controller 把不同 model family 作为 gated lane/audit 独立性要求，并建议 Codex 调 `claude -p`；见 `codex/plugins/gen-ai-development/skills/autonomy-controller/SKILL.md:251-258,274`、`references/gates.md:154-168`。
+
+**事实**：Sol 与 Terra 同属 OpenAI/Codex 模型路线，不能称为 different family。最新模型选择应以官方指南为准：[Latest model guide](https://developers.openai.com/api/docs/guides/latest-model.md)。
+
+**推论**：同族 fresh-context review 是有效的常规验证，但不能 discharge “different-family audit”。后者必须通过 Claude/外部 adapter，并先探测 CLI、凭证、权限和用户许可；不可用时在 PIPELINE 显式记录未满足。
+
+## P2 — 可用性、可复现性与 Codex 原生优化
+
+### P2-1 Hook 能力判断已过时
+
+**事实**：Claude 有 PreToolUse guardrail，覆盖 publish、push main、force-push shared branch、PR merge、main commit、hard reset/clean；见 `claude/plugins/gen-ai-development/hooks/hooks.json:2-15`、`hooks/guardrail.py:3-28,111-220`。Codex README 目前只说 Claude 侧有 hook，见 `codex/plugins/gen-ai-development/README.md:132`。
+
+**事实**：当前 Codex plugin 会默认发现 `hooks/hooks.json`；manifest 不需、且当前 validator 不允许 `hooks` 字段。支持 PreToolUse、SubagentStart/Stop、PermissionRequest；plugin hook trust-gated，并提供 `PLUGIN_ROOT`，兼容 `CLAUDE_PLUGIN_ROOT`。[Build plugins](https://learn.chatgpt.com/docs/build-plugins) [Hooks](https://learn.chatgpt.com/docs/hooks)
+
+**推论**：应针对 Codex hook 输入/输出协议重写并交互冒烟；不得原样复制 Claude hook，也不得把 hook 当唯一安全边界，仍需 approval/sandbox/主 agent consent。
+
+### P2-2 Skill catalog 可能超 context 预算
+
+**事实**：27 个 Codex skill description 合计约 12,112 bytes。官方初始 catalog 最多占 context 2%，未知时约 8,000 字符，超限会截短甚至省略 skill；skill 可通过 `agents/openai.yaml` 声明 `allow_implicit_invocation` 与 `dependencies.tools`。[Build skills](https://learn.chatgpt.com/docs/build-skills)
+
+**推论**：缩短 description、把触发词前置，把长解释移入正文；关键 orchestration skill 优先保留可识别 trigger，并用 metadata 声明依赖，不能依赖 27 段长描述全量进入初始上下文。
+
+### P2-3 Probe skill 的用户交互边界冲突
+
+**事实**：research-data-source 在无客户端时要求“ask user”，research-api 写操作要求 explicit confirmation；researcher 又严格禁止直接与用户交互。见 `codex/plugins/gen-ai-development/skills/research-data-source/SKILL.md:25-33`、`research-api/SKILL.md:43,57`、`codex/agents/researcher.toml:154-167,183-190`。
+
+**推论**：functional skill 应区分 main-agent direct invocation 与 researcher execution；后者只返回 `open_questions`，由 pipeline 汇总提问。
+
+### P2-4 MCP、安装与分发可复现性不足
+
+**事实**：`chrome-devtools-mcp@latest` 会首次联网且版本不可复现；Git marketplace 更新文档缺少 marketplace upgrade，cachebuster 命令路径不完整。agent 当前要求手工 copy 到全局目录，容易与 plugin 版本漂移。
+
+**推论**：固定 MCP 版本；文档补全 update/upgrade/cachebuster；优先使用项目 `.codex/config.toml [agents.<role>] config_file` 引用仓库 TOML，或将 TOML 作为 plugin assets，由 setup 安装到项目 `.codex/agents/`。`skills.config` 相对 agent file 解析，但 plugin cache 路径动态，先做可移植性验证，且不要把它当安全权限。
+
+### P2-5 opc-workflow 是空能力占位
+
+**事实**：`opc-workflow` 版本/manifest 合法，但没有 skill，是可安装占位。
+
+**推论**：若这是有意保留，marketplace/README 应明确“占位/暂无用户能力”；否则隐藏或移除安装入口，避免用户误判安装成功即有功能。
+
+## P3 — 文档与非阻断漂移
+
+- 两侧 gen-ai-development README 仍显示 `2.0.1`，与 manifest `2.2.1` 不一致。
+- Codex plugin-infra README 漏列 `mdx-artifact`。
+- 根 README 对 graceful-browser 双端差异的描述已过期。
+- `codex/agents/README.md:3-19` 的 “ported from Claude”、read-only、per-agent effort 说明过时。
+- 部分 “subagent”“graceful-browser”措辞本身不是故障；真正问题是其后引用了不存在或未探测的工具。不要进行无差别术语替换。
+
+## 双端能力映射
+
+| 能力 | Claude 实现 | Codex 当前实现 | 审计结论 / Codex 正确方向 |
+|---|---|---|---|
+| 项目初始化 | commands | `project-init` / `setup-gen-ai` skills | 合理存异，保持 |
+| 开发编排 | autonomy-controller skill + agents | skill + 外置 TOML agents | 主流程一致；补 spawn/fork/model/sandbox contract |
+| 调研 | deep-research + researcher | copied pipeline + researcher TOML | P1；改为 Codex 用户输入、spawn、web/tool discovery |
+| 人审文档 | `REVIEW.mdx` + mdx-artifact | skill 是 `.mdx`，agents 是 `.md` | P1；统一 `.mdx` |
+| E2E | author/runner + graceful browser | TOML agents + browser 假设 | 主流程正确；恢复 PIPELINE 单写者与 capability discovery |
+| UI 原型 | background server/watcher | Claude 文本原样复制 | P1；用 PTY/session-id/write_stdin |
+| 浏览器 | claude --chrome → MCP fallback | `@Chrome/@Browser` 假设 | 先 discovery，再 native/app/MCP/Playwright |
+| 安全兜底 | plugin PreToolUse hook | README 称无 hook | P2；Codex 原生 hook 可实现，但需重写与 trust 冒烟 |
+| 发布 | release agent + vcs workflow | 同角色 TOML + skill | 边界健康；统一 REVIEW 路径和跨模型 audit adapter |
+| Agent 分发 | plugin 内 agents | 仓库 TOML 手工 copy | 能工作但易漂移；项目 config 或 setup 安装更稳 |
+
+## 逐 Agent 建议配置
+
+以下为**建议/推论**，不是当前事实。`sandbox` 要表达角色边界，同时允许写指定 artifact；若 runtime 只能粗粒度 read-only/read-write，则由行为约束、worktree 和 hook 补强。
+
+| Agent | 建议 model | effort | 默认 fork | sandbox / 写权限 | 升级条件 |
+|---|---|---:|---|---|---|
+| planner | Sol | high | `none` | workspace-write，仅 change spec + `REVIEW.mdx` | 新领域/复杂 DDL/跨模块 → xhigh |
+| arch-reviewer | Sol | high | `none` | workspace-write；行为上只读 spec，仅写 `arch-review.md` | 一般保持 Sol/high |
+| developer | Terra | high | `none` | workspace-write，产品代码+unit tests，不写 e2e/PIPELINE | 并发、跨模块、迁移 → Sol/high |
+| e2e-author | Terra | medium | `none` | workspace-write，仅 e2e code + manifest | 复杂多端测试 → Sol/high |
+| e2e-runner | Terra | low | `none` | workspace-write；行为上对产品/测试只读，仅写 e2e report，不写 PIPELINE | 复杂 live diagnosis → medium |
+| debugger | Sol | high | `none` | 可写 HYPOTHESIS + RED regression test，不写 product fix | 明确、局部故障可 Terra/high |
+| code-reviewer | Sol | high | `none` | workspace-write；行为上对产品/测试只读，仅写 CHECKLIST | spot check 可 Terra/medium |
+| release-coordinator | Terra | medium | `none` | workspace-write；行为上不改 release inputs，仅写 RELEASE dossier | 复杂 multi-package release → Sol/high |
+| researcher | Terra | medium | `none` | workspace-write；investigate 不落盘，synthesize 仅写 output_dir | 复杂 synthesis/source conflict → Sol/high |
+
+注意：当前公开 sandbox 是 session 级粗粒度策略，不能表达“工作区大部分只读、单个报告路径可写”。因此凡需落盘 artifact 的角色只能使用 `workspace-write`，再由角色说明、文件所有权与 hook 约束实际写入范围。agent file、spawn override、`[agents]` default、parent 的各字段独立解析，因此 controller 的 spawn policy 必须写明哪些字段由哪个层负责，避免 model 被覆盖但 effort/fork/sandbox 意外继承。
+
+## Codex 原生优化清单
+
+| 主题 | 当前状态 | 建议 | 验证 |
+|---|---|---|---|
+| Agent spawn | 默认 full history | verifier `fork_turns=none`，continuation 复用 agent | 注入 producer 私有推理标记，确认 reviewer 看不到 |
+| Model/effort | 全继承 | TOML 默认 + controller 按 lane override | 打印/记录实际解析配置 |
+| Hooks | 误以为 plugin 不支持 | 新增 Codex `hooks/hooks.json` + 协议适配 guardrail | trust prompt、PreToolUse、SubagentStart/Stop 冒烟 |
+| Skill routing | descriptions 12,112 bytes | 压缩、触发前置、openai.yaml metadata | catalog 不截断；27 skills 可触发 |
+| Browser | 假定标签存在 | capability discovery + 分级 fallback | 分别在无 browser、仅 MCP、native surface 测试 |
+| UI server | 泛化“后台运行” | PTY/session-id/write_stdin + terminate | 跨 turn 连接、watcher apply、清理进程 |
+| User input | AskUserQuestion/ask user | Codex request-input；subagent park question | main/agent 两种调用分别测试 |
+| Tool names | `WebFetch` 等残留 | 依据可用 web/MCP/HTTP 工具路由 | 无该工具时仍可 curl/web fallback |
+| Agent distribution | 手工全局 copy | 项目 config 引用或 setup 安装 | plugin 升级后 TOML 不漂移 |
+| MCP reproducibility | `@latest` | pin 版本、首次联网说明 | 离线/首次安装/升级测试 |
+
+## 分阶段修复路线
+
+### Phase 0 — 建立契约测试（最小风险）
+
+- 建立产物 registry：`REPORT.mdx`、`PROPOSAL.md`、`REVIEW.mdx`、`CHECKLIST.md`、`e2e-manifest.md`、`e2e-report.md`、`RELEASE.md`。
+- 静态扫描 producer/consumer 一致性；禁止非 controller 写 `PIPELINE.md`。
+- 扫描 Codex 禁用残留：`AskUserQuestion`、`Agent tool`、`WebFetch`、`opus`、`sonnet`、未说明的 background watcher。
+
+### Phase 1 — 修复 P1 契约
+
+- research-pipeline/researcher/protocol 统一 `REPORT.mdx`。
+- planner/developer/release/controller 统一 `REVIEW.mdx`。
+- e2e-runner 仅写报告，由 controller tick PIPELINE。
+- 定义 spawn policy：fresh verifier、continuation、parallel ownership、fork/model/effort/sandbox。
+
+### Phase 2 — Codex runtime 适配
+
+- research 用户交互、browser discovery、app-ux PTY 生命周期。
+- 9 个 agent 配置 model/effort；按角色落实可写范围。
+- 实现并交互验证 Codex hooks guardrail；仍保留 runtime approval/sandbox。
+
+### Phase 3 — 路由与分发优化
+
+- 压缩 27 skill descriptions；增加 `agents/openai.yaml` metadata。
+- 验证 `skills.config` 相对路径与 plugin cache 可移植性。
+- 将 agent TOML 纳入项目 config/setup 的版本化安装路径。
+
+### Phase 4 — 文档与可复现性
+
+- 修正 README 版本、plugin-infra 能力表、graceful-browser、marketplace upgrade/cachebuster。
+- pin chrome-devtools MCP 版本。
+- 明确 opc-workflow 占位状态。
+
+## 验证矩阵
+
+| 验证面 | 用例 | 通过标准 |
+|---|---|---|
+| Plugin | 3 plugin validator + JSON parse | 全绿，manifest 不含 hooks 字段 |
+| Skill catalog | 27 skills 装载/隐式触发 | 无截断；关键 trigger 可路由；依赖缺失能提示 |
+| Research | clarify → parallel investigate → synthesize | 只生成 `REPORT.mdx` + `PROPOSAL.md`；无 Claude 工具名 |
+| Review | planner → freshness → human confirm | 全链路只使用 `REVIEW.mdx`，hash 一致 |
+| E2E | author ∥ developer → runner ∥ reviewer | verifier fresh context；runner 不改 PIPELINE；DB 证据完整 |
+| Agent config | 每角色解析 model/effort/fork/sandbox | 实际运行值匹配表格；写权限符合 artifact scope |
+| Hooks | publish/push-main/reset-hard/subagent lifecycle | trust 后正确 ask/deny/observe；失败时 runtime approval 仍兜底 |
+| Browser | native、有 MCP、无浏览器三环境 | discovery 后选正确层；降级记录清楚 |
+| App UX | scaffold、install、serve、inspect、落库、terminate | PTY 跨 turn 存活；request 可应用；最终进程可回收 |
+| Release | dossier + cross-family audit unavailable | 不执行 outward action；未满足 audit 显式记录 |
+| Upgrade | marketplace/plugin/cachebuster | 文档命令可复制执行，agent TOML 与 plugin 版本不漂移 |
+
+## 明确不建议项
+
+- 不建议把 Claude skill/agent 文本机械搜索替换成 Codex 名词；先修真实接口和契约。
+- 不建议把 Claude `guardrail.py` 原样复制；Codex hook payload/decision/trust 必须单独实现和冒烟。
+- 不建议把所有 verifier 配成全局 `read-only` 后忽略其报告落盘需求。
+- 不建议把 Sol/Terra 声称为不同 model family。
+- 不建议依赖 `skills.config` 作为安全权限边界。
+- 不建议继续使用 MCP `@latest`。
+- 不建议为追求双端文件数量一致，把 Claude commands 与 Codex skills 强行拉平。
+- 不建议让 e2e-runner、reviewer 或 researcher 直接更新 `PIPELINE.md`。
+- 不建议让 `REPORT.md` / `REPORT.mdx` 或 `REVIEW.md` / `REVIEW.mdx` 双轨并存。
+
+## 关键决策记录
+
+- 研究报告权威格式确定为 `REPORT.mdx`；`PROPOSAL.md` 保持 Markdown 供机器消费。
+- 建议将 `REVIEW.mdx` 定为唯一人审派生产物，因为 review-doc/template/controller 已以此为权威。
+- 角色覆盖按“能力/流程”判断，不按 Claude/Codex 文件类型是否相同判断。
+- 当前无 P0；优先修复 P1 契约，不以严重措辞替代可执行修复顺序。
+- different-family audit 与 fresh-context same-family review 是两个不同保证，不得互相冒充。
+
+## 结论
+
+Codex 版本不是“不可用”：插件结构、版本、角色和 skill 覆盖均有扎实基础，release/e2e/review 的职责分工也已经成形。真正的问题是上一阶段的 Claude 文本移植尚未完成 Codex runtime 的最后一公里，尤其是跨文件名契约、spawn 上下文、agent 配置、browser/tool discovery、hook 和长进程生命周期。
+
+按 Phase 0→4 修复后，项目可以保留双端一致的研发/调研/评审/e2e/发布主流程，同时让 Codex 使用自身的 agents、fork、model/effort、sandbox、hooks、browser/apps/MCP 与 PTY 能力，符合“求同存异”。
+
+## 参考资料
+
+### 仓库证据
+
+- Revision: `33213adb50ccc85a0db3aeb8c45a9ac23bf4d7fb`
+- Research contract: `codex/plugins/gen-ai-development/skills/research-pipeline/SKILL.md:3,15-21,34,57-81,98-119`; `references/protocols.md:77`; `codex/agents/researcher.toml:2,17-19,94-101,150,177-181`
+- Review contract: `codex/plugins/gen-ai-development/skills/review-doc/SKILL.md:3,36-42,56-57`; `codex/agents/planner.toml:48-50,104-111,144-163`; `developer.toml:142-143`; `release-coordinator.toml:103-105`
+- Pipeline ownership: `codex/plugins/gen-ai-development/skills/autonomy-controller/SKILL.md:278-288`; `codex/agents/e2e-runner.toml:25-27`
+- Browser/UI: `codex/plugins/gen-ai-development/skills/e2e-test/SKILL.md:36-43`; `research-api/SKILL.md:34-40`; `app-ux-design/SKILL.md:178-199,362-373`
+- Claude guardrail reference: `claude/plugins/gen-ai-development/hooks/hooks.json:2-15`; `hooks/guardrail.py:3-28,111-220`
+
+### Codex 官方资料（查询口径：2026-07-23 当前 manual）
+
+- [Subagent configuration](https://learn.chatgpt.com/docs/agent-configuration/subagents)
+- [Build plugins](https://learn.chatgpt.com/docs/build-plugins)
+- [Build skills](https://learn.chatgpt.com/docs/build-skills)
+- [Hooks](https://learn.chatgpt.com/docs/hooks)
+- [Browser](https://learn.chatgpt.com/docs/browser)
+- [Latest model guide](https://developers.openai.com/api/docs/guides/latest-model.md)

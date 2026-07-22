@@ -1,6 +1,6 @@
 ---
 name: middleware-guideline
-description: Conventions for a service's platform-middleware integration — the config center (Nacos two-layer bootstrap/business config, `APP_PROFILE` namespace isolation, fast-fail, hot-reload) and the mandatory monitoring surface (`/healthz`, `/readyz`, Prometheus `/metrics`). Use when connecting a service to a config center, reading runtime config at startup, scaffolding a backend service, designing its API surface, or adding health/metrics endpoints. Trigger on "接 Nacos", "读配置", "配置中心", "健康检查", "加个指标", "接监控", "设计服务端接口" — anything shaping a backend service's endpoints, config wiring, or health/metrics. Querying or visualizing metrics (PromQL / Grafana dashboards) is out of scope — this skill owns the service side that exposes them. Local docker-compose belongs to devops-guideline.
+description: Apply backend middleware conventions for Nacos configuration, startup wiring, health/readiness endpoints and Prometheus metrics. Use for service scaffolding, config centers, API surfaces and monitoring exposure.
 ---
 
 # Middleware Integration Guidelines

@@ -31,13 +31,13 @@ Try the common spec/debug surfaces before hand-crafting calls — a machine-read
 
 - OpenAPI/Swagger JSON: `/openapi.json`, `/v3/api-docs`, `/swagger.json`, `/swagger/v1/swagger.json`
 - Swagger UI / Redoc pages: `/swagger`, `/swagger-ui`, `/docs`, `/redoc`, `/api-docs`
-- Fetch the spec with **WebFetch** or `curl`; for an interactive Swagger UI "Try it out" flow, drive it via the `graceful-browser` skill (Codex's native browser (@Chrome / @Browser) → chrome-devtools MCP → Playwright MCP, in that order).
+- Fetch the spec with the current Codex web tool or `curl`; for an interactive Swagger UI "Try it out" flow, choose an available browser through the `graceful-browser` skill.
 
 Parse the spec for the endpoints in scope: path, method, params, request/response schemas, auth requirements.
 
 ### 3. Probe endpoints safely
 
-> **Tooling: nothing to install.** `curl` ships on virtually every macOS/Linux box, the `WebFetch` tool is built in, and Swagger UI is driven through the `graceful-browser` skill — none of these need a local install. If `curl` somehow isn't present, fall back to `WebFetch` or an HTTP client in a runtime that's already there (e.g. Python `urllib`/`requests`-if-installed, Node `fetch`). **Don't `brew`/`apt`/`pip`/`npm` install a tool (httpie, etc.) just to probe** — use what's available or ask the user.
+> **Tooling: nothing to install.** Prefer the current Codex web tool or `curl`; Swagger UI is driven through `graceful-browser`. If `curl` is absent, use an HTTP client already present (for example Python `urllib` or Node `fetch`). **Don't install a new client merely to probe** — use what is available or ask the user.
 
 - **Read-only first.** Exercise `GET`/read endpoints to confirm response shape and behavior. Always set a timeout.
 - **Write endpoints** (`POST`/`PUT`/`PATCH`/`DELETE`) only in a sandbox/test environment, with the **smallest possible payload**, and only after **explicit user confirmation**. Never fire a write at a production API as part of research.

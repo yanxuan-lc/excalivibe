@@ -22,7 +22,7 @@ criticality:      core               # core | supporting | generic — the depth
 reversibility:    irreversible       # reversible | irreversible (escalates the ceiling)
 ceiling:          human-gated        # full-auto | auto+spot-check | human-gated  ← OUTPUT
 gate-shape:       intent-loop + human-confirm(architecture review) + publish-consent  ← OUTPUT
-intensity:        adversarial-N=2; design-it-twice=on; verifier-tier=top; verifier-model=alt-family; \
+intensity:        adversarial-N=2; design-it-twice=on; verifier-tier=top; verifier-model=gpt-5.6-sol; \
                   oracles=mutation+property; sweep=diff-scoped; token-budget=<n>   ← OUTPUT
 infra-readiness:  off                # off ⇒ any full-auto lane is downgraded to spot-check
 escalations:      []                 # surfaces that forced the ceiling up (one-way)

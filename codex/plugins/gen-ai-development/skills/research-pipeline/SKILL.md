@@ -1,6 +1,6 @@
 ---
 name: research-pipeline
-description: "The research orchestration pipeline for the main agent: clarify with the user, plan, route sub-questions to deep-research / researcher subagents / inline answers, then synthesize into docs/research/ (REPORT.mdx + PROPOSAL.md). Use whenever the user wants something researched, investigated, compared, or feasibility-checked — \"调研一下X\", \"对比A和B\", \"这个方案可行吗\", \"帮我看看这些资料\" — and for the research phase of autonomy-controller. A single hands-on probe of ONE source goes directly to research-source-code / research-data-source / research-api; this pipeline is for multi-subtask or comparative research needing clarification, routing, and synthesis."
+description: "Orchestrate multi-part research and comparisons: clarify, route scoped probes, synthesize cited findings, and write REPORT.mdx + PROPOSAL.md. Use for 调研、对比、可行性分析; use a probe skill directly for one source."
 ---
 
 # Research Pipeline — Orchestration for the Main Agent
@@ -31,7 +31,8 @@ for research not attached to any development change. Output contract is unchange
 
 ## Step a — Socratic Clarification (user-facing)
 
-Clarify the request with **AskUserQuestion**, Socratic style: one purposeful
+Clarify the request with the current Codex user-input surface (or a concise direct
+question when no structured input tool is available), Socratic style: one purposeful
 question at a time, each driving at goals, constraints, context, or implicit
 assumptions; continue until ambiguities are resolved. Don't interrogate for sport —
 if the request is already clear, say so and move on.
@@ -57,9 +58,9 @@ Decompose into subtasks and route each one. Produce an explicit plan table:
 | # | 子问题 | 执行方 | 方法 | 模型 | 预期产出 |
 |---|--------|--------|------|------|----------|
 | S-a | 业界方案盘点 | deep-research（主 agent 直接调用） | fan-out web | — | 带引用的方案清单 |
-| S-b | 库 X 的内部实现确认 | researcher | research-source-code | opus | SHA 级出处的结论 |
-| S-c | 现有数据量级摸底 | researcher | research-data-source | sonnet | 查询口径 + 计数 |
-| S-d | 服务 Y 接口行为 | researcher | research-api | sonnet | 脱敏请求/响应样例 |
+| S-b | 库 X 的内部实现确认 | researcher | research-source-code | gpt-5.6-sol | SHA 级出处的结论 |
+| S-c | 现有数据量级摸底 | researcher | research-data-source | gpt-5.6-terra | 查询口径 + 计数 |
+| S-d | 服务 Y 接口行为 | researcher | research-api | gpt-5.6-terra | 脱敏请求/响应样例 |
 ```
 
 Routing rules:
@@ -76,9 +77,13 @@ Routing rules:
   research-api / context7 / web search).
 - **Light conceptual questions** → answer inline; don't dispatch what you can
   settle yourself.
-- Pick the **model per dispatch** (Agent tool `model` param): judgment-heavy
-  subtopics → opus; mechanical probing → sonnet. Default: researcher's own
-  frontmatter (opus).
+- Pick the **model per dispatch** using Codex's spawn fields: judgment-heavy,
+  conflict-resolution, or synthesis work → `gpt-5.6-sol` with `high` effort;
+  mechanical probing → `gpt-5.6-terra` with `medium` effort. The researcher's TOML
+  default is Terra/medium; override it only when the task earns the extra cost.
+- Set `fork_turns = "none"` for each bounded research dispatch and pass the Step-b
+  digest explicitly. This prevents conversation-history leakage and keeps the input
+  contract reproducible.
 
 For plans with more than a couple of subtasks, show the plan to the user briefly
 before dispatching — it's their token budget.
@@ -96,7 +101,7 @@ conflict and each holds only a partial view).
 1. Read every result. **Judgment stays home**: you weigh conflicting findings,
    you own the conclusion — never paste subagent output through unread.
 2. Collect all `open_questions` from the results and ask the user in one batch
-   (AskUserQuestion). This replaces mid-research interruptions — researchers park
+   using the current user-input surface. This replaces mid-research interruptions — researchers park
    questions instead of blocking on them.
 3. **Loop**: if answers or findings change the picture (a direction dies, a new
    subtopic appears via `suggested_next`), go back to Step c for a follow-up round.

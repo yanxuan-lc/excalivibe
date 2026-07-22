@@ -4,7 +4,7 @@
 
 定位：把基于生成式 AI 的研发工作流沉淀成可复用的 Claude Code 能力。相比 1.x 的「一张相位图 + 一个人工门」，2.0 的核心是一个**自治控制器（autonomy-controller）**——它对每个任务先判断「这件事能放手到什么程度」，再据此组装**轨道（哪些节点）**、**门禁形状（几个人工触点）**与**验证强度**。范式收敛为 **SDD（spec 契约）+ TDD（测试）**两条，架构是**三层 + 专人专事的 subagent + 独立内聚的功能 skill**。
 
-> **状态：2.0，已替代并移除 1.x。** 插件名 `gen-ai-development`，版本 `2.0.1`，命令 / skill 命名空间均为 `gen-ai-development:*`。Claude 与 Codex 两端均已切到 2.0，走同一主流程（求同存异）。
+> **状态：2.x，已替代并移除 1.x。** 插件名 `gen-ai-development`，当前版本 `2.2.1`，命令 / skill 命名空间均为 `gen-ai-development:*`。Claude 与 Codex 两端走同一主流程（求同存异）。
 
 ## 快速开始（每个项目一次性 onboarding）
 

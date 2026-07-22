@@ -89,7 +89,7 @@ cp codex/agents/*.toml ~/.codex/agents/              # install the subagents
 | Scenario | Claude side | Codex side | Shared fallback |
 |---|---|---|---|
 | Research | `deep-research` + dynamic workflow | ordinary subagent | — |
-| Browser | `claude --chrome` | computer-use / `@Chrome` | chrome-devtools MCP / Playwright |
+| Browser | `claude --chrome` | discover available app / connector / built-in | chrome-devtools MCP / Playwright |
 
 ## Directory layout
 

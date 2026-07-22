@@ -1,6 +1,6 @@
 ---
 name: autonomy-controller
-description: Use at the START of any development task that builds or changes runnable product code — a feature, a bug, a visual/UI change, a refactor, a schema migration, a docs change, a dependency bump ("做个新功能", "改个 bug", "走流程", "按 openspec 来") — to set how much of it can run unattended and route it through the right track. Also when RESUMING an in-flight change (`openspec/changes/<id>/PIPELINE.md` exists, or "继续 xxx"), when one utterance bundles several intents, or when PICKING WORK FROM the idea backlog (`openspec/BACKLOG.md` exists and the user says "把 backlog 里的 X 做了", "把队列里的都做了", "清一下 backlog"). NOT for authoring skills/agents/commands/prompts (skill-creator owns that) or research-only work.
+description: Start or resume runnable-code development by selecting autonomy, track, gates, verification and agents. Use for features, bugs, UI, refactors, migrations, dependency bumps, or executing backlog work; not for authoring skills/prompts or research-only tasks.
 ---
 
 # Autonomy Controller — Orchestration for the Main Agent
@@ -180,6 +180,9 @@ implementation vehicles. This split is what keeps the toolkit portable and lean.
 
 ## Step 5 — Spawn the agents
 
+Apply the Codex-specific model, effort, context-isolation, and ownership matrix in
+[references/spawn-policy.md](references/spawn-policy.md) to every dispatch.
+
 - **Parallel-first**: independent dispatches go in one message. `implement` ∥
   `e2e-author` start from the same confirmed spec; `e2e-run` ∥ `code-review` are both
   read-only and always dispatched together. The harness's parallel-dispatch substrate
@@ -248,10 +251,11 @@ Verification cost is matched to stakes via the **intensity vector** the controll
 - **Light lanes**: adversarial-N = 1, no design-it-twice fan-out, no standing sweep;
   deterministic checks (security / a11y / perf / integrity) run *first*; escalate to a
   second pass only on disagreement.
-- **Gated lanes**: a **different model family** for the verifier role (independent
-  *context* is not independent *failure* — same lineage shares misreadings). Where the
-  harness cannot dispatch another family, realize it via the dual scaffold or record the
-  gap in `PIPELINE.md` (gates.md's realization note) — never silently downgrade.
+- **Gated lanes**: use a fresh-context `gpt-5.6-sol` verifier for work produced by the
+  default Terra implementer. This is tier and context independence, not model-family
+  independence. Where a gate requires another family, realize it through the dual
+  scaffold or record the gap in `PIPELINE.md` — never mislabel Sol/Terra as different
+  families.
 - **Verifier tier follows the lane**: spot-check / light lanes dispatch `code-reviewer`
   — and the design role `planner` on generic specs — at the **standard tier** (the
   mid-size model of the harness's lineup); the top tier and the different-family

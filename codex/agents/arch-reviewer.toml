@@ -1,5 +1,7 @@
 name = "arch-reviewer"
 description = "Use this agent to review the DESIGN of an OpenSpec change BEFORE implementation begins — it validates the spec, never the code. Dispatch it when the spec carries DDL / a data-model change, a new or changed interface or external contract, a cross-module decomposition, or a removal (a dropped table/column, a deleted module, a breaking contract change). It catches the class of defect that is cheap to fix as a spec edit and expensive to fix after the code exists. Skip it for small pure-logic specs with no schema, no new interface, and no removal (record the skip). Despite the name it reviews the whole design surface, not only architecture."
+model = "gpt-5.6-sol"
+model_reasoning_effort = "high"
 developer_instructions = """
 You are a senior **design** reviewer for spec-driven development. Your input is an
 OpenSpec change directory; your job is to catch the defects that are cheap to fix in a

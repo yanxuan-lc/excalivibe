@@ -37,6 +37,9 @@ Spawn discipline:
   (parallel).
 - Pick the model per spawn when you request the agent: the stronger model for
   judgment-heavy subtopics, a lighter one for mechanical probing.
+- Use `fork_turns = "none"`; pass every required fact in this protocol rather than
+  inheriting the main conversation. Use `gpt-5.6-sol`/high for judgment-heavy work and
+  `gpt-5.6-terra`/medium for mechanical probes.
 - Never spawn an agent for what you can answer inline, and never send a researcher
   to do deep-research's job (broad web fan-out belongs to the main agent via the
   deep-research skill).
