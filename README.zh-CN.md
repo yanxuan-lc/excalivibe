@@ -20,12 +20,13 @@ ExcaliVibe 是一套 **Vibe Working** 能力套件。概念源自 Vibe Coding，
 
 ## 从 GitHub 安装
 
-本仓库为公开仓库，两侧 marketplace 清单都放在**仓库根**，因此可以**一条命令直接从 GitHub 拉取安装**，无需先手动 clone。
+本仓库为公开仓库，两侧 marketplace 清单都放在**仓库根**。因此 plugin 可以直接从
+GitHub 安装，无需预先 clone；Codex subagent 是独立 TOML 文件，需另行安装。
 
 **前置**
 
 - **Claude Code**：较新版本（含 `plugin marketplace` 支持）。
-- **Codex CLI**：v0.117.0+（本文的 GitHub 直装步骤在 v0.137.0 实测通过）。
+- **Codex CLI**：v0.117.0+（项目实测下限；以下命令最近在 v0.145.0 验证通过）。
 
 ### Claude Code
 
@@ -44,21 +45,56 @@ claude plugin marketplace update excalivibe
 
 ### Codex（CLI v0.117.0+）
 
+#### 首次安装
+
 ```bash
-# 1. 添加 marketplace（owner/repo 简写，或 HTTPS/SSH Git URL；固定 ref 用 --ref main）
+# marketplace 只需添加一次；支持 owner/repo、HTTPS Git 和 SSH Git 地址
 codex plugin marketplace add yanxuan-lc/excalivibe
 
-# 2. 按需安装插件；安装后**新开 thread** 让 skills / MCP 生效
+# 只安装需要的 plugin
 codex plugin add gen-ai-development@excalivibe
 codex plugin add plugin-infra@excalivibe
 codex plugin add opc-workflow@excalivibe
 ```
 
-`gen-ai-development` 的 **9 个 subagent** 以独立 TOML 提供（Codex 的 plugin 机制无法捆绑 subagent），需单独放入 agents 目录。GitHub 直装时本地没有仓库副本，clone 一份取用即可：
+安装后新开 chat 或 CLI session，使 skills 与 MCP server 生效。
+
+`gen-ai-development` 的 **9 个 subagent** 以独立 TOML 提供，plugin 不会自动注册
+custom-agent TOML。首次 clone 仓库后，将其复制到个人或项目级 agents 目录：
 
 ```bash
 git clone https://github.com/yanxuan-lc/excalivibe.git
-cp excalivibe/codex/agents/*.toml ~/.codex/agents/      # 或放到项目级 .codex/agents/
+mkdir -p ~/.codex/agents
+cp excalivibe/codex/agents/*.toml ~/.codex/agents/
+
+# 项目级安装方式（在目标项目内执行）：
+# mkdir -p .codex/agents
+# cp /path/to/excalivibe/codex/agents/*.toml .codex/agents/
+```
+
+复制后也需新开 chat 或 CLI session。
+
+#### 更新已有的 GitHub 安装
+
+不要重复运行 `marketplace add`。先刷新 Git marketplace，再重新安装所需 plugin，
+最后新开 chat 或 CLI session：
+
+```bash
+codex plugin marketplace upgrade excalivibe
+codex plugin add gen-ai-development@excalivibe
+codex plugin add plugin-infra@excalivibe
+codex plugin add opc-workflow@excalivibe
+```
+
+正式发布的 plugin 更新应变更 SemVer。重复安装相同版本时可能继续复用缓存；本地迭代
+请使用下方 cachebuster 流程。
+
+独立安装的 subagent 通过已 clone 的仓库更新：
+
+```bash
+git -C excalivibe pull --ff-only
+mkdir -p ~/.codex/agents
+cp excalivibe/codex/agents/*.toml ~/.codex/agents/
 ```
 
 ## 本地开发安装
@@ -76,10 +112,34 @@ claude plugin marketplace update excalivibe         # 改动后刷新
 **Codex**
 
 ```bash
-codex plugin marketplace add .                      # 注册本地 marketplace（仓库根）
-codex plugin add gen-ai-development@excalivibe       # 安装；新开 thread 后生效
-cp codex/agents/*.toml ~/.codex/agents/              # 安装 subagent
-# 迭代：update_plugin_cachebuster.py <plugin> → codex plugin add <plugin>@excalivibe → 新开 thread
+# 在 ExcaliVibe 仓库根执行一次
+codex plugin marketplace add .
+
+# 安装 plugin 与独立 subagent
+codex plugin add gen-ai-development@excalivibe
+mkdir -p ~/.codex/agents
+cp codex/agents/*.toml ~/.codex/agents/
+```
+
+每次本地修改 plugin 后，生成仅供开发使用的版本后缀、重新安装，再新开 chat 或
+CLI session：
+
+```bash
+python3 ~/.codex/skills/.system/plugin-creator/scripts/update_plugin_cachebuster.py \
+  codex/plugins/gen-ai-development
+codex plugin add gen-ai-development@excalivibe
+```
+
+不要提交临时的 `+codex.<cachebuster>` 版本后缀。调试 `plugin-infra` 或
+`opc-workflow` 时，替换为对应的 plugin 目录和名称。
+
+若要测试 GitHub 的 `dev` 分支而不是本地 checkout，需显式指定 ref。若已经注册
+`excalivibe`，先移除原有来源：
+
+```bash
+codex plugin marketplace remove excalivibe
+codex plugin marketplace add yanxuan-lc/excalivibe --ref dev
+codex plugin add gen-ai-development@excalivibe
 ```
 
 ## 设计原则：求同存异
@@ -89,7 +149,7 @@ cp codex/agents/*.toml ~/.codex/agents/              # 安装 subagent
 | 场景 | Claude 侧 | Codex 侧 | 共同兜底 |
 |---|---|---|---|
 | 调研 | `deep-research` + dynamic workflow | 常规 subagent | — |
-| 浏览器 | `claude --chrome` | computer-use / `@Chrome` | chrome-devtools MCP / Playwright |
+| 浏览器 | `claude --chrome` | 发现当前可用 app / connector / built-in | chrome-devtools MCP / Playwright |
 
 ## 目录结构
 
