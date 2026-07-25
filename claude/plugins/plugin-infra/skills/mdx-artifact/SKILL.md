@@ -1,6 +1,6 @@
 ---
 name: mdx-artifact
-description: 把内容写成「给人看的」精美 MDX 文档，再用全局 CLI `mdxv` 起本地预览给人阅读——主题配色、Hero 头部、指标卡、步骤、卡片网格、悬浮目录与筛选、数学公式（LaTeX）、Graphviz/Mermaid 图。MDX 是一种「简化 HTML 输出」的类 Markdown 语言，目标覆盖 90% 手写 HTML 的场景。当用户想要一份给人阅读的文档 / 报告 / 方案 / 设计总览 / 看板 / 说明，或要把 Markdown、纯文本、分析结论「整理成好看的文档 / 做成网页 / 美化排版 / 生成可交付产物」时，务必使用本 skill——即使用户没有明说 "mdx-artifact"、"MDX" 或 "组件"。不要直接手写整篇 HTML，也不要只丢一份朴素 Markdown：组件化 MDX 大幅节省 token 并保证整篇视觉一致、可换主题、面向扩展。不适用于：需要后端或实时数据的 Web 应用、需要多人在线协作编辑的文档、电子表格/数据库应用。
+description: 把内容写成「给人看的」精美 MDX 文档，再用全局 CLI `mdxv` 起本地预览给人阅读——主题配色、Hero 头部、指标卡、步骤、卡片网格、分节导航与筛选、数学公式（LaTeX）、Graphviz/Mermaid 图。MDX 是一种「简化 HTML 输出」的类 Markdown 语言，目标覆盖 90% 手写 HTML 的场景。当用户想要一份给人阅读的文档 / 报告 / 方案 / 设计总览 / 看板 / 说明，或要把 Markdown、纯文本、分析结论「整理成好看的文档 / 做成网页 / 美化排版 / 生成可交付产物」时，务必使用本 skill——即使用户没有明说 "mdx-artifact"、"MDX" 或 "组件"。不要直接手写整篇 HTML，也不要只丢一份朴素 Markdown：组件化 MDX 大幅节省 token 并保证整篇视觉一致、可换主题、面向扩展。不适用于：需要后端或实时数据的 Web 应用、需要多人在线协作编辑的文档、电子表格/数据库应用。
 ---
 
 # mdx-artifact — 面向 Agent，为人类输出富文档产物
@@ -12,7 +12,7 @@ Agent 产的 Markdown 省 token 但给人看太素。本 skill 让你写 **MDX**
 
 ```
 你（Agent）写 a.mdx        →   mdxv a.mdx   →   人在浏览器读（改 mdx 自动刷新）
-Markdown + <组件>              全局 CLI          主题化 · 悬浮目录 · 图 · 公式
+Markdown + <组件>              全局 CLI          主题化 · 分节导航 · 图 · 公式
 ```
 
 **你只交付 `.mdx`**——不写 CSS、不写 HTML 骨架、不写坐标，呈现由组件合成。渲染器不在本仓库：**本 skill 只负责「怎么写」与「怎么给人看」**。
@@ -35,7 +35,7 @@ mdxv demo                   # 随包组件总览——想确认某组件长什�
 - **多文档树导航**：以目录为根时，正文里指向本地 `.md`/`.mdx`/目录的**相对链接会自动路由**（点击即在预览内互跳；目录链接按 `README.mdx` 索引约定解析），外链/锚点不动——用自然的 Markdown 相对链接就能串起整棵树。注：Markdown 本就是合法 MDX，`.md` 文件也能直接预览。
 - **语言变体**：同名兄弟文件加 locale 后缀（`guide.zh-CN.mdx` / `guide.en-US.mdx`）会被合并成一个导航项，按界面语言选中对应变体，缺失时回落无后缀版本。
 
-> 组件与参数的**权威源是 mdx-viewer 本身**（本 skill 对齐 ≥ 0.1.0，`mdxv --version` 可查）。下面的写法约定与 `references/blocks.md` 是精简速查；两者对不上时以包为准，并顺手回修本 skill。
+> 组件与参数的**权威源是 mdx-viewer 本身**（本 skill 对齐 ≥ 0.2.0，`mdxv --version` 可查）。下面的写法约定与 `references/blocks.md` 是精简速查；两者对不上时以包为准，并顺手回修本 skill。
 
 ## 文档骨架（务必遵循）
 
@@ -51,7 +51,7 @@ org: 平台架构组                  # 拼进 Hero 的日期行
 copyright: 平台架构组            # 落款版权行 © {年} {copyright}
 palette: lime                   # 主题色：indigo | teal | rose | amber | lime
 mode: auto                      # 明暗：light | dark | auto（右上角可手动切换）
-toc: true                       # 右侧悬浮目录（从 Section 收集）
+toc: true                       # 右侧悬浮目录（从 Section 收集）—— 仅 >1700px 视口显示，见下
 footer: 反馈请联系平台架构组。      # 可选：页脚寄语（显示在落款之上）
 ---
 
@@ -61,7 +61,9 @@ footer: 反馈请联系平台架构组。      # 可选：页脚寄语（显示�
 …（关键信息用组件承载：指标→Stat、流程→Steps、对比→Table/Columns、用例→Scenario）…
 ```
 
-正文里**不要再手写 `<Hero>`**——`title` 已经生成了一个。确实想自己摆 Hero 时，frontmatter 设 `hero: false`（或不写 `title`）避免出现两个。
+正文里**不要再手写 `<Hero>`**——`title` 已经生成了一个。确实想自己摆 Hero 时，frontmatter 设 `hero: false`（或不写 `title`）避免出现两个。落款同理：它自动渲染，**不要手写 `<Colophon>`**。
+
+**`toc: true` 的悬浮目录在 ≤1700px 视口会隐藏**（避免压正文），也就是说**多数笔记本屏幕上看不到它**。所以：照常开 `toc`（宽屏受益），但**别向用户承诺"右侧有目录"**——文档的可读性要靠 `<Section>` 分节本身撑住，而不是靠目录。
 
 ### 落款：`datetime` 必须你自己写
 

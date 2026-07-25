@@ -12,7 +12,7 @@
 
 ### 1. 承载与内容形式
 - **承载**：一份 **MDX**（Markdown 超集 + 组件）文件 `REVIEW.mdx`，由 **plugin-infra 的
-  `mdx-artifact` skill** 起本地预览（`mdxv`）供人审阅——主题化、可交互目录。正文**能用
+  `mdx-artifact` skill** 起本地预览（`mdxv`）供人审阅——主题化、分节清晰。正文**能用
   Markdown 就用 Markdown**；图 / 关键决策 / 元信息 / 分节用组件增强（见骨架）。
   **MDX 仍是唯一的源**，预览页只是随时可重生的呈现——不手写 HTML、不在 MDX 之外另造页面。
 - **内容形式优先级（高→低）**：**图（mermaid / graphviz）＞ 表格 ＞ DSL（如建表 DDL）＞ 文字描述**。

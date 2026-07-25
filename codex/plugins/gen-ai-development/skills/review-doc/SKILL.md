@@ -85,7 +85,7 @@ scripts/spec-hash.sh openspec/changes/<id>/
 
 ## 呈现（交给 mdx-artifact 渲染查看）
 
-- REVIEW.mdx 由 **plugin-infra 的 `mdx-artifact` skill** 呈现为主题化、可交互目录的网页。架构门上，
+- REVIEW.mdx 由 **plugin-infra 的 `mdx-artifact` skill** 呈现为主题化、分节清晰的网页。架构门上，
   主 Agent 通过该 skill 起预览（`mdxv <REVIEW.mdx 路径>`，常驻进程要后台起）把本地服务地址给用户，
   对话里同步给出要点摘要。
 - REVIEW.mdx 正文写 GFM markdown（表格、```sql / ```jsonc 直接可用）；图用 ```dot（模块依赖/

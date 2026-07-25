@@ -41,7 +41,7 @@ Don't load the reference files until you actually need them — the body here is
 ## 承载与查看（as-built 文档用 MDX）【强制】
 
 `docs/tech/` 的 as-built 文档与各级 `README.mdx` 索引都写成 **MDX**（Markdown 超集 + 组件），由
-plugin-infra 的 **`mdx-artifact`** skill 起本地预览查看（主题化、可交互目录）：
+plugin-infra 的 **`mdx-artifact`** skill 起本地预览查看（主题化、分节清晰）：
 `mdxv docs/tech` 以该目录为根起预览服务（多篇时左侧出文件抽屉）——**正文里指向本地 `.md`/`.mdx`/目录的
 相对链接会自动路由**（点击即在预览内互跳；目录链接按 `README.mdx` 索引解析），所以 README-as-Index
 的路由表照常工作。

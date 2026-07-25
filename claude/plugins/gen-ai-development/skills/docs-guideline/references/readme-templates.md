@@ -9,7 +9,7 @@ Copy-paste starting points for each kind of README in the `docs/` tree. They are
 > title: docs/tech —— 技术方案（as-built）   # 该 README 的大标题（Hero）
 > palette: teal
 > mode: auto
-> toc: true                                  # 用 <Section> 时右侧生成悬浮目录
+> toc: true                                  # 用 `Section` 时右侧生成悬浮目录（仅 >1700px 视口可见）
 > ---
 > ```
 > 骨架里的 `「…」` 是**「填我」标记**，落地时必须全部替换成真实内容；**不要改用 `<…>` 形状的占位**——
