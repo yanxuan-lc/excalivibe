@@ -178,23 +178,18 @@ excalivibe/
 
 ## Docs (MDX)
 
-Project docs live under [`docs/`](./docs/) as an **MDX tree** (`.mdx`), partitioned by authority: [`docs/tech/`](./docs/tech/) is the as-built source of truth, [`docs/research/`](./docs/research/) is historical. They are authored for the rich reader shipped by `plugin-infra`'s **mdx-artifact** skill — GitHub renders `.mdx` as raw source, so use the preview below for the intended experience.
+Project docs live under [`docs/`](./docs/) as an **MDX tree** (`.mdx`), partitioned by authority: [`docs/tech/`](./docs/tech/) is the as-built source of truth, [`docs/research/`](./docs/research/) is historical. They follow the authoring conventions of `plugin-infra`'s **mdx-artifact** skill and are meant to be read through [mdx-viewer](https://github.com/yanxuan-lc/mdx-viewer) — GitHub renders `.mdx` as raw source, so use the preview below for the intended experience.
 
 **View the whole tree (recommended):**
 
 ```bash
-SKILL=claude/plugins/plugin-infra/skills/mdx-artifact
-npm --prefix $SKILL install                  # one-time: install build deps
-node $SKILL/scripts/serve.mjs --root docs    # opens a browsable index of docs/
+npm install -g mdx-viewer   # one-time: provides the mdxv preview command
+mdxv docs                   # browsable preview rooted at docs/
 ```
 
-The preview lists every `.mdx` under `docs/`; open any of them and relative links between docs route inside the preview (edit a file → it hot-reloads). To export a single doc as a **self-contained, offline HTML** file instead:
+The preview lists every `.mdx` under `docs/` in a left-hand file drawer; relative links between docs route inside the preview, and editing a file hot-reloads it. Point `mdxv` at one file (`mdxv docs/tech/README.mdx`) to open just that one.
 
-```bash
-node claude/plugins/plugin-infra/skills/mdx-artifact/scripts/render.mjs docs/tech/README.mdx docs-tech.html
-```
-
-> The renderer is offline and self-contained (zero external requests). Authoring conventions live in the skill's [SKILL.md](./claude/plugins/plugin-infra/skills/mdx-artifact/SKILL.md); the Codex side mirrors the same skill.
+> The renderer lives in its own package — it is not vendored here, so `mdxv` works from any directory. Authoring conventions live in the skill's [SKILL.md](./claude/plugins/plugin-infra/skills/mdx-artifact/SKILL.md); the Codex side mirrors the same skill.
 
 ## More docs
 

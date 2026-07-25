@@ -89,6 +89,10 @@ cp codex/agents/*.toml ~/.codex/agents/               # subagent 独立安装（
 # 迭代：update_plugin_cachebuster.py → codex plugin add <plugin>@excalivibe → 新开 thread
 ```
 
+**外部工具依赖**：`plugin-infra:mdx-artifact` 只交付 `.mdx` 写法约定，渲染器是独立 npm 包
+[mdx-viewer](https://github.com/yanxuan-lc/mdx-viewer)——预览 `.mdx`（含 `docs/` 这棵树）需
+`npm install -g mdx-viewer` 提供 `mdxv` 命令（或 `npx -p mdx-viewer mdxv <path>` 免装）。
+
 ## 校验
 
 - **Codex plugin**：`python3 ~/.codex/skills/.system/plugin-creator/scripts/validate_plugin.py <plugin-path>`（依赖 `pyyaml`；建议在临时 venv 中运行）。

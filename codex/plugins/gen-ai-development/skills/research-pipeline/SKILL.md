@@ -15,8 +15,8 @@ This is the expansion of the autonomy-controller's research phase, and also stan
 for research not attached to any development change. Output contract is unchanged:
 `docs/research/<YYYY-MM-DD_HH-mm-ss>-<topic>/REPORT.mdx + PROPOSAL.md`.
 - **REPORT.mdx** is the human-facing research record — MDX, presented via plugin-infra's
-  `mdx-artifact` skill (`npm run preview -- <REPORT.mdx 路径>` for a local URL, or `npm run
-  render` for a self-contained HTML to share); the main agent hands the user that view + a digest.
+  `mdx-artifact` skill (`mdxv <REPORT.mdx 路径>` for a local URL; it is a long-running process, so
+  background it); the main agent hands the user that view + a digest.
 - **PROPOSAL.md** stays **Markdown** — it is the machine input to planner / `opsx:propose`,
   so it is not converted to MDX (that would break consumption).
 

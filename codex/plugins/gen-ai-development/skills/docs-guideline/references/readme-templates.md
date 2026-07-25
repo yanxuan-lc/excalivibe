@@ -12,6 +12,8 @@ Copy-paste starting points for each kind of README in the `docs/` tree. They are
 > toc: true                                  # 用 <Section> 时右侧生成悬浮目录
 > ---
 > ```
+> 骨架里的 `「…」` 是**「填我」标记**，落地时必须全部替换成真实内容；**不要改用 `<…>` 形状的占位**——
+> `README.mdx` 走 MDX 解析，正文里残留的 `<xxx>` 会被当组件、导致整页渲染失败（需字面尖括号时用反引号包裹）。
 > 骨架里的**目录链接**（如 `./tech/`、`./protocol/v1.0/`）预览时自动路由到该目录的 `README.mdx`；
 > 文件链接写相对 `.mdx` 路径即可。需要更强的分节/提示时用 `<Section>`/`<Callout>`（可选，短索引页保留 `##` 亦可）。
 
@@ -63,16 +65,16 @@ Routes by *intent* into the module/artifact subdirs, and states the organization
 
 | 我要做… | 读这里 |
 |---|---|
-| 改 <契约：字段 / 端点 / 认证> | [`protocol/v1.0/`](./protocol/v1.0/) |
-| 改 <模块 A 的行为> | [`<moduleA>/`](./<moduleA>/) |
-| 改 <模块 B 的行为> | [`<moduleB>/`](./<moduleB>/) |
+| 改 「契约：字段 / 端点 / 认证」 | [`protocol/v1.0/`](./protocol/v1.0/) |
+| 改 「模块 A 的行为」 | [`「moduleA」/`](./「moduleA」/) |
+| 改 「模块 B 的行为」 | [`「moduleB」/`](./「moduleB」/) |
 | 建表 / 改表 / 写迁移 / 看 schema | [`database/`](./database/) |
-| 改运行配置 / <配置下发机制> | [`<config>/`](./<config>/) |
+| 改运行配置 / 「配置下发机制」 | [`「config」/`](./「config」/) |
 
 ## 组织约定
 - **顶层 = 有代码/契约耦合的共享产物**：`protocol/`（跨模块共享的线缆契约，按 API 版本分子目录）、
-  `database/`（DDL 评审单 + schema，被构建/测试硬引用，路径不可随意挪）、`<config>/`（运行配置机制）。
-- **模块子目录 = 叙述性技术方案**：`<moduleA>/`、`<moduleB>/`，向外链到上面的共享产物，不重复粘贴。
+  `database/`（DDL 评审单 + schema，被构建/测试硬引用，路径不可随意挪）、`「config」/`（运行配置机制）。
+- **模块子目录 = 叙述性技术方案**：`「moduleA」/`、`「moduleB」/`，向外链到上面的共享产物，不重复粘贴。
 
 ## 维护规则
 - **先文档后代码**：改协议 / schema / 字段抽取时，先更新对应 tech 文档（及版本），再改实现。
@@ -87,23 +89,23 @@ Routes by *intent* into the module/artifact subdirs, and states the organization
 For a component's as-built design (`daemon/`, `server/`). It tells the component's story and links out to shared artifacts.
 
 ```markdown
-# <module> 技术方案（as-built）
+# 「module」 技术方案（as-built）
 
-> <一句话定位：这个模块是什么、干什么>。
-> 权威源：`<code/path/>`。
-> 本文件覆盖 <本模块负责的范围>；<跨模块的契约/形状> 见 [`../protocol/v1.0/`](../protocol/v1.0/)。
+> 「一句话定位：这个模块是什么、干什么」。
+> 权威源：`「code/path/」`。
+> 本文件覆盖 「本模块负责的范围」；「跨模块的契约/形状」 见 [`../protocol/v1.0/`](../protocol/v1.0/)。
 
-## 1. <结构总览>
-<模块的组成、依赖方向、关键约束>
+## 1. 「结构总览」
+「模块的组成、依赖方向、关键约束」
 
-## 2. <核心机制 A>
+## 2. 「核心机制 A」
 ...
 
-## N. <配置 / 生命周期 / 边界>
+## N. 「配置 / 生命周期 / 边界」
 ...
 
 ---
-> 历史：本设计的调研见 [`../../research/<date>-<topic>/`](...)（一次性报告，以本文件为准）。
+> 历史：本设计的调研见 [`../../research/「date」-「topic」/`](...)（一次性报告，以本文件为准）。
 ```
 
 ---
@@ -113,19 +115,19 @@ For a component's as-built design (`daemon/`, `server/`). It tells the component
 For shared, code-coupled artifacts (`protocol/v1.0/`, `database/`). The header must nail down the authoritative code path and the versioning/path rules, because these are the docs other modules and the build depend on.
 
 ```markdown
-# <artifact> <版本/范围>（as-built）
+# 「artifact」 「版本/范围」（as-built）
 
-> <一句话：这是什么契约/产物，对应哪段代码表面>。权威源：`<code/path>`。
-> **版本约定**：目录 `v1.0/` 对应 <API major /v1>；破坏性变更新建 `v2.0/`，兼容小修订递增 `v1.1/`。
+> 「一句话：这是什么契约/产物，对应哪段代码表面」。权威源：`「code/path」`。
+> **版本约定**：目录 `v1.0/` 对应 「API major /v1」；破坏性变更新建 `v2.0/`，兼容小修订递增 `v1.1/`。
 > 改契约时**先更新本文件再改代码**。
 
-## 1. <端点 / 表 / 总览>
+## 1. 「端点 / 表 / 总览」
 | ... | ... |
 
-## 2. <逐项定义>
+## 2. 「逐项定义」
 ...
 
-> 字段如何从源头抽取/分类的**语义权威**在 [`../../<module>/README.mdx`](...)；本文件只定义形状。
+> 字段如何从源头抽取/分类的**语义权威**在 [`../../「module」/README.mdx`](...)；本文件只定义形状。
 ```
 
 > For `database/`: also note the DDL-review-unit convention (one file = one DDL = one review unit) and that the path is hard-referenced by `Makefile`/tests — see the reference project's `tech/database/README.mdx`.
@@ -137,10 +139,10 @@ For shared, code-coupled artifacts (`protocol/v1.0/`, `database/`). The header m
 You generally don't *write* these (the `researcher` agent does), but you add the STALE banner on top when the design ships. Shape for reference:
 
 ```markdown
-# <topic> 调研
+# 「topic」 调研
 
-- **日期**：<date>
-- **范围**：<scope>
+- **日期**：「date」
+- **范围**：「scope」
 - **状态**：调研稿 / 已进入实施 / 已归档
 
 ## 总览
@@ -156,10 +158,10 @@ You generally don't *write* these (the `researcher` agent does), but you add the
 Goes at the very top of a `research/`/`ued/` file whose design has now shipped. Be specific — name what changed and where the truth lives now.
 
 ```markdown
-> ⚠️ **STALE — 仅作历史参考（<date> 起）**
+> ⚠️ **STALE — 仅作历史参考（「date」 起）**
 >
-> 本文所述 <方案/栈> 已由 <实现/change> 取代：
-> - <变化点 1>
-> - <变化点 2>
-> 文件保留是为追溯当时的决策与对比，**现状以 [`docs/tech/<path>`](...) 为准**。
+> 本文所述 「方案/栈」 已由 「实现/change」 取代：
+> - 「变化点 1」
+> - 「变化点 2」
+> 文件保留是为追溯当时的决策与对比，**现状以 [`docs/tech/「path」`](...) 为准**。
 ```

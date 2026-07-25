@@ -1,13 +1,15 @@
 # mdx-artifact · Block API 速查（MDX）
 
-写 `.mdx` 时的组件参考。**原则：散文/标题/列表/任务清单/表格/代码/引用直接写 Markdown；富块、布局、交互、公式用组件标签。** 样式只用语义枚举，不写颜色值。
+写 `.mdx` 时的组件参考，对齐 **mdx-viewer ≥ 0.1.0**（渲染器是全局 CLI `mdxv`，权威源是该包本身；`mdxv demo` 可直接看到每个组件的渲染效果）。
+
+**原则：散文/标题/列表/任务清单/表格/代码/引用直接写 Markdown；富块、布局、交互、公式用组件标签。** 样式只用语义枚举，不写颜色值。
 
 ## MDX 通用约定（先读）
 
 - **块组件内的散文要空行分隔**才当 markdown 段落渲染（见下例）。
 - **数组/对象属性用 `{}`**：`stats={[{v:"3",l:"服务"}]}`。
-- **公式用属性 `tex`**：`<Math tex="\frac{a}{b}" />`（MDX 把 `{}` 当表达式，不能把 LaTeX 写进 children）。
-- **代码用 markdown 围栏**（对 `<>` 安全）；自闭合组件写 `/>`。
+- **公式**：官方 `$…$` / `$$…$$` 直接可用；被 MDX 表达式语法干扰时改用属性 `<Math tex="\frac{a}{b}" />`。
+- **代码用 markdown 围栏**（对 `<>` 安全，Shiki 双主题高亮）；自闭合组件写 `/>`。
 - Markdown 原生（自动上妆）：`## / ### / ####`、`**粗**`/`*斜*`/`` `码` ``/`[链](url)`、`- / 1.`、任务清单 `- [ ]`、GFM 表格、`>` 引用、`---`、代码围栏 <code>```lang</code>。
 
 ---
@@ -16,35 +18,38 @@
 
 | 字段 | 取值 |
 |---|---|
-| `title` | 文档标题（自动 Hero） |
-| `author` | **必填** · 撰写此文档的模型（如 `Claude Opus 4.8`）。缺失告警 + `AI Agent` 兜底 |
-| `org` | 版权归属主体（落款第 1 行 `©` 用它） |
-| `copyright` | 可选 · 整行版权文案覆盖（默认 `© {年} {org}`） |
-| `date` | 可选 · 文档日期，仅用于 Hero 展示（与自动生成时间戳无关） |
+| `title` | 文档标题（有它才自动生成 Hero） |
 | `subtitle` | 头部副标题 |
+| `eyebrow` | 自动 Hero 的眉标 |
+| `author` | 撰写此文档的模型（如 `Claude Opus 5`）；与 `datetime` 一起进落款 |
+| `datetime` | 编辑时刻 `yyyy-MM-dd HH:mm:ss` · **需你自己填**，渲染器不会自动生成 |
+| `org` | 拼进 Hero 的日期行（`datetime · org`） |
+| `copyright` | 落款版权行 `© {当年} {copyright}` |
 | `footer` | 可选 · 页脚寄语（叙述带，显示在落款之上） |
 | `palette` | `indigo`(默认)｜`teal`｜`rose`｜`amber`｜`lime` |
-| `mode` | `light`(默认)｜`dark`｜`auto`（右上角可手动切换并记忆） |
+| `mode` | `light`｜`dark`｜`auto`（右上角可手动切换并记忆） |
 | `density` | `comfortable`(默认)｜`compact` |
 | `toc` | `true` 右侧悬浮目录 |
+| `hero` | `false` 关掉自动 Hero（正文自己写 `<Hero>` 时用） |
 | `chrome` | `off` 关掉自动头尾（连同落款一并关闭） |
 
-> **版本记落款始终自动输出**在页面最底部，两行分区：
-> 1. **用户信息**：`© {年} {org} · 由 {author} 撰写 · 生成于 {到秒的时间戳}`（时间在渲染时自动捕获、精确到秒，无需手写）。
-> 2. **ExcaliVibe 固定推广**：`以 ExcaliVibe · mdx-artifact v{X} 生成 · MIT` + 跳 ExcaliVibe 仓库的 GitHub 图标（写死在 skill 内，frontmatter 无法覆盖）。
+> **落款**在页面最底部，全部字段**提供才显示**：
+> 1. **文档信息**：`由 {author} 编辑于 {datetime}  ·  © {当年} {copyright}`。**`datetime` 无自动兜底**——漏填就没有时间戳，读者无法判断新鲜度。
+> 2. **渲染器署名**：mdx-viewer 的仓库 · 版本 · MIT（渲染器自带，frontmatter 无法配置）。
 >
 > `chrome: off` 时整条落款不输出。
 
 ## Hero
-`eyebrow` `title` `sub` `date` `dark`(布尔) `stats={[{v,l}]}`；children = 描述段。
+`eyebrow` `title` `sub` `date`（自由文本，通常放日期/组织）`stats={[{v,l}]}`；children = 描述段。
+**frontmatter 有 `title` 时已自动生成一个 Hero**——想自己写就同时设 `hero: false`，否则会出现两个。
 ```mdx
-<Hero eyebrow="design · v1" title="订单系统" sub="异步解耦" date="2026-07-21" stats={[{v:"1.2M",l:"日均订单"}]}>
+<Hero eyebrow="design · v1" title="订单系统" sub="异步解耦" date="2026-07-25 · 平台架构组" stats={[{v:"1.2M",l:"日均订单"}]}>
 一句话说清这份文档。
 </Hero>
 ```
 
 ## Footer（可选寄语带）
-children = markdown。**可选**——放致谢 / 联系方式 / 版本说明，显示在版本记落款**之上**。不写则页面底部只有自动落款（版权 · 撰写 Agent · 生成日期 · 工具授权，见 frontmatter 表下方说明）。也可用 frontmatter `footer:` 写单行寄语。
+children = markdown。**可选**——放致谢 / 联系方式 / 版本说明，显示在落款**之上**。不写则页面底部只有落款（见 frontmatter 表下方说明）。也可用 frontmatter `footer:` 写单行寄语。
 ```mdx
 <Footer>
 
@@ -150,17 +155,17 @@ children = markdown。**可选**——放致谢 / 联系方式 / 版本说明，
 ```
 
 ## Math
-`tex`（LaTeX，构建期 KaTeX 预渲染 + 字体内联）；`display="inline"` 转行内。
+官方语法优先：行内 `$E=mc^2$`、独立 `$$…$$`（KaTeX）。组件形式 `<Math tex="…" />` 用于 `{`/`_` 被 MDX 当表达式吃掉的场合；`display="inline"` 转行内。
 ```mdx
 <Math tex="\text{QPS}_{\max} = \frac{N}{\bar{t}} \times \eta" />
 ```
 
 ## Code（带文件名）
-`filename`；children = 代码（**别放裸 `<`**，含泛型请改用 markdown 围栏）。
+`filename`；children = 代码（**别放裸 `<` / `{`**，会被当 JSX/表达式；要放字面量用 `` {`…`} `` 模板字符串，含泛型的代码直接改用 markdown 围栏）。
 ```mdx
-<Code filename="config.json">{ "port": 8080 }</Code>
+<Code filename="config.json">{`{ "port": 8080 }`}</Code>
 ```
-一般代码用 markdown 围栏（对 `<>` 安全）：<code>```ts order.ts</code> … <code>```</code>
+一般代码用 markdown 围栏（对 `<>` 安全，Shiki 双主题高亮）：<code>```ts order.ts</code> … <code>```</code>
 
 ## 图（Diagram）：三车道 + 场景路由
 
@@ -170,18 +175,18 @@ children = markdown。**可选**——放致谢 / 联系方式 / 版本说明，
 
 ### 场景 → 围栏语言（决策表）
 
-| 你要画的 | 语言 | 渲染 / 运行时 |
+| 你要画的 | 语言 | 渲染 |
 |---|---|---|
-| 流程图 / 管线 / 审批流 / 工作流 | `dot` | 构建期→静态 SVG · 零运行时 |
+| 流程图 / 管线 / 审批流 / 工作流 | `dot` | 构建期 Graphviz(wasm)→静态 SVG |
 | 依赖 / 调用链 / 模块关系 / DAG / 有向图 | `dot` | 同上 |
 | 类图（UML class）/ 继承·关联 | `dot`（`shape=record`） | 同上 |
 | ER 图 / 数据模型 / 表关系 | `dot`（`record` + crow's-foot） | 同上 |
 | 系统架构 / 分层架构 / 部署拓扑 / 服务边界 | `dot`（`subgraph cluster`＝边界） | 同上 |
 | 树 / 层级 / 组织架构 / 目录树 / 决策树 | `dot` | 同上 |
-| **时序图 / 序列图 / 交互时序**（生命线、alt/loop） | `mermaid` | 客户端 · 用到才内联运行时（~3.4MB/页） |
+| **时序图 / 序列图 / 交互时序**（生命线、alt/loop） | `mermaid` | 客户端渲染 · 用到才加载 |
 | **状态机 / statechart**（复合状态、事件转移） | `mermaid` | 同上 |
 | 甘特 / 排期 / 时间线 / 用户旅程 / git 分支图 | `mermaid` | 同上 |
-| 自定义示意 / 概念图 / 坐标·几何 / 标注图 / 图形拼合（**兜底**） | `svg` | 原样内联 · 零运行时 |
+| 自定义示意 / 概念图 / 坐标·几何 / 标注图 / 图形拼合（**兜底**） | `svg` | 原样内联 |
 
 ### 召回词（想到这些词就用对应车道）
 
@@ -191,16 +196,17 @@ children = markdown。**可选**——放致谢 / 联系方式 / 版本说明，
 
 ### tie-breaker（重叠区判定）
 
-1. **流程图**：mermaid 也能画，但**默认 `dot`**——零运行时 + 可用 `cluster`/`rank` 控位置。仅当出现泳道/复杂条件片段等偏交互记法时才 `mermaid`。
+1. **流程图**：mermaid 也能画，但**默认 `dot`**——出图稳定 + 可用 `cluster`/`rank` 控位置。仅当出现泳道/复杂条件片段等偏交互记法时才 `mermaid`。
 2. **状态流转 vs 状态机**：只是"方框+箭头流转"→ `dot`；要"复合/嵌套状态、事件标注转移"的正式 statechart → `mermaid`。
 3. **数据图表**（饼/柱/折线）：**不在图引擎范围**（属未来 DataView）。极简饼图可临时用 mermaid `pie`，但图表 ≠ 关系图，别用 dot/svg 硬凑。
 
 ### 用法
 
 - `dot`：渲染器自动注入主题化默认（圆角填充节点、accent 簇标、muted 边）并把颜色映射为 CSS 变量→跟随明暗；作者显式设色会覆盖默认。
+- `mermaid`：主题变量取自当前配色，随明暗自动重渲。
 - `svg`：用 `currentColor` 或 `var(--accent)`/`var(--ink)` 等上色即自动适配明暗。
 - **图注**：包一层 `<Figure caption="…">`，图注居中显示在图下方。
-- **全屏查看**：每张图右上角有放大镜按钮（hover 显现），点开进入全屏查看器——**滚轮缩放、拖拽平移、Esc/✕ 关闭**，内容多的大图也能看清。无需作者做任何事，三种引擎的图都自动具备。
+- **全屏查看**：每张图右上角有放大按钮（hover 显现），点开进入全屏查看器——**滚轮缩放、拖拽平移、Esc/✕ 关闭**，内容多的大图也能看清。无需作者做任何事，三种引擎的图都自动具备。
 
 ````mdx
 ```dot
@@ -227,5 +233,5 @@ sequenceDiagram
 
 ---
 
-## 扩展新组件（OCP）
-在 `src/components/registry.mjs` 写一个 React 函数（`React.createElement`），在 `components` 映射表追加 `标签名: 组件`。核心渲染器无需改动。
+## 组件不够用时
+先看能不能用现有 Block 组合出来。确实要加新组件，那是**上游 mdx-viewer** 的事：在它的 `src/app/components/blocks.tsx` 写一个 React 组件，在 `src/app/mdx-components.tsx` 的映射表追加 `标签名: 组件`（核心渲染管线不动）。**不要在本仓库重造渲染器**——改完上游再回修这份速查。

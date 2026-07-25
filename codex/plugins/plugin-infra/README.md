@@ -9,7 +9,7 @@
 | 能力 | 类型 | 名称 | 说明 |
 |------|------|------|------|
 | 浏览器框架选择与降级 | Skill | `graceful-browser` | 在 Codex 原生浏览器（`@Chrome` / `@Browser`）/ chrome-devtools MCP / Playwright 间自动选出当前环境最合适的浏览器操控框架 |
-| MDX 文档产物 | Skill | `mdx-artifact` | 将报告或方案渲染、预览为组件化 MDX 与自包含 HTML |
+| MDX 文档产物 | Skill | `mdx-artifact` | 把报告或方案写成组件化 MDX,并用全局 CLI `mdxv` 起本地预览给人看 |
 | Chrome DevTools（浏览器导航 / 截图 / DOM 检查） | MCP（stdio） | `chrome-devtools` | 零配置开箱即用，自动复用已有调试 Chrome 或自启 |
 
 ## graceful-browser Skill
@@ -46,6 +46,6 @@ plugin-infra/
 │   ├── graceful-browser/
 │   │   ├── SKILL.md                 # 浏览器框架选择 skill（Codex 版）
 │   │   └── scripts/start-chrome-devtools.sh
-│   └── mdx-artifact/                # MDX 渲染、预览与 HTML 导出
+│   └── mdx-artifact/                # MDX 写法约定 + mdxv 预览（渲染器为外部 npm 包 mdx-viewer）
 └── README.md
 ```

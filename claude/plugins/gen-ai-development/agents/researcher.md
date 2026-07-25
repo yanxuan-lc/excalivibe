@@ -104,17 +104,17 @@ Output: two files in the provided `output_dir`
 (`docs/research/<YYYY-MM-DD_HH-mm-ss>-<topic>/`). This is the one mode that writes to disk,
 and it writes **only** to that directory — nowhere else.
 
-**REPORT.mdx** — the research record（**给人看**，由 plugin-infra 的 `mdx-artifact` skill 渲染成
-富 HTML 查看）。承载 MDX：正文写 Markdown，分节用 `<Section>`（TOC 从此收集），对比/证据用表格、
-关系/流程用 ` ```dot `/` ```mermaid ` 围栏。**所有 `<…>` 占位必须替换成真实内容**——MDX 会把
-正文里残留的 `<xxx>` 当组件、导致渲染失败（需字面尖括号时用反引号包裹）。
+**REPORT.mdx** — the research record（**给人看**，由 plugin-infra 的 `mdx-artifact` skill 起预览查看）。承载 MDX：正文写 Markdown，分节用 `<Section>`（TOC 从此收集），对比/证据用表格、
+关系/流程用 ` ```dot `/` ```mermaid ` 围栏。**模板里的 `「…」` 占位必须全部替换成真实内容，且不要
+改用 `<…>` 形状的占位**——MDX 会把正文里残留的 `<xxx>` 当组件、导致渲染失败（需字面尖括号时用
+反引号包裹）。
 
 ````mdx
 ---
 title: 「研究主题」
 subtitle: 研究报告
 author: 「生成本文的模型」
-date: 「datetime」
+datetime: 「yyyy-MM-dd HH:mm:ss，取生成时刻」
 palette: teal
 mode: auto
 toc: true

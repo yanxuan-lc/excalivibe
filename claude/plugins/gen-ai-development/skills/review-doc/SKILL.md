@@ -20,11 +20,11 @@ REVIEW.mdx 不是结论清单，而是**能被评审**的文档：它分四层�
 
 ## 三条硬要求（生成 REVIEW.mdx 时必须遵守）
 
-1. **承载 MDX（Markdown 超集 + 组件），由 plugin-infra 的 `mdx-artifact` skill 渲染成富 HTML 查看；
+1. **承载 MDX（Markdown 超集 + 组件），由 plugin-infra 的 `mdx-artifact` skill 起本地预览给人看；
    内容形式优先级 图（mermaid / graphviz）＞ 表格 ＞ DSL（如 DDL）＞ 文字。**
    每个点先问「能不能图说清」，逐级回退；文字只留给「决策理由与权衡」这类无法图表化的，且一段内。
-   正文能用 Markdown 就用 Markdown，图/决策/元信息用组件增强。**MDX 是唯一的源**，HTML 只是可随时
-   重生的渲染产物——不手写 HTML、不在 MDX 之外另造页面。
+   正文能用 Markdown 就用 Markdown，图/决策/元信息用组件增强。**MDX 是唯一的源**，预览页只是随时
+   可重生的呈现——不手写 HTML、不在 MDX 之外另造页面。
 2. **自包含**：本流程是 AI 自驱的，**用户没读过 spec / proposal / 任何中间产物**。REVIEW.mdx
    必须独立成篇——不要写「见 spec 第 X 节」就当读者已知；出现的每个领域名词/系统名，首次出现处
    一句话讲清它是什么。
@@ -54,7 +54,7 @@ REVIEW.mdx 不是结论清单，而是**能被评审**的文档：它分四层�
 | 角色 | 职责 |
 |------|------|
 | **planner** | 按 [references/review-template.md](references/review-template.md) 的结构与顺序，从 spec 派生 `openspec/changes/<id>/REVIEW.mdx`；每次 spec 修订（arch-review 意见消化、用户反馈回流）后**重新生成**并更新新鲜度戳 |
-| **主 Agent** | 在架构门（human-confirm 检查点）：先用 spec-hash 校验 REVIEW.mdx 新鲜，再通过 plugin-infra 的 `mdx-artifact` skill 起预览（`npm run preview -- <REVIEW.mdx 路径>`）把本地服务地址给用户、对话里同步要点摘要；收集确认/意见，意见回流 planner |
+| **主 Agent** | 在架构门（human-confirm 检查点）：先用 spec-hash 校验 REVIEW.mdx 新鲜，再通过 plugin-infra 的 `mdx-artifact` skill 起预览（`mdxv <REVIEW.mdx 路径>`，后台进程）把本地服务地址给用户、对话里同步要点摘要；收集确认/意见，意见回流 planner |
 
 ## 深度档（按变更缩放）
 
@@ -85,11 +85,11 @@ scripts/spec-hash.sh openspec/changes/<id>/
 
 ## 呈现（交给 mdx-artifact 渲染查看）
 
-- REVIEW.mdx 由 **plugin-infra 的 `mdx-artifact` skill** 渲染为主题化、可交互目录、离线自包含的
-  富 HTML。架构门上，主 Agent 通过该 skill 起预览（`npm run preview -- <REVIEW.mdx 路径>`）把本地
-  服务地址给用户；或 `npm run render` 导出自包含 HTML 分享。对话里同步给出要点摘要。
+- REVIEW.mdx 由 **plugin-infra 的 `mdx-artifact` skill** 呈现为主题化、可交互目录的网页。架构门上，
+  主 Agent 通过该 skill 起预览（`mdxv <REVIEW.mdx 路径>`，常驻进程要后台起）把本地服务地址给用户，
+  对话里同步给出要点摘要。
 - REVIEW.mdx 正文写 GFM markdown（表格、```sql / ```jsonc 直接可用）；图用 ```dot（模块依赖/
   架构分层，graphviz 构建期静态）与 ```mermaid（`classDiagram`/`erDiagram`/`stateDiagram-v2`/
   `sequenceDiagram`）围栏；元信息/关键决策/分节用 `<Fields>`/`<Callout>`/`<Section>` 组件——
   具体写法见 mdx-artifact 的 SKILL 与 `references/blocks.md`。
-- planner **只产 `REVIEW.mdx`**（唯一的源），渲染与查看交给 mdx-artifact——避免第二份事实源与清理负担。
+- planner **只产 `REVIEW.mdx`**（唯一的源），预览与查看交给 mdx-artifact——避免第二份事实源与清理负担。

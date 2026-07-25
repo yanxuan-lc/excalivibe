@@ -100,38 +100,46 @@ Output: two files in the provided `output_dir`
 (`docs/research/<YYYY-MM-DD_HH-mm-ss>-<topic>/`). This is the one mode that writes to disk,
 and it writes **only** to that directory — nowhere else.
 
-**REPORT.mdx** — the research record:
+**REPORT.mdx** — the research record（**给人看**，由 plugin-infra 的 `mdx-artifact` skill 起预览查看）。承载 MDX：正文写 Markdown，分节用 `<Section>`（TOC 从此收集），对比/证据用表格、
+关系/流程用 ` ```dot `/` ```mermaid ` 围栏。**模板里的 `「…」` 占位必须全部替换成真实内容，且不要
+改用 `<…>` 形状的占位**——MDX 会把正文里残留的 `<xxx>` 当组件、导致渲染失败（需字面尖括号时用
+反引号包裹）。
 
-```markdown
-# <研究主题>
+````mdx
+---
+title: 「研究主题」
+subtitle: 研究报告
+author: 「生成本文的模型」
+datetime: 「yyyy-MM-dd HH:mm:ss，取生成时刻；渲染器不会自动补」
+palette: teal
+mode: auto
+toc: true
+---
 
-- **Date**: <datetime>  /  **Topic**: <topic>
+<Section number="01" eyebrow="背景" title="研究背景" />
+「原始诉求、目标、约束 —— 来自对齐纪要」
 
-## 研究背景
-<原始诉求、目标、约束 —— 来自对齐纪要>
+<Section number="02" eyebrow="澄清" title="需求澄清与关键决策" />
+「澄清问答、确定的约束 —— 来自纪要与用户追问记录」
 
-## 需求澄清与关键决策
-<澄清问答、确定的约束 —— 来自纪要与用户追问记录>
+<Section number="03" eyebrow="可行性" title="可行性分析" />
+「结论（可行 / 不可行 / 有条件可行）+ 论据」
 
-## 可行性分析
-<结论（可行 / 不可行 / 有条件可行）+ 论据>
+<Section number="04" eyebrow="方案" title="方案概要" />
+「可参考方案与执行思路；或调整方向」
 
-## 方案概要
-<可参考方案与执行思路；或调整方向>
+<Section number="05" eyebrow="决策" title="关键决策记录" />
+「达成的共识、排除的方向及原因 —— dead_ends 在此沉淀」
 
-## 关键决策记录
-<达成的共识、排除的方向及原因 —— dead_ends 在此沉淀>
+<Section number="06" eyebrow="结论" title="结论" />
+「最终结论」
 
-## 结论
-<最终结论>
+<Section number="07" eyebrow="出处" title="参考资料" />
+逐条出处：源码 → repo+ref+SHA+file:symbol；数据 → 引擎+表+口径+时刻；接口 → 端点+脱敏样例+时刻；deep-research → 其报告的引用来源。未能落地出处的结论必须标注为 inference。
+````
 
-## 参考资料
-<逐条出处：源码 → repo+ref+SHA+file:symbol；数据 → 引擎+表+口径+时刻；
-接口 → 端点+脱敏样例+时刻；deep-research → 其报告的引用来源。
-未能落地出处的结论必须标注为 inference>
-```
-
-**PROPOSAL.md** — direct input for `opsx:propose` / the planner:
+**PROPOSAL.md** — direct input for `opsx:propose` / the planner。**保持 Markdown 不转 MDX**：
+它是 planner / `opsx:propose` 的**机器输入**，转成 MDX 组件会打断消费方解析（故此处 `<…>` 占位无妨）:
 
 ```markdown
 # <变更标题>

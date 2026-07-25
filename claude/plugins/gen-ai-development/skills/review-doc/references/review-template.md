@@ -12,12 +12,12 @@
 
 ### 1. 承载与内容形式
 - **承载**：一份 **MDX**（Markdown 超集 + 组件）文件 `REVIEW.mdx`，由 **plugin-infra 的
-  `mdx-artifact` skill** 渲染成主题化、可交互目录、自包含离线的富 HTML 供人审阅。正文**能用
+  `mdx-artifact` skill** 起本地预览（`mdxv`）供人审阅——主题化、可交互目录。正文**能用
   Markdown 就用 Markdown**；图 / 关键决策 / 元信息 / 分节用组件增强（见骨架）。
-  **MDX 仍是唯一的源**，HTML 只是可随时重生的渲染产物——不手写 HTML、不在 MDX 之外另造页面。
+  **MDX 仍是唯一的源**，预览页只是随时可重生的呈现——不手写 HTML、不在 MDX 之外另造页面。
 - **内容形式优先级（高→低）**：**图（mermaid / graphviz）＞ 表格 ＞ DSL（如建表 DDL）＞ 文字描述**。
   每个要表达的点，先问「能不能用图说清」，不能再退表格，再退 DSL，文字是最后手段。
-  - 模块依赖 / 架构分层 / 有向流程 → ` ```dot `（graphviz，构建期静态出图、零运行时）。
+  - 模块依赖 / 架构分层 / 有向流程 → ` ```dot `（graphviz 构建期静态出图）。
   - 类图 / ER / 状态机 / 时序 → ` ```mermaid `（`classDiagram` / `erDiagram` /
     `stateDiagram-v2` / `sequenceDiagram`）。
   - 并列属性、对照、清单 → 表格。
@@ -37,9 +37,9 @@
 「最终一致（Eventual Consistency）」。同一术语后续可只用中文。
 
 ### MDX 写法要点（避免踩坑）
-- **`<…>` 占位必须全部替换成真实内容**：MDX 会把正文里的 `<xxx>` 当作组件解析——**残留任何未替换的
-  尖括号占位都会导致渲染失败**。骨架里的 `<变更 ID>`/`<要达成的>`/`<决策标题>` 等都是「填我」标记。
-  确需展示**字面尖括号**（如 `<T>` 泛型、`<tag>`）时，用**反引号包裹**（`` `<T>` ``）或改用「」/〈〉。
+- **占位用 `「…」`，落地时必须全部替换**：骨架里的 `「change-id」`/`「要达成的」`/`「决策标题」` 等都是
+  「填我」标记。**不要改用 `<…>` 形状的占位**——MDX 会把正文里的 `<xxx>` 当作组件解析，**残留一个就
+  整篇渲染失败**。确需展示**字面尖括号**（如 `<T>` 泛型、`<tag>`）时，用**反引号包裹**（`` `<T>` ``）。
   （注：`<Field v="<x>">` 这类**在 JSX 属性引号内**的 `<>` 是字符串、安全；危险的只有正文散文里的。）
 - **块组件内的散文/表格要用空行分隔**才被当 markdown 渲染：`<Callout>` 与其内容之间空一行。
 - **图用围栏**：` ```dot ` / ` ```mermaid `（对 `<` `{}` 天然安全，别把图源塞进组件属性）。
@@ -66,10 +66,10 @@ REVIEW.mdx 的体量随变更的**关键度/新颖度**缩放，不是每次都�
 
 ````mdx
 ---
-title: 架构评审 — <change-id>
+title: 架构评审 — 「change-id」
 subtitle: Architecture Gate · 人审文档
-author: <生成本文的模型，如 Claude Opus 4.8>
-date: <YYYY-MM-DD>
+author: 「生成本文的模型，如 Claude Opus 5」
+datetime: 「YYYY-MM-DD HH:mm:ss，取生成时刻；渲染器不会自动补」
 palette: indigo
 mode: auto
 toc: true
@@ -106,13 +106,13 @@ toc: true
 
 <Section number="01" eyebrow="框定" title="背景 · 目标 · 约束" />
 
-**背景与范围**：<一两句，让没有前置知识的读者进入状态；产品名/系统名首现一句话解释。>
+**背景与范围**：「一两句，让没有前置知识的读者进入状态；产品名/系统名首现一句话解释。」
 
 | ✅ 目标 | ❌ 非目标（本可做、显式排除）|
 |---|---|
-| <要达成的> | <刻意不做的——堵住范围蔓延>|
+| 「要达成的」 | 「刻意不做的——堵住范围蔓延」|
 
-**约束（Constraints）**：<技术 / 资源 / 合规硬约束，后续取舍的前提。>
+**约束（Constraints）**：「技术 / 资源 / 合规硬约束，后续取舍的前提。」
 
 <Section number="02" eyebrow="结构" title="领域模型与四契约" />
 
@@ -124,7 +124,7 @@ toc: true
 
 </Callout>
 
-- **限界上下文（Bounded Context）**：<本变更属哪个上下文；边界在哪、为何不能渗过去。>（限界上下文 = 同一个词在不同业务范围里含义不同，故划定的语义边界。）
+- **限界上下文（Bounded Context）**：「本变更属哪个上下文；边界在哪、为何不能渗过去。」（限界上下文 = 同一个词在不同业务范围里含义不同，故划定的语义边界。）
 - **聚合与不变式（Aggregate & Invariant）**：表格列核心聚合及其**永远成立的规则** + **强制强度**（强一致 / 最终一致）。
 - **状态与生命周期**：有状态对象用 `stateDiagram-v2`。
 - **领域关系**：用 `erDiagram` / `classDiagram`。
@@ -264,7 +264,6 @@ sequenceDiagram
 - 性能/容量别漏：它是真实架构评审里被提最多的质量面。
 
 ### 呈现与查看（交给 mdx-artifact）
-- REVIEW.mdx 由 **plugin-infra 的 `mdx-artifact` skill** 渲染查看：架构门上，主 Agent 通过该
-  skill 起预览（`npm run preview -- <REVIEW.mdx 路径>`）把本地服务地址给用户，或
-  `npm run render` 导出自包含 HTML 分享；对话里同步给要点摘要。
-- planner **只产 `REVIEW.mdx`**（唯一的源），不生成 HTML、不起服务——渲染与查看由 mdx-artifact 负责。
+- REVIEW.mdx 由 **plugin-infra 的 `mdx-artifact` skill** 呈现：架构门上，主 Agent 通过该 skill
+  起预览（`mdxv <REVIEW.mdx 路径>`，常驻进程要后台起）把本地服务地址给用户；对话里同步给要点摘要。
+- planner **只产 `REVIEW.mdx`**（唯一的源），不生成 HTML、不起服务——预览与查看由 mdx-artifact 负责。

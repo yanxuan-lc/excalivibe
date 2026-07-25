@@ -174,23 +174,18 @@ excalivibe/
 
 ## 文档（MDX 查看）
 
-项目文档位于 [`docs/`](./docs/),是一棵 **MDX 树**(`.mdx`),按**权威性**分区:[`docs/tech/`](./docs/tech/) 是已落地机制的**事实标准**,[`docs/research/`](./docs/research/) 是**历史**调研。它们面向 `plugin-infra` 的 **mdx-artifact** skill 的富文档阅读器编写——GitHub 上 `.mdx` 只显示源码,想要预期的阅读体验请用下面的预览。
+项目文档位于 [`docs/`](./docs/),是一棵 **MDX 树**(`.mdx`),按**权威性**分区:[`docs/tech/`](./docs/tech/) 是已落地机制的**事实标准**,[`docs/research/`](./docs/research/) 是**历史**调研。它们按 `plugin-infra` 的 **mdx-artifact** skill 的写法约定编写,用 [mdx-viewer](https://github.com/yanxuan-lc/mdx-viewer) 阅读——GitHub 上 `.mdx` 只显示源码,想要预期的阅读体验请用下面的预览。
 
 **预览整棵文档树(推荐):**
 
 ```bash
-SKILL=claude/plugins/plugin-infra/skills/mdx-artifact
-npm --prefix $SKILL install                  # 仅首次:安装构建依赖
-node $SKILL/scripts/serve.mjs --root docs    # 浏览器打开 docs/ 的可浏览索引
+npm install -g mdx-viewer   # 仅首次:提供 mdxv 预览命令
+mdxv docs                   # 以 docs/ 为根起预览
 ```
 
-预览会列出 `docs/` 下每一篇 `.mdx`;点开任意一篇,文档间的相对链接会在预览内互跳(改文件即热重载)。若只想把某一篇导出成**自包含、可离线**的 HTML 文件:
+预览会在左侧文件抽屉里列出 `docs/` 下每一篇 `.mdx`;文档间的相对链接在预览内互跳,改文件即热重载。只想看某一篇就把路径给它:`mdxv docs/tech/README.mdx`。
 
-```bash
-node claude/plugins/plugin-infra/skills/mdx-artifact/scripts/render.mjs docs/tech/README.mdx docs-tech.html
-```
-
-> 渲染器离线自包含(零外部请求)。写法约定见该 skill 的 [SKILL.md](./claude/plugins/plugin-infra/skills/mdx-artifact/SKILL.md);Codex 侧镜像同一 skill。
+> 渲染器是独立的 npm 包,不随本仓库分发,故 `mdxv` 在任意目录都能用。写法约定见该 skill 的 [SKILL.md](./claude/plugins/plugin-infra/skills/mdx-artifact/SKILL.md);Codex 侧镜像同一 skill。
 
 ## 更多文档
 
