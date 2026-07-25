@@ -3,11 +3,12 @@
   "version": "0.6.0",
   "description": "通用基础设施 plugin —— 为上层业务 plugin 提供跨场景复用的基础能力（graceful-browser 浏览器框架选择 Skill + Chrome DevTools 浏览器自动化 MCP），不绑定具体业务/数据源。",
   "type": "module",
-  "license": "UNLICENSED",
+  "license": "MIT",
   "engines": {
     "node": ">=22"
   },
   "files": [
+    "LICENSE",
     ".claude-plugin/",
     ".mcp.json",
     "skills/",
