@@ -151,7 +151,8 @@ by the unbiased audit. So:
 
 - Size the audit against the rate at which confidently-wrong drift accumulates damage.
 - Under pressure, cut proactive (2)-style sampling first, **never (3)**.
-- **The audit is run by a different model family — non-negotiable.** An audit run by the
+- **The audit is run by a different model family — non-negotiable.** Sol and Terra are
+  tiers within the GPT-5.6 family and therefore do not satisfy this requirement. An audit run by the
   producer's own model is the monoculture auditing itself, not an audit. (This is
   distinct from the verifiers — `e2e-author`, `e2e-run`, `code-review` — which run
   *before* merge as gates. The audit is post-merge and samples shipped changes. Different-

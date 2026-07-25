@@ -1,6 +1,6 @@
 ---
 name: coding-guideline
-description: Coding style, naming, types, error handling, and module structure for TypeScript, JavaScript, React, React Native, Python, Go, Rust, Swift, Dart, and Flutter. Use whenever writing, modifying, or quality-reviewing non-trivial code in a supported language — features, bugfixes, refactors, new modules or components — and for questions about coding conventions, naming, or how to structure a module, even without the word "guideline".
+description: Apply language-specific conventions for structure, naming, types and errors when writing or reviewing non-trivial TypeScript, JavaScript, React, Python, Go, Rust, Swift, Dart or Flutter code.
 ---
 
 # Development Guidelines

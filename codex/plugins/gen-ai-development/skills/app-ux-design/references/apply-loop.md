@@ -24,11 +24,12 @@ written to `.ued/apply-request.json` (`{seq, offset, count, fast, ts}`, where
 to notice the request and apply the leftovers.**
 
 **Arm a watcher whenever inspect is in play** (after scaffolding, on resume, or
-the moment the user starts inspecting). Run a background command that blocks
-until the marker changes, so a click re-invokes you with zero chat typing:
+the moment the user starts inspecting). Run it in a persistent Codex execution session,
+retain the session id, and poll that session between useful actions. Stop it at handoff;
+do not create an unmanaged background process.
 
 ```bash
-# background watcher — exits when the user clicks 落库; re-arm after each apply.
+# persistent-session watcher — exits when the user clicks 落库; re-arm after each apply.
 # mtime() is portable: BSD/macOS uses `stat -f %m`, GNU/Linux uses `stat -c %Y`.
 # A hardcoded `stat -f %m` silently never fires on Linux (ref==cur forever, the
 # loop hangs), so try both forms and fall back to 0 when the file is absent.

@@ -1,6 +1,6 @@
 ---
 name: vcs-workflow
-description: "Branch, merge, and release by convention — feat branches in worktrees, local merge into dev, MRs into a protected main, and the release pipeline (SemVer bump → MR into main → build → publish to npmjs/Nexus). Use when starting a feature/bugfix branch or worktree, merging finished work into dev, preparing an MR, cutting or publishing a release (\"发版\", \"发布到 npm/nexus\", \"bump version\", major/minor/patch), or working with submodules (detached HEAD, pointer bumps, merge order). Also interrupt proactively at irreversible-footgun moments: a commit about to land directly on main/dev, a publish from a non-main checkout, a submodule commit on a detached HEAD."
+description: "Apply repository conventions for branches, worktrees, merges, submodules, SemVer and publishing. Use when starting or merging work, preparing an MR, bumping versions, or releasing to npm/Nexus."
 ---
 
 # Git Development & Release Workflow

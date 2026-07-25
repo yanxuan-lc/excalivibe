@@ -1,6 +1,6 @@
 ---
 name: app-ux-design
-description: Interactive UI/UX design workflow that turns a vague brief into a real, componentized, live-iterable front-end prototype (TypeScript + React + shadcn/ui + Tailwind workspace under docs/ued/, served over HTTP, edited via chat and an inspect overlay) — for apps, websites, dashboards, mobile screens, any GUI surface. Use whenever the task touches how something LOOKS, FEELS, MOVES, or is laid out — visual表现, 交互, 组件, 配色, 布局, mockup, 原型, 改样式/风格, "帮我设计 X" — even when the user never says "design" or "prototype". Prefer over pure UI/UX guideline skills (including bare ui-ux-pro-max) when the user expects working code and live iteration rather than advice. A single fully-specified style-value edit on an existing component is a direct edit, not this workflow.
+description: Build a live, componentized React UI/UX prototype under docs/ued/ and iterate through chat plus inspect overlay. Use for visual design, interaction, layout, components, colors, mockups and prototypes; skip for one exact style-value edit.
 ---
 
 # App UX Design — Interactive Prototype Workflow
@@ -189,10 +189,12 @@ node <skill>/scripts/scaffold.mjs --topic <topic> --project-root <repo-root>
 
 Pick `<topic>` as a short kebab-case slug with the user. The script copies the
 template, links `app-ux-framework`, runs `pnpm install`, and initializes `.ued/` +
-`design-system/`. Then start the server (it stays up across turns):
+`design-system/`. Then start the server in a persistent Codex execution session. Keep
+the returned session id, poll it between useful actions, and terminate it at handoff.
+Network/package installation still follows the current approval policy.
 
 ```bash
-cd <WORKING_DIR> && pnpm dev          # run in background
+cd <WORKING_DIR> && pnpm dev
 ```
 
 Tell the user: **open `http://localhost:5173/__ued/shell`** — the device-frame

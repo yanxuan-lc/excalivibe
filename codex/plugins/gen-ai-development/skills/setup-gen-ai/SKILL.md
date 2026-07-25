@@ -1,6 +1,6 @@
 ---
 name: setup-gen-ai
-description: 初始化本项目以顺畅使用 gen-ai-development 管线——确保各子 Agent 落盘的管线产物目录（研究报告 / code-review 报告 / openspec 变更产物 / e2e 报告）在 Codex 沙箱下可写，并把这些目录约定登记进项目配置。当用户要"配置 gen-ai 管线"、"让子 agent 能写盘"、"准备 openspec / e2e 报告目录"时使用。
+description: 初始化 Codex 研发管线：准备可写的研究、OpenSpec、code-review 与 e2e 产物目录。用于“配置 gen-ai 管线”“准备报告目录”。
 ---
 
 # setup-gen-ai — 让管线产物稳定落盘（Codex 版）
@@ -31,7 +31,8 @@ Codex 没有 Claude 的 `permissions.allow` 工具白名单机制；写盘能否
 
 1. 保证这些目录落在**项目工作区内**（它们本就以项目根为锚，默认在工作区内可写）——不要把产物写到工作区之外。
 2. 运行管线时，会话的沙箱模式需允许写工作区（`workspace-write` 或更高）。若以只读 / 受限沙箱启动，子 Agent 的写操作会被拒——此时请提示用户用可写工作区的模式重开会话。
-3. 对明显只读的角色（researcher 探查 / arch-reviewer / code-reviewer / e2e-runner 的验证读取）其 TOML 可声明 `sandbox_mode = "read-only"`，但**负责写产物的步骤**（synthesize / 写报告）必须在可写工作区下进行。
+3. 角色的“只读”是对产品代码的行为约束，不等于 `sandbox_mode = "read-only"`：
+   reviewer / runner 仍需写门禁报告，因此统一继承可写工作区沙箱。
 
 > 与 Claude 侧主流程求同（同样是"预先约定好产物目录、保证可写、纳入 git"），仅把"项目 `.claude/settings.json` 的 allow 规则"换成 Codex 的"工作区内 + 可写沙箱"模型。
 

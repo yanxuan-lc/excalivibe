@@ -972,7 +972,7 @@ async function commitToAgent() {
   }
 
   // 2) Leftovers (dynamic text / className / hide / notes / ambiguous) → agent.
-  setCommitState("busy", "落库中…", `${fast > 0 ? fast + " 项已即时写入；" : ""}${deferred.length + notes} 项交给 Claude Code…`, "");
+  setCommitState("busy", "落库中…", `${fast > 0 ? fast + " 项已即时写入；" : ""}${deferred.length + notes} 项交给 Codex…`, "");
   try {
     await fetch("/__ued/state/apply-request.json", {
       method: "POST",
@@ -1000,7 +1000,7 @@ async function commitToAgent() {
       return;
     }
     if (Date.now() > deadline) {
-      setCommitState("", "落库", "已提交，但未收到 Claude Code 的写入确认（确认会话在监听，或直接说「应用 inspect 改动」）。", "error");
+      setCommitState("", "落库", "已提交，但未收到 Codex 的写入确认（确认会话在监听，或直接说「应用 inspect 改动」）。", "error");
       return;
     }
     setTimeout(() => { void poll(); }, 500);

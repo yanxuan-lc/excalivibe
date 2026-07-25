@@ -1,6 +1,6 @@
 ---
 name: backlog
-description: Use when the user wants to RECORD an idea instead of building it now — "先记下来", "记到 backlog", "我有个想法，先别开工", "这个回头再做", several ideas arriving in a stream while other work is still running, or asking what ideas are already queued ("backlog 里有什么", "待办的想法"). Sharpens the idea through grill and files it into the durable idea queue (openspec/BACKLOG.md + per-entry BRIEF.md) with targeted consolidation against existing entries. NOT for executing queued work ("把 backlog 里的 X 做了" — that is autonomy-controller's backlog intake) and NOT for a build request the user wants started immediately.
+description: Record, clarify, consolidate, or list ideas in the durable OpenSpec backlog without implementing them. Use for “先记下来”“记到 backlog”“待办有什么”; execution belongs to autonomy-controller.
 ---
 
 # Backlog — capture ideas now, build them later

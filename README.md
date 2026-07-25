@@ -20,12 +20,14 @@ The project **supports both the Claude Code and Codex agents**, with every capab
 
 ## Install from GitHub
 
-This is a public repository, and both marketplace manifests live at the **repo root**, so you can **install directly from GitHub with a single command** — no manual clone first.
+This is a public repository, and both marketplace manifests live at the **repo root**.
+Plugins can therefore be installed directly from GitHub without cloning the repository
+first. Codex subagents are standalone TOML files and have a separate installation step.
 
 **Prerequisites**
 
 - **Claude Code**: a recent version (with `plugin marketplace` support).
-- **Codex CLI**: v0.117.0+ (the GitHub install steps here were verified on v0.137.0).
+- **Codex CLI**: v0.117.0+ (project-tested minimum; the commands below were most recently verified on v0.145.0).
 
 ### Claude Code
 
@@ -44,21 +46,58 @@ claude plugin marketplace update excalivibe
 
 ### Codex (CLI v0.117.0+)
 
+#### First install
+
 ```bash
-# 1. Add the marketplace (owner/repo shorthand, or an HTTPS/SSH Git URL; pin a ref with --ref main)
+# Add the marketplace once. owner/repo, HTTPS Git, and SSH Git sources are supported.
 codex plugin marketplace add yanxuan-lc/excalivibe
 
-# 2. Install plugins as needed; **open a new thread** afterwards so skills / MCP take effect
+# Install only the plugins you need.
 codex plugin add gen-ai-development@excalivibe
 codex plugin add plugin-infra@excalivibe
 codex plugin add opc-workflow@excalivibe
 ```
 
-`gen-ai-development`'s **9 subagents** ship as standalone TOML files (Codex's plugin mechanism can't bundle subagents), so they go into the agents directory separately. A GitHub install has no local copy of the repo, so clone one to grab them:
+Start a new chat or CLI session after installation so bundled skills and MCP servers are
+loaded.
+
+`gen-ai-development`'s **9 subagents** ship as standalone TOML files because plugins do
+not auto-register custom-agent TOMLs. Clone the repository once and copy them into the
+personal or project-scoped agents directory:
 
 ```bash
 git clone https://github.com/yanxuan-lc/excalivibe.git
-cp excalivibe/codex/agents/*.toml ~/.codex/agents/      # or a project-level .codex/agents/
+mkdir -p ~/.codex/agents
+cp excalivibe/codex/agents/*.toml ~/.codex/agents/
+
+# Project-scoped alternative, run from the target project:
+# mkdir -p .codex/agents
+# cp /path/to/excalivibe/codex/agents/*.toml .codex/agents/
+```
+
+Start a new chat or CLI session after copying the agents.
+
+#### Update an existing GitHub installation
+
+Do not repeat `marketplace add`. Refresh the configured Git marketplace, reinstall the
+plugins you use, and then start a new chat or CLI session:
+
+```bash
+codex plugin marketplace upgrade excalivibe
+codex plugin add gen-ai-development@excalivibe
+codex plugin add plugin-infra@excalivibe
+codex plugin add opc-workflow@excalivibe
+```
+
+Released plugin updates should change the plugin's SemVer. Reinstalling the same version
+may reuse cached content; local iteration uses the cachebuster flow below.
+
+Update separately installed subagents from the cloned repository:
+
+```bash
+git -C excalivibe pull --ff-only
+mkdir -p ~/.codex/agents
+cp excalivibe/codex/agents/*.toml ~/.codex/agents/
 ```
 
 ## Local development install
@@ -76,10 +115,35 @@ claude plugin marketplace update excalivibe         # refresh after edits
 **Codex**
 
 ```bash
-codex plugin marketplace add .                      # register the local marketplace (repo root)
-codex plugin add gen-ai-development@excalivibe       # install; takes effect in a new thread
-cp codex/agents/*.toml ~/.codex/agents/              # install the subagents
-# Iterate: update_plugin_cachebuster.py <plugin> → codex plugin add <plugin>@excalivibe → new thread
+# Run once from the ExcaliVibe repository root.
+codex plugin marketplace add .
+
+# Install a plugin and the standalone subagents.
+codex plugin add gen-ai-development@excalivibe
+mkdir -p ~/.codex/agents
+cp codex/agents/*.toml ~/.codex/agents/
+```
+
+For each local plugin iteration, generate a development-only version suffix, reinstall,
+and open a new chat or CLI session:
+
+```bash
+python3 ~/.codex/skills/.system/plugin-creator/scripts/update_plugin_cachebuster.py \
+  codex/plugins/gen-ai-development
+codex plugin add gen-ai-development@excalivibe
+```
+
+Do not commit the temporary `+codex.<cachebuster>` version suffix. Repeat the same flow
+with the corresponding plugin directory and plugin name for `plugin-infra` or
+`opc-workflow`.
+
+To test the GitHub `dev` branch instead of a local checkout, configure that ref explicitly.
+If `excalivibe` is already registered, remove the existing source first:
+
+```bash
+codex plugin marketplace remove excalivibe
+codex plugin marketplace add yanxuan-lc/excalivibe --ref dev
+codex plugin add gen-ai-development@excalivibe
 ```
 
 ## Design principle: seek common ground while preserving differences
@@ -89,7 +153,7 @@ cp codex/agents/*.toml ~/.codex/agents/              # install the subagents
 | Scenario | Claude side | Codex side | Shared fallback |
 |---|---|---|---|
 | Research | `deep-research` + dynamic workflow | ordinary subagent | — |
-| Browser | `claude --chrome` | computer-use / `@Chrome` | chrome-devtools MCP / Playwright |
+| Browser | `claude --chrome` | discover available app / connector / built-in | chrome-devtools MCP / Playwright |
 
 ## Directory layout
 
@@ -114,23 +178,18 @@ excalivibe/
 
 ## Docs (MDX)
 
-Project docs live under [`docs/`](./docs/) as an **MDX tree** (`.mdx`), partitioned by authority: [`docs/tech/`](./docs/tech/) is the as-built source of truth, [`docs/research/`](./docs/research/) is historical. They are authored for the rich reader shipped by `plugin-infra`'s **mdx-artifact** skill — GitHub renders `.mdx` as raw source, so use the preview below for the intended experience.
+Project docs live under [`docs/`](./docs/) as an **MDX tree** (`.mdx`), partitioned by authority: [`docs/tech/`](./docs/tech/) is the as-built source of truth, [`docs/research/`](./docs/research/) is historical. They follow the authoring conventions of `plugin-infra`'s **mdx-artifact** skill and are meant to be read through [mdx-viewer](https://github.com/yanxuan-lc/mdx-viewer) — GitHub renders `.mdx` as raw source, so use the preview below for the intended experience.
 
 **View the whole tree (recommended):**
 
 ```bash
-SKILL=claude/plugins/plugin-infra/skills/mdx-artifact
-npm --prefix $SKILL install                  # one-time: install build deps
-node $SKILL/scripts/serve.mjs --root docs    # opens a browsable index of docs/
+npm install -g mdx-viewer   # one-time: provides the mdxv preview command
+mdxv docs                   # browsable preview rooted at docs/
 ```
 
-The preview lists every `.mdx` under `docs/`; open any of them and relative links between docs route inside the preview (edit a file → it hot-reloads). To export a single doc as a **self-contained, offline HTML** file instead:
+The preview lists every `.mdx` under `docs/` in a left-hand file drawer; relative links between docs route inside the preview, and editing a file hot-reloads it. Point `mdxv` at one file (`mdxv docs/tech/README.mdx`) to open just that one.
 
-```bash
-node claude/plugins/plugin-infra/skills/mdx-artifact/scripts/render.mjs docs/tech/README.mdx docs-tech.html
-```
-
-> The renderer is offline and self-contained (zero external requests). Authoring conventions live in the skill's [SKILL.md](./claude/plugins/plugin-infra/skills/mdx-artifact/SKILL.md); the Codex side mirrors the same skill.
+> The renderer lives in its own package — it is not vendored here, so `mdxv` works from any directory. Authoring conventions live in the skill's [SKILL.md](./claude/plugins/plugin-infra/skills/mdx-artifact/SKILL.md); the Codex side mirrors the same skill.
 
 ## More docs
 

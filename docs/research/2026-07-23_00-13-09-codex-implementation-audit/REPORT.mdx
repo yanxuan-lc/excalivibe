@@ -1,0 +1,120 @@
+# Codex 侧实现与 Subagent 审查
+
+- **Date**: 2026-07-23  /  **Topic**: codex-implementation-audit
+
+## 研究背景
+
+本次审查判断 Codex 侧是否忠实实现 Claude 侧的主流程，并识别适合 Codex 自身能力的改进点，重点评估简单 subagent 使用低成本模型的落地空间。约束是只审查、不修改现有实现；评价标准遵循“求同存异”：流程、职责和用户心智模型一致，工具、模型与权限配置允许按平台分别优化。
+
+审查范围包括 `claude/plugins/gen-ai-development/agents/*.md`、`codex/agents/*.toml`、两侧相关 plugin/skill 引用、安装说明和 manifest 校验结果。
+
+## 需求澄清与关键决策
+
+- 不要求 Codex 逐字复制 Claude 的 frontmatter；`color`、`memory` 等缺失不构成流程问题。
+- 模型分层以能力/成本层级一致为目标，不把 Claude 的 `opus`/`sonnet` 名称搬到 Codex。
+- 保守落地：稳定、机械角色可静态 pin `gpt-5.6-terra`；复杂角色使用 `gpt-5.6` 或继承强模型；`researcher` 因任务跨度大，按 dispatch 动态选择。
+- “只读角色”需区分产品代码只读与文件系统 sandbox 只读。多个 verifier 仍需落盘报告，不能仅凭角色名称统一设置只读文件系统。
+
+## 可行性分析
+
+结论：**有条件可行，且修复成本低**。
+
+Codex 侧 9 个 subagent 齐全，TOML 均可解析，主角色拓扑与 Claude 一致：`planner → arch-reviewer（条件触发）→ developer ∥ e2e-author → e2e-runner ∥ code-reviewer`，并有 `debugger`、`researcher`、`release-coordinator`。三个 Codex plugin 已通过 `validate_plugin.py`，marketplace 与 plugin manifest 均通过 `jq`，说明 plugin 包装层本身健康。主要风险集中在 agent 配置过时、产物扩展名漂移、个别职责边界冲突和 Claude 专属词残留，不需要重构主流程。
+
+官方 Codex 手册已确认 custom agent TOML 支持 `model`、`model_reasoning_effort`、`sandbox_mode`、`mcp_servers` 和 `skills.config`；解析优先级为 agent 文件内配置，其次 spawn 显式值、`[agents]` 默认、parent 值。因此，仓库声称“不设 per-agent effort / Codex 不逐 agent 设”的文档已过时，低成本静态分层具备直接落地条件。[Codex Subagents 官方手册](https://learn.chatgpt.com/docs/agent-configuration/subagents)
+
+## 问题清单（按严重度）
+
+### P1：产物契约漂移会破坏正式流程
+
+1. `planner` 要求生成 `REVIEW.md`，但 `review-doc`、模板、freshness 脚本与 architecture gate 均以 `REVIEW.mdx` 为唯一权威文件。
+   - 证据：`codex/agents/planner.toml:48-50,106-120,144-163`；`codex/plugins/gen-ai-development/skills/review-doc/SKILL.md:3-27`；`codex/plugins/gen-ai-development/skills/autonomy-controller/references/tracks.md:23,110`。
+   - 连带漂移：`codex/agents/developer.toml:142`、`codex/agents/e2e-author.toml:177`、`codex/agents/release-coordinator.toml:104` 也引用 `REVIEW.md`。
+   - 影响：planner 可能写出门禁、hash 与 MDX 展示链均不消费的文件。
+
+2. `researcher` synthesize 要求生成 `REPORT.md`，但 `research-pipeline` 和协议要求 `REPORT.mdx`。
+   - 证据：`codex/agents/researcher.toml:2,17-19,96-101,172-180`；`codex/plugins/gen-ai-development/skills/research-pipeline/SKILL.md:14-21,104-110`；`codex/plugins/gen-ai-development/skills/research-pipeline/references/protocols.md:77`。
+   - 影响：返回路径与调用方契约不一致，且绕过 `mdx-artifact` 展示链。
+
+### P1：Codex agent 配置文档与当前平台能力不符
+
+`codex/agents/README.md:15-19` 与 `codex/ADAPTING-FROM-CLAUDE.md:98-99` 声称不逐 agent 配置 model/effort；官方手册确认当前 TOML 明确支持 `model` 和 `model_reasoning_effort`，且 agent 文件配置具有最高优先级。
+
+同时，`codex/agents/README.md:12-13,35-45` 声称四个角色带有 `sandbox_mode = "read-only"`，实际全部 9 个 TOML 只有 `name`、`description`、`developer_instructions`。这是可复现的文档事实错误。
+
+### P1：Codex 适配仍残留 Claude 专属机制
+
+- `codex/plugins/gen-ai-development/skills/research-pipeline/` 残留 `AskUserQuestion`、`Agent tool` 和 `opus`/`sonnet` 模型名。
+- `codex/plugins/gen-ai-development/skills/research-api/` 残留 `WebFetch`。
+- `codex/plugins/gen-ai-development/skills/app-ux-design/` 的前端文案残留 `Claude Code`。
+
+这些内容与 `codex/ADAPTING-FROM-CLAUDE.md` 的适配规则相悖，可能引导 Codex 调用不存在的工具或给用户错误心智模型。该结论来自仓库定向文本检查；具体出现位置应在修复前用 `rg` 生成完整清单。
+
+### P2：e2e-runner 的 pipeline ownership 冲突
+
+`codex/agents/e2e-runner.toml:15-27` 一方面声明不编排流程，另一方面把 tick `PIPELINE.md` 列为强制交付；research 路径则由主 Agent tick（`codex/plugins/gen-ai-development/skills/research-pipeline/SKILL.md:104-112`）。建议统一为 runner 只写 `e2e-report.md` 并返回 path/commit/verdict，由 autonomy-controller 更新 pipeline 状态。
+
+### P2：权限约束主要依赖 prompt，未利用 Codex 配置能力
+
+Claude `release-coordinator` 明确限制为 `Read, Grep, Glob, Bash`（`claude/plugins/gen-ai-development/agents/release-coordinator.md:4`）；Codex 侧没有对应工具或 sandbox 限制，发布禁令只存在于 prose。官方已确认 agent TOML 可配置 sandbox、MCP 和 skills，应按真实写盘需求收紧能力面。
+
+但不能把 `researcher`、`arch-reviewer`、`code-reviewer`、`e2e-runner` 简单统一成文件系统 `read-only`：它们分别可能需要写研究产物、评审记录、`CHECKLIST.md` 和 `e2e-report.md`。应以“产品代码不可改、指定产物可写”为设计目标；若 sandbox 不能表达路径级写权限，则保留 workspace-write 并明确这是职责约束。
+
+### P2：外部能力依赖未形成完整安装/降级契约
+
+`debugger`、`e2e-runner`、`researcher` 引用了 `graceful-browser`、`deep-research`、`context7`，但 TOML 本身未声明依赖；部分 skill 有 fallback，agent 安装 README 未完整列出 companion plugin/skill 和 unavailable 行为。证据包括 `codex/agents/debugger.toml:51`、`codex/agents/e2e-runner.toml:55,100`、`codex/agents/researcher.toml:39,128,159-161` 与 `codex/plugins/gen-ai-development/README.md:170-171`。
+
+### P3：安装说明缺少更新与冒烟闭环
+
+`codex/agents/README.md:21-31` 和 `codex/ADAPTING-FROM-CLAUDE.md:101-107` 正确说明 subagent 不能随 plugin 安装，需要复制 TOML；但未说明创建目标目录、复制后新开 thread、验证 9 个角色可被发现，以及 agent 文件不会随 plugin cachebuster 自动刷新。
+
+## 逐 Agent 模型与推理强度建议
+
+官方当前建议 `gpt-5.6` 用于高难度任务，`gpt-5.6-terra` 用于更快、更低成本的轻量 subagent 工作；effort 支持 `low`、`medium`、`high` 等值。[Codex Subagents 官方手册](https://learn.chatgpt.com/docs/agent-configuration/subagents)
+
+| Agent | Claude 当前层级 | Codex 推荐 | effort | 配置方式 | 理由 |
+|---|---|---|---|---|---|
+| `planner` | opus / high | `gpt-5.6` 或继承强模型 | high | 静态强模型或继承 | 四契约、跨模块和验收场景设计，错误下游放大 |
+| `arch-reviewer` | opus / high | `gpt-5.6` | high | 静态 | DDL、接口、移除安全与架构边界判断 |
+| `developer` | sonnet / high | `gpt-5.6` 或继承强模型 | high | 静态或继承 | 代码与测试实施，需要复杂推理和工具使用 |
+| `e2e-author` | sonnet / medium | `gpt-5.6-terra` | medium | 静态 | 从明确 spec 机械映射场景到测试，适合降本；复杂 UI 可 spawn 时升级 |
+| `e2e-runner` | sonnet / low | `gpt-5.6-terra` | low | 静态 | 按 manifest 执行、分类、汇总，最稳定的低成本角色 |
+| `code-reviewer` | opus / high | `gpt-5.6` | high | 静态 | 双判定门禁与缺陷发现需要强推理，不能以低成本牺牲召回率 |
+| `debugger` | sonnet / high | `gpt-5.6` 或继承强模型 | high | 静态或继承 | 根因定位和 RED 回归测试价值高、错误代价高 |
+| `release-coordinator` | 未固定 | `gpt-5.6-terra` | medium | 静态 | 主要是 diff、SemVer、同步点和证据汇总；遇到复杂兼容性判断可升级 |
+| `researcher` | opus / medium | 动态：机械 probe 用 `gpt-5.6-terra`；复杂源码判断/synthesize 用 `gpt-5.6` | medium；复杂时 high | spawn 显式值优先，不静态 pin 单一模型 | investigate 与 synthesize 负载跨度大，静态模型会浪费或降质 |
+
+保守第一阶段只静态 pin `e2e-runner`、`e2e-author`、`release-coordinator` 为 `gpt-5.6-terra`；其余保持强模型/继承。`research-pipeline` 使用 Codex 原生 spawn 参数按子任务选择模型与 effort，并删除 `opus`/`sonnet` 表述。
+
+## 方案概要
+
+1. 统一产物路径：所有 `REVIEW.md` → `REVIEW.mdx`，research synthesize 的 `REPORT.md` → `REPORT.mdx`；保留 e2e fallback `REPORT.md`，除非对应 e2e 展示契约另有 MDX 要求。
+2. 更新 Codex 适配文档，记录 agent TOML 当前支持的字段、解析优先级和静态/动态模型分层原则。
+3. 清理 Codex 文案中的 Claude 专属工具、模型名和品牌残留，替换为 Codex 实际工具/通用能力描述。
+4. 明确 pipeline 状态文件唯一 owner；建议仅主 Agent/autonomy-controller 修改。
+5. 按逐 agent 表先做保守模型分层；通过真实任务样本比较成功率、返工率、token 与时延，再决定是否扩大 terra 覆盖。
+6. 加轻量一致性检查：TOML 可解析、9 个角色齐全、关键产物路径与 skill 契约一致、禁止 Codex 目录出现已知 Claude 专属词、安装说明与配置字段一致。
+
+## 关键决策记录
+
+- 排除“所有角色固定低成本模型”：planner、reviewer、debugger 的判断错误会导致更昂贵返工。
+- 排除“所有语义只读角色统一 `sandbox_mode=read-only`”：报告写盘要求与静态只读 sandbox 冲突。
+- 排除“照搬 Claude 模型名”：两侧应对齐能力层级和主流程，而不是具体厂商模型字段。
+- 保留 Codex 对 `color`、`memory` 等 Claude 专属字段的删除，这是合理的实现差异。
+- 采用静态 pin 与动态路由混合策略：稳定机械角色静态降本，多模态/多复杂度角色动态选择。
+
+## 结论
+
+Codex 侧总体忠实复现了 Claude 的角色体系和开发主流程，plugin 与 manifest 基础质量合格；当前不需要重做架构。合并前应优先处理两组 P1：`.md`/`.mdx` 产物契约漂移，以及过时的 agent 配置/Claude 专属机制。低成本分层已有官方配置能力支撑，最稳妥的首批对象是 `e2e-runner`、`e2e-author`、`release-coordinator`；复杂角色继续使用 `gpt-5.6` 或继承强模型，`researcher` 按 dispatch 动态路由。
+
+## 参考资料
+
+- 官方 Codex 手册：[Subagents / custom agent configuration](https://learn.chatgpt.com/docs/agent-configuration/subagents) — 支持 `model`、`model_reasoning_effort`、`sandbox_mode`、`mcp_servers`、`skills.config`；说明配置解析优先级及模型分层建议。本次信息由最新 Codex manual 聚合页核实。
+- `codex/agents/README.md:3-19,21-45` — agent 安装、sandbox 与 model/effort 的现有说明。
+- `codex/ADAPTING-FROM-CLAUDE.md:98-107` — agent 适配及安装约定。
+- `codex/agents/*.toml:name,description,developer_instructions` — 9 个实际 agent 定义；本次用 Python `tomllib` 验证可解析且仅含这三个字段。
+- `claude/plugins/gen-ai-development/agents/*.md:model,effort,tools` — Claude 侧角色模型、effort 与工具基线。
+- `codex/plugins/gen-ai-development/skills/autonomy-controller/references/tracks.md:18-36,80-112` — Codex 正式角色拓扑与主流程。
+- `codex/plugins/gen-ai-development/skills/review-doc/SKILL.md:3-27` — `REVIEW.mdx` 权威契约。
+- `codex/plugins/gen-ai-development/skills/research-pipeline/SKILL.md:14-21,55-81,104-112` — `REPORT.mdx`、研究路由与 pipeline ownership。
+- 校验事实：三个 Codex plugin 均通过 `validate_plugin.py`；marketplace 与 plugin manifest 均通过 `jq`（由主 Agent 本轮实际校验提供）。

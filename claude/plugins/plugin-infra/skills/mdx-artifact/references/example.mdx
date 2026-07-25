@@ -1,15 +1,17 @@
 ---
 title: ExcaliVibe ⚔️
 subtitle: Vibe Working 能力套件
-date: 2026-07-21
-author: Claude Opus 4.8
+author: Claude Opus 5
+datetime: 2026-07-25 16:58:00
 org: ExcaliVibe
+copyright: ExcaliVibe
+hero: false
 palette: lime
 mode: auto
 toc: true
 ---
 
-<Hero eyebrow="a Vibe Working relic, like Excalibur" title="ExcaliVibe ⚔️" sub="Excalibur + Vibe —— 一套 Vibe Working 能力套件" date="双端支持 · Claude Code + Codex" stats={[{v:"2",l:"双端 Agent"},{v:"3",l:"能力插件"},{v:"9",l:"研发 subagent"}]}>
+<Hero eyebrow="a Vibe Working relic, like Excalibur" title="ExcaliVibe ⚔️" sub="Excalibur + Vibe —— 一套 Vibe Working 能力套件" date="2026-07-25 · 双端支持 Claude Code + Codex" stats={[{v:"2",l:"双端 Agent"},{v:"3",l:"能力插件"},{v:"9",l:"研发 subagent"}]}>
 源于 Vibe Coding，但不止于编码：面向更广的业务场景，用各自 Agent 的 marketplace + plugin 机制把能力装进去。
 </Hero>
 
@@ -33,7 +35,7 @@ toc: true
 
 <Card title="plugin-infra" badge="v0.3.0" badgeTone="success">
 
-通用基础设施：浏览器自动化（Chrome DevTools / Playwright MCP，Claude 侧加 graceful-browser 决策层）+ **mdx-artifact 富文档产物生成**（本页就是它做的）。
+通用基础设施：浏览器自动化（Chrome DevTools / Playwright MCP，Claude 侧加 graceful-browser 决策层）+ **mdx-artifact 富文档产物**（本页就是按它的约定写的）。
 
 </Card>
 
@@ -86,7 +88,7 @@ codex plugin add gen-ai-development@excalivibe
 <Step title="登记">两侧 marketplace / plugin 清单同步追加</Step>
 </Steps>
 
-<Figure caption="双端同步主流程（Graphviz 构建期静态出图）">
+<Figure caption="双端同步主流程（Graphviz 出图）">
 
 ```dot
 digraph { rankdir=LR
@@ -109,6 +111,6 @@ digraph { rankdir=LR
 
 <Footer>
 
-本页由 plugin-infra 的 **mdx-artifact** skill 生成（自产自销）——下方落款为渲染器自动追加。
+本页按 plugin-infra 的 **mdx-artifact** 约定写成（自产自销），用 `mdxv` 预览——下方落款由渲染器按 frontmatter 追加。
 
 </Footer>

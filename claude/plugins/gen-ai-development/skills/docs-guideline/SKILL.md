@@ -41,8 +41,8 @@ Don't load the reference files until you actually need them — the body here is
 ## 承载与查看（as-built 文档用 MDX）【强制】
 
 `docs/tech/` 的 as-built 文档与各级 `README.mdx` 索引都写成 **MDX**（Markdown 超集 + 组件），由
-plugin-infra 的 **`mdx-artifact`** skill 渲染成主题化、可交互目录的富 HTML 查看：
-`npm run preview -- <入口>.mdx --root docs/tech` 起预览服务——**正文里指向本地 `.md`/`.mdx`/目录的
+plugin-infra 的 **`mdx-artifact`** skill 起本地预览查看（主题化、分节清晰）：
+`mdxv docs/tech` 以该目录为根起预览服务（多篇时左侧出文件抽屉）——**正文里指向本地 `.md`/`.mdx`/目录的
 相对链接会自动路由**（点击即在预览内互跳；目录链接按 `README.mdx` 索引解析），所以 README-as-Index
 的路由表照常工作。
 
@@ -173,13 +173,15 @@ For every directory you created or added a doc to, create/update its `README.mdx
 If this change shipped a design that `research/` or `ued/` had proposed, that narrative is now history. Add a prominent banner at the **top** of the superseded file — don't delete it (the history has value):
 
 ```markdown
-> ⚠️ **STALE — 仅作历史参考（<date> 起）**
+> ⚠️ **STALE — 仅作历史参考（「date」 起）**
 >
-> 本文所述方案已由 <实现> 取代。<一句话说明变了什么>。
+> 本文所述方案已由 「实现」 取代。「一句话说明变了什么」。
 > 现状以 [`docs/tech/...`](...) 为准。
 ```
 
-Be specific about *what* changed and *where the truth now lives* — a bare "outdated" banner helps no one.
+`「…」` 是「填我」标记，必须替换成真实内容——被标记的文件多是 `.mdx`，残留的 `<xxx>` 会被 MDX 当组件、
+导致整页渲染失败。Be specific about *what* changed and *where the truth now lives* — a bare "outdated"
+banner helps no one.
 
 ### 7. Walk up the tree
 

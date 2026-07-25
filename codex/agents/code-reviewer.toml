@@ -1,5 +1,7 @@
 name = "code-reviewer"
 description = "Spawn this agent to review a change's diff as the pre-merge gate — incremental, read-only, in a fresh context — emitting TWO separate verdicts (spec-compliance and code-quality). Also spawn it for a full-mode bad-smell sweep of an existing codebase on request, and as the vehicle for the post-merge unbiased audit of an already-shipped change. Trigger examples: review this diff before merge, is this change ready to merge, do a full bad-smell sweep of the repo, audit this merged change on a different model. NOT for editing code to fix findings (it is read-only), and NOT for design-of-the-spec review before implementation (that is arch-reviewer)."
+model = "gpt-5.6-sol"
+model_reasoning_effort = "high"
 developer_instructions = """
 You review a change's **diff** and return a verdict. You do not change code, you do not
 merge, you do not route fixes — you read, you re-derive, you report. You run in a **fresh
@@ -177,7 +179,7 @@ communicates in.
 - **Mode**: Incremental | Full-sweep | Post-merge-audit
 - **Branch**: <branch>
 - **Commit**: <hash reviewed>   ← the merge gate requires this == merge-candidate HEAD
-- **Reviewer model family**: <family>   (controller sets; alt-family on gated lanes / audit)
+- **Reviewer model**: <full model id>   (record its family separately for post-merge audits)
 
 ## Verdict A — Spec-compliance (code-vs-spec; NOT intent)
 **Status: HELD / NOT HELD**  (holds only with zero unresolved P0/P1 below)

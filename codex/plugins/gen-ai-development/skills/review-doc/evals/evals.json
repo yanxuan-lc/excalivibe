@@ -16,7 +16,7 @@
         "Header metadata table carries a real scripts/spec-hash.sh output (12 hex, not invented) and a date-command timestamp, includes 关键度 + 自治档位 and the Arch-review status row, and scales content to the depth dial; absent contracts/layers are explicitly marked in the overview table with their number kept",
         "Frames it as the architecture gate read BEFORE code: behavioral-intent decisions (e.g. monthly-overage hard-block vs buffer) are parked '→ 留意图门（对运行切片确认）', not decided in REVIEW.mdx",
         "Stays concise (one-screen scale, ≤1 paragraph of prose per decision) and ends with the deep-dive pointer table back to the spec plus a per-item confirmation checklist (including the intent-gate parked item)",
-        "Produces ONLY REVIEW.mdx as the single source and does NOT hand-write HTML or a bespoke page; to present it, delegates rendering/preview to plugin-infra's mdx-artifact skill and shares a short digest in conversation"
+        "Produces ONLY REVIEW.mdx as the single source and does NOT hand-write HTML or a bespoke page; to present it, delegates preview to plugin-infra's mdx-artifact skill and shares a short digest in conversation"
       ]
     },
     {
@@ -36,11 +36,11 @@
       "id": 2,
       "name": "present-existing-review-md",
       "prompt": "把 openspec/changes/add-user-quota/REVIEW.mdx 给我看一下。",
-      "expected_output": "First verifies freshness via scripts/spec-hash.sh against the header stamp (architecture-gate freshness check), then presents REVIEW.mdx by delegating to plugin-infra's mdx-artifact skill — previews it (npm run preview -- <REVIEW.mdx path>) and gives the user the local server URL, or renders a self-contained HTML — plus a short digest in conversation. Does NOT hand-write HTML or invent a bespoke page: REVIEW.mdx is the single source and mdx-artifact owns rendering.",
+      "expected_output": "First verifies freshness via scripts/spec-hash.sh against the header stamp (architecture-gate freshness check), then presents REVIEW.mdx by delegating to plugin-infra's mdx-artifact skill — previews it (mdxv <REVIEW.mdx path>, backgrounded) and gives the user the local server URL — plus a short digest in conversation. Does NOT hand-write HTML or invent a bespoke page: REVIEW.mdx is the single source and mdx-artifact owns rendering.",
       "files": [],
       "expectations": [
         "First verifies freshness by running scripts/spec-hash.sh and comparing against the REVIEW.mdx header stamp",
-        "Presents REVIEW.mdx via plugin-infra's mdx-artifact skill (preview server URL or rendered self-contained HTML), plus a short digest in conversation",
+        "Presents REVIEW.mdx via plugin-infra's mdx-artifact skill (mdxv preview server URL), plus a short digest in conversation",
         "Does NOT hand-write HTML or a bespoke page — REVIEW.mdx is the single source and mdx-artifact owns rendering"
       ]
     }

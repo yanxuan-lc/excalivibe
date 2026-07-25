@@ -16,7 +16,7 @@
 | `plugins/<p>/commands/<c>.md` | `plugins/<p>/skills/<c>/SKILL.md` | Codex plugin **无 commands**，命令转为 skill（见 §4） |
 | `plugins/<p>/agents/<a>.md` | `codex/agents/<a>.toml` | plugin **不能**捆绑 subagent，转为独立 TOML（见 §5） |
 | `plugins/<p>/.mcp.json` | `plugins/<p>/.mcp.json` | 格式相同（`{"mcpServers": {...}}`），`${CLAUDE_PLUGIN_ROOT}` 保留（Codex 也注入） |
-| `plugins/<p>/hooks/` | 暂不迁移（v1） | manifest `hooks` 字段被 `validate_plugin.py` 拒绝（exit 1）；hooks 能力存在（`config.toml` TOML `[[hooks.<Event>]]`），但非交互 exec 下触发未经验证（trust-gated）；Phase-2 可通过 install-time `config.toml` 注入实现 |
+| `plugins/<p>/hooks/` | 可按需迁移 | Codex 可自动发现 plugin 根下 `hooks/hooks.json`，但安装后仍需用户审阅并信任；本仓 validator 仍禁止 manifest `hooks` 字段，因此使用默认路径，不在 manifest 声明。hook 只是辅助防线，sandbox / approval / rules 才是安全边界。 |
 | `plugins/<p>/README.md`, `package.json` | 原样保留并按需改 install 段 | — |
 
 ### plugin.json 模板（Codex）
@@ -95,8 +95,8 @@ developer_instructions = """
 """
 ```
 
-- 可选：对明显只读的角色（researcher / arch-reviewer / code-reviewer / e2e-runner）加 `sandbox_mode = "read-only"`。
-- 不设 `model`，也不设 per-agent `effort`（两者都继承会话默认；Codex 在会话/配置层用 `model_reasoning_effort` 调推理强度，不逐 agent 设。Claude 侧逐 agent pin `effort` 是其专属优化，属「存异」）。删除 `color` / `memory` / `tools` 等无对应字段。
+- 不要仅因角色“不改产品代码”就设 `sandbox_mode = "read-only"`：researcher / reviewer / runner 都要写报告。用 prompt 限制写入范围，并继承工作区可写沙箱。
+- 使用 Codex agent TOML 的 `model` 与 `model_reasoning_effort`，并写完整模型 ID：判断型角色默认 `gpt-5.6-sol`，执行型角色默认 `gpt-5.6-terra`。具体矩阵与升级条件以 autonomy-controller 的 `references/spawn-policy.md` 为准。删除 `color` / `memory` / `tools` 等无对应字段。
 
 ## 6. 安装与校验
 

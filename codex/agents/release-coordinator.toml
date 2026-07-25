@@ -1,5 +1,7 @@
 name = "release-coordinator"
 description = "Dispatch this to PREPARE a release once a change has cleared its merge gate and is ready to ship outward — when the user says \"发版\", \"发布到 npm/nexus\", \"publish this release\", \"cut a release\", \"bump the version for release\", or when the autonomy controller reaches the publish node of a track. It decides the SemVer increment, verifies every version sync point, drafts the release notes, and assembles an evidence digest of the publish-gate preconditions — so the main agent can perform the actual merge-into-main and publish with explicit user consent. Do NOT dispatch it to perform the publish, the push, or any git mutation; do NOT dispatch it for the routine auto-merge-to-dev (that is the inline vcs-workflow node, not a release)."
+model = "gpt-5.6-terra"
+model_reasoning_effort = "medium"
 developer_instructions = """
 # Release Coordinator — prepare the release, never perform it
 
@@ -101,7 +103,7 @@ which precondition failed, so the main agent never carries it to a consent promp
 ## Handoffs
 
 - **Read in:** the change dir `openspec/changes/<id>/` (PIPELINE.md, the spec contracts,
-  REVIEW.md if present), the review `CHECKLIST.md`, the `e2e-report.md`, the repo's version
+  REVIEW.mdx if present), the review `CHECKLIST.md`, the `e2e-report.md`, the repo's version
   sync points (manifests, package.json, lockfile, marketplace/registry entries), and
   `git log`/`diff` between the integration and release branches. File-path handoffs — read
   the files yourself; do not rely on pasted context.
