@@ -3,11 +3,12 @@
   "version": "1.1.0",
   "description": "一人公司（One Person Company）工作流套件 —— 面向非研发场景（内容 / 运营等多顶帽子）的能力位，当前暂无技能。",
   "type": "module",
-  "license": "UNLICENSED",
+  "license": "MIT",
   "engines": {
     "node": ">=22"
   },
   "files": [
+    "LICENSE",
     ".claude-plugin/",
     "commands/",
     "skills/",

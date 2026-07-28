@@ -202,7 +202,10 @@ children = markdown。**可选**——放致谢 / 联系方式 / 版本说明，
 
 ### 用法
 
-- `dot`：渲染器自动注入主题化默认（圆角填充节点、accent 簇标、muted 边）并把颜色映射为 CSS 变量→跟随明暗；作者显式设色会覆盖默认。
+- `dot`：渲染器**只做明暗适配**——把 Graphviz 的黑色描边/文字换成 `currentColor`、剥掉白色背景底板。
+  **它不注入任何形状或填充**：不写 `node [...]` 就是 Graphviz 默认的**无填充椭圆**（`fill="none"`）。
+  所以分工是反的——**形状自己写，颜色不要写**：`node [shape=box style=rounded]` 该由你给；而颜色留空才
+  跟随明暗，一旦硬编码 `color=` / `fillcolor=` 就钉死在那个色值，深色模式下不再适配。
 - `mermaid`：主题变量取自当前配色，随明暗自动重渲。
 - `svg`：用 `currentColor` 或 `var(--accent)`/`var(--ink)` 等上色即自动适配明暗。
 - **图注**：包一层 `<Figure caption="…">`，图注居中显示在图下方。

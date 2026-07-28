@@ -48,6 +48,7 @@ excalivibe/
 │       └── skills/  .mcp.json  .app.json                     # Codex 可用 primitives
 ├── docs/                                # 项目文档 MDX 树（tech = 事实标准 / research = 历史，用 plugin-infra:mdx-artifact 预览）
 ├── openspec/                            # OpenSpec 规范流程产物（specs / changes）
+├── LICENSE                              # MIT（仓库根为准，每个 plugin 目录内有同文本副本）
 ├── README.md
 └── AGENTS.md / CLAUDE.md
 ```
@@ -68,6 +69,7 @@ excalivibe/
 - `version` 用严格 semver（如 `0.1.0`）。
 - Codex 的 `plugin.json` **不要写 `hooks` 字段**（validator 拒绝）；Codex 运行时本身具备 hooks 能力（`config.toml` 途径），但非交互式 exec 下触发未经验证（trust-gated）；`mcpServers` / `apps` 仅在 `.mcp.json` / `.app.json` 实际存在时才声明；路径以 `./` 开头。
 - skill 的 `SKILL.md` frontmatter 必含 `name` + `description`。
+- **许可证**：全仓库 MIT。新增 plugin 时把仓库根 `LICENSE` 复制进 `<plugin>/LICENSE`（两侧都要），Codex `plugin.json` 写 `"license": "MIT"`，Claude `package.json` 写 `"license": "MIT"` 且 `files[]` 含 `"LICENSE"`（否则 npm 包不带许可证正文）。
 
 ## 安装与调试
 

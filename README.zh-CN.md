@@ -193,3 +193,9 @@ mdxv docs                   # 以 docs/ 为根起预览
 - [AGENTS.md](./AGENTS.md) —— 跨 Agent 的项目事实、marketplace / plugin 结构规范、校验与新增能力流程。
 - [CLAUDE.md](./CLAUDE.md) —— Claude Code 专属的 primitives、Subagent 协作与委派规则。
 - [codex/ADAPTING-FROM-CLAUDE.md](./codex/ADAPTING-FROM-CLAUDE.md) —— Claude→Codex 的适配规则。
+
+## 许可证
+
+[MIT](./LICENSE) © ExcaliVibe Contributors。
+
+覆盖整个仓库 —— `claude/` 与 `codex/` 两侧 plugin 树与文档。每个 plugin 目录内都有一份同文本副本，manifest（`package.json` / `plugin.json`）里也声明 `MIT`，无论以哪种方式安装，许可证都随 plugin 一起分发。
