@@ -198,4 +198,4 @@ mdxv docs                   # 以 docs/ 为根起预览
 
 [MIT](./LICENSE) © ExcaliVibe Contributors。
 
-覆盖整个仓库 —— `claude/` 与 `codex/` 两侧 plugin 树、文档,以及发布到 npm 的 `@excalivibe/*` 包。每个 plugin 目录内都有一份同文本副本,无论以哪种方式安装,许可证都随 plugin 一起分发。
+覆盖整个仓库 —— `claude/` 与 `codex/` 两侧 plugin 树与文档。每个 plugin 目录内都有一份同文本副本，manifest（`package.json` / `plugin.json`）里也声明 `MIT`，无论以哪种方式安装，许可证都随 plugin 一起分发。

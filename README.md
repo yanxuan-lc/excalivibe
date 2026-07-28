@@ -202,4 +202,4 @@ The preview lists every `.mdx` under `docs/` in a left-hand file drawer; relativ
 
 [MIT](./LICENSE) © ExcaliVibe Contributors.
 
-This covers the whole repository — both the `claude/` and `codex/` plugin trees, the docs, and the published `@excalivibe/*` npm packages. Each plugin directory carries a copy of the same license text, so the license travels with a plugin however it is installed.
+This covers the whole repository — both the `claude/` and `codex/` plugin trees and the docs. Each plugin directory carries a copy of the same license text and declares `MIT` in its manifest (`package.json` / `plugin.json`), so the license travels with a plugin however it is installed.
