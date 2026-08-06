@@ -1,7 +1,14 @@
 # dev-workflow
 
-Nine subagents — the **roles** an orchestrated development flow is made of. No skills yet, and no
-orchestration engine yet; those come when the flow itself is designed.
+Nine subagents — the **roles** an orchestrated development flow is made of — plus one skill. No
+orchestration engine yet; that comes when the flow itself is designed.
+
+The one skill is `review-doc`, and it lives here rather than in `dev-toolkit` for a reason worth
+stating: it produces a **contract another role decides from**, not a self-contained report. Its
+whole shape — decisions first, background compressed, design demoted to an appendix — is
+justified by there being an approval step that spends one unit of a person's attention. Without
+that step the inversion has no argument behind it, which is exactly what makes it flow-shaped
+rather than atomic.
 
 | role | tier | writes | does |
 |---|---|---|---|
@@ -50,6 +57,11 @@ Every agent here composes skills from `dev-toolkit` and `computer-use` by name. 
 deliberate and it only runs one way — a skill that named its caller would stop triggering when a
 person asked for the same thing directly, and would need rewriting every time a role was renamed.
 Orchestrators know about the things they call. The things being called do not know who called.
+
+**`review-doc` living in this plugin does not exempt it.** Being flow-shaped decides where a
+capability belongs; it never licenses naming a caller. That skill describes the situation it
+serves — a design that needs a person's approval — and names no role, exactly like every skill
+in `dev-toolkit`.
 
 ## Codex installs agents separately
 

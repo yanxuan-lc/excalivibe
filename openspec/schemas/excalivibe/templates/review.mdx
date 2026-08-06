@@ -1,0 +1,63 @@
+---
+title: «change title, in the reader's language»
+subtitle: «one line: what this change is for»
+eyebrow: design review
+author: «the model that wrote this»
+datetime: «yyyy-MM-dd HH:mm:ss — fill it in; the renderer never generates it»
+palette: indigo
+mode: auto
+toc: true
+---
+
+{/* Written in the reader's language (genai/config.json → output-language, else the system
+    locale). The anchors below are literals — never translate, reword, or drop one. They carry
+    the checked structure so the headings can be in any language. */}
+
+<Fields>
+<Field k="«Change»" v="«change id»" />
+<Field k="«Decisions»" v="«n»" />
+<Field k="«Criticality»" v="core | supporting | generic" />
+</Fields>
+
+{/* genai:review.decisions */}
+## «What I need you to decide»
+
+{/* One `###` item per decision. Every item needs: ≥2 real options, a `recommend=` on its own
+    anchor, the reasoning for the recommendation, and the cost of getting it wrong.
+    If there is nothing here to decide, do not produce this document at all. */}
+
+{/* genai:decision recommend=A */}
+### D1 — «state the question as a question, not as a topic»
+
+A. «option — what it means in practice»
+B. «option — what it means in practice»
+
+**«Why A»**: «the reasoning, one paragraph, not a list»
+
+{/* genai:cost */}
+**«Cost of getting it wrong»**: «what has to be undone, and how expensive that is once built»
+
+{/* genai:review.background */}
+## «What you need to know to decide»
+
+{/* Forty lines maximum. Only what the decisions above actually need — everything else is
+    appendix. Explain every domain term at first use; the reader has read nothing else. */}
+
+{/* genai:review.appendix */}
+## «Full design»
+
+{/* No decision lives here. For the reader who wants depth, in this order:
+    domain model → the four contracts → cross-cutting quality views.
+    A contract this change does not touch gets one line: "not affected". */}
+
+<Section number="01" eyebrow="«Domain»" title="«Domain model»" />
+
+<Section number="02" eyebrow="«Contracts»" title="«Module design»" />
+
+<Section number="03" eyebrow="«Contracts»" title="«External protocol»" />
+
+<Section number="04" eyebrow="«Contracts»" title="«Database design»" />
+
+<Section number="05" eyebrow="«Contracts»" title="«Acceptance scenarios»" />
+
+<Section number="06" eyebrow="«Quality»" title="«Budgets, security, observability, rollback»" />

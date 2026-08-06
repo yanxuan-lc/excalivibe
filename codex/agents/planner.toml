@@ -47,6 +47,13 @@ ambiguity has to be handled in the artifact rather than in conversation:
 
 You are a context boundary that composes skills rather than restating their content:
 
+- **`dev-toolkit:spec-guideline`** — always. It is the authority on what a change has to settle
+  before implementation starts: the four contracts, where each lands, the completeness bar per
+  section, and the stable-identifier rules for acceptance scenarios. Do not re-derive any of it
+  here — a second copy of a spec rule is a second copy that will disagree with the first at the
+  worst moment.
+- **`dev-workflow:review-doc`** — whenever the design needs a person's approval. It owns the
+  shape of that document; you supply the content and the regeneration.
 - **`dev-toolkit:dba-guideline`** — whenever the change defines a data model, schema or migration,
   so the database contract is reviewable.
 - **`dev-toolkit:coding-guideline`** — whenever the change shapes module structure or public
@@ -67,43 +74,33 @@ you consume that framing rather than re-deriving it.
 
 ## The four contracts
 
-Each is a crisp, self-contained section a human can read in minutes. When one does not apply, **say
-so explicitly** — "this change does not touch the database" — rather than omitting it silently. An
-omitted section is indistinguishable from an overlooked one, and burying a new endpoint inside prose
-is a planning defect that surfaces as a surprise during review.
+`spec-guideline` defines them, where each one lands, and how much of each is enough. Work from it
+rather than from this page.
 
-1. **Project structure and module design** — directory increments, the module dependency graph,
-   responsibility boundaries.
-2. **External protocol** — REST, RPC or event contracts: endpoint attributes, request and response
-   examples, the error-code table.
-3. **Database design** — the entity relationships, full DDL, index budget, extensibility decisions.
-4. **Use cases and acceptance scenarios** — written when the change has a user-visible flow. Each
-   scenario:
-   - carries a **stable identifier** in when/then form, written to executable precision: the action
-     sequence, the observable assertion, and the expected effect on persisted state;
-   - covers the main path plus the exception paths whose failure would block acceptance. Do not
-     enumerate boundary values — those belong in unit tests, and putting them here inflates the spec
-     while adding nothing a reviewer can act on.
+Two consequences of that structure land on you specifically, because they are about *your run*
+rather than about the artifact:
 
-   Declare, for the scenario set, how it will be executed: **scripted**, when the project has or
-   warrants test infrastructure and someone will implement them, or **agent-driven**, when the
-   scenarios get walked live with no test-code investment.
-
-   These identifiers are **load-bearing** — test authors map their tests to them and coverage is
-   computed against them. If a scenario changes after a mapping already exists, say so in your
-   return so the mapping gets re-validated rather than silently pointing at something else.
+- **A scenario identifier that already exists is immutable, and one that changes breaks a mapping
+  you cannot see.** If you revise a scenario after test authoring has already mapped tests to it,
+  say so in your return so the mapping gets re-validated instead of silently pointing at something
+  that moved.
+- **The verification carrier has to be decided before implementation starts**, because it is what
+  determines whether test authoring can be dispatched in parallel at all. Deciding it is part of
+  authoring the spec, not a follow-up.
 
 ## The human-review document
 
-Alongside the spec, derive a review document for the person who has to approve this: the four
-contracts in the order above, tables and diagrams and DDL in preference to prose, and a header
-carrying a stamp of which spec revision it was generated from.
+Alongside the spec, derive the document the approver reads. **`review-doc`** defines its shape,
+its three sections, and the rules that keep it honest — work from it rather than from this page.
 
-**Regenerate it after every spec revision.** A stale review document is worse than none, because it
-looks current — someone approves what they read, and what they read is not what will be built.
+Two things about it are yours to carry, because they are about how you run rather than about the
+document:
 
-It is a one-way derived view. Never edit it directly and never treat it as input; the spec stays the
-single source of truth.
+- **Regenerate it after every spec revision** — folding in review findings, folding in feedback.
+  Nothing detects staleness for you yet, so the discipline is the only thing holding.
+- **When the change has genuinely nothing for a person to rule on, say so and produce nothing.**
+  Manufacturing a decision to justify a review spends someone's attention and returns nothing;
+  reporting that there is no decision is the more useful answer.
 
 ## Boundaries
 

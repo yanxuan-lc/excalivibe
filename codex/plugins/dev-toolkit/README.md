@@ -1,11 +1,11 @@
 # dev-toolkit
 
-Atomic development skills. Seventeen of them, in four kinds, and the thing they have in common
+Atomic development skills. Eighteen of them, in four kinds, and the thing they have in common
 matters more than the taxonomy: **none of them knows who invoked it.**
 
 | kind | skills |
 |---|---|
-| conventions — how the artifact should look | `coding-guideline` `dba-guideline` `devops-guideline` `docs-guideline` `middleware-guideline` |
+| conventions — how the artifact should look | `coding-guideline` `dba-guideline` `devops-guideline` `docs-guideline` `middleware-guideline` `spec-guideline` |
 | methods — how to run a working loop | `grill` `tdd` `debug` `e2e-test` |
 | conventions of process | `vcs-workflow` |
 | checks — take an artifact, return a verdict | `a11y-check` `perf-budget` `security-scan` `smell-scan` |
