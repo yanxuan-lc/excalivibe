@@ -1,7 +1,10 @@
-# 性能预算检查
+# Measure what this change cost at runtime
 
-派给 `perf-runner`，它组合 `dev-toolkit:perf-budget`。
+**Include this step when** the diff touches the data-access layer, the dependency list that ends up
+in a build artifact, or any hot path with a declared budget.
 
-**什么时候必须纳入图**：本次 diff 触及数据访问层、构建产物的依赖清单，或任何声明过预算的热路径时。
+Measure only the dimensions this change can actually move, and say which ones you excluded and why.
+That sentence is what lets a reader tell "unaffected" from "not measured".
 
-只测这次改动能影响的维度，并写明排除了哪些、为什么。一个裸数字不是判定——实测值、阈值、基线加差值，三个数才是。
+One bare number is not a verdict. Measured, threshold, and baseline-plus-delta — three numbers
+are.

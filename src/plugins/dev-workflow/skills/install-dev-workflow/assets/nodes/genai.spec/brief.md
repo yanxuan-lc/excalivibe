@@ -1,9 +1,15 @@
-# 写出下游各自独立构建所依据的四份契约
+# Author the four contracts every downstream role builds against
 
-组合 **`dev-toolkit:spec-guideline`**——它定义四份契约、各自落在哪、每段多少算够，以及验收场景的稳定 ID 规则。不要在这里重新推导。
+Compose **`dev-toolkit:spec-guideline`** — it defines the four contracts, where each one lands, how
+much of each is enough, and the stable-identifier rules for acceptance scenarios. Do not re-derive
+any of it here.
 
-数据模型找 `dev-toolkit:dba-guideline`，模块结构找 `dev-toolkit:coding-guideline`，服务集成面找 `dev-toolkit:middleware-guideline`。
+Consult **`dev-toolkit:dba-guideline`** for the data model, **`dev-toolkit:coding-guideline`** for
+module structure, **`dev-toolkit:middleware-guideline`** for how a service integrates with the
+platform it runs on.
 
-**不适用的段落要写出「不适用」**，不能省略——省略和遗漏在读者眼里一模一样。
+A section that does not apply gets one written line saying so. An omitted section is
+indistinguishable from an overlooked one, and a reader cannot tell a scope decision from a gap.
 
-门控会跑完整性检查，它只判断「写没写」，不判断「写得对不对」。绿色不等于设计是对的。
+The gate runs a completeness check. It separates written from unwritten and nothing else — passing
+it does not mean the design is right.

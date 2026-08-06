@@ -1,9 +1,13 @@
-# 执行端到端套件，并核对真的写进了数据库
+# Execute the suite, and verify what actually landed
 
-组合 **`dev-toolkit:e2e-test`**。
+Compose **`dev-toolkit:e2e-test`**.
 
-**界面绿了但那一行根本没写进去，是一次假通过**——把它抓出来是这个节点存在的全部理由。每条执行过的路径都要既验可见结果、又验落库。
+**A green interface assertion sitting on top of a row that was never written is a false pass**, and
+catching that is the whole reason this step exists. Every executed path gets both checks: the
+visible result, and the effect on persisted state.
 
-有映射的场景当脚本跑，没覆盖的实时驱动，人工确认或豁免的由调用方传入。对产品代码和测试代码都只读——两者都不改。
+Scenarios with mapped test code run as scripts at no model cost; uncovered ones get driven live.
+Read-only toward product code and test code alike.
 
-应用必须先跑起来。起不来就判 `blocked`,那不消耗耐心。
+The application has to be up. If it will not start, that is `blocked` rather than a failure — it is
+not something the implementation can fix, and it does not consume patience.

@@ -1,7 +1,13 @@
-# 备料，不发布
+# Assemble the release; do not perform it
 
-组合 **`dev-toolkit:vcs-workflow`**：SemVer 增量、每一处版本同步点、发布顺序。
+Compose **`dev-toolkit:vcs-workflow`**: the SemVer increment decided from the actual diff, every
+version sync point, and the publish order.
 
-产出一份材料：版本判定及其理由、带确切新旧字符串的同步点清单、发布说明草稿、发布前置条件的证据摘要。目的是让「发不发」成为一次有依据的是或否。
+Deliver the version call with its reason, the sync-point list with exact old and new strings, a
+release-notes draft, and an evidence digest of the publish preconditions — so that publish-or-not
+becomes a single informed yes or no.
 
-**不执行发布、不推送、不做任何 git 变更。** 发布需要用户明确同意，而 subagent 拿不到同意——这个边界是结构性的，不是纪律问题。
+**No publish, no push, no git mutation of any kind** — not even the reversible steps. Publishing
+requires explicit user consent and a subagent cannot obtain it, so the boundary is structural
+rather than a matter of discipline. Any branch or commit left behind is orphan state someone else
+has to discover and reconcile.

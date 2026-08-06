@@ -23,7 +23,7 @@ gates:
         verdict: pass
       mismatched:
         verdict: reject
-        message: 代码自上次安全检查以来已变更，先前结论已失效
+        message: the code has changed since the security check ran, so the earlier conclusion no longer holds
   - rule_id: outputs
     checker:
       type: outputs_present
@@ -32,7 +32,7 @@ gates:
         verdict: pass
       missing:
         verdict: reject
-        message: 安全报告未落盘
+        message: the security report is not on disk
   - rule_id: outcome
     checker:
       type: report
@@ -44,10 +44,10 @@ gates:
           checked_code: "{{inputs.code}}"
       partial:
         verdict: reject
-        message: 安全检查部分完成，按报告处理未决项
+        message: the security check completed only partly - resolve the open items in the report
       failed:
         verdict: reject
-        message: 安全检查未通过，按报告逐条处理
+        message: the security check did not pass - work through the report
       blocked:
         verdict: delegate
-        message: 工具或环境不具备，不是实现能解决的
+        message: the tooling or environment is not available - not something the implementation can fix

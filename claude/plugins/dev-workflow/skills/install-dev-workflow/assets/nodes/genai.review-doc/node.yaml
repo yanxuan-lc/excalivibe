@@ -23,7 +23,7 @@ gates:
         verdict: pass
       mismatched:
         verdict: reject
-        message: 设计自本文档生成以来已变更，重新生成，别只改戳
+        message: the design has moved since this was generated - regenerate it rather than restamping it
   - rule_id: outputs
     checker:
       type: outputs_present
@@ -34,4 +34,4 @@ gates:
           generated_from: "{{inputs.design}}"
       missing:
         verdict: reject
-        message: 评审文档未落盘
+        message: the review document is not on disk

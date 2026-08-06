@@ -1,9 +1,13 @@
-# 按已确认的设计实现，测试先行
+# Build the confirmed design, test-first
 
-产品代码加它的单元测试，红-绿-重构。组合 **`dev-toolkit:tdd`**。
+Product code and its unit tests, red-green-refactor. Compose **`dev-toolkit:tdd`**.
 
-设计里没说清的地方**不要猜**——把缺口写进报告的开放问题里返回，让设计去补。猜出来的东西会一路传到下游，而下游以为那是设计说的。
+**Where the design does not say, do not guess.** Park the gap in the report's open questions and
+return. A guess propagates downstream, where it is read as something the design settled.
 
-不写 e2e 测试，不评审自己的产出。这些分隔是下游那些判定还值钱的原因。
+You do not write e2e tests and you do not review your own work. Those separations are what make
+the downstream verdicts worth anything.
 
-`code` 产物签的是当前 HEAD，下游据此判断「我审过的还是不是现在这份」。所以**要提交**，否则下游看到的签名不会变。
+The `code` output signs the current commit — that is how later steps tell whether what they judged
+is still what exists. So commit your work: an uncommitted change leaves that signature unmoved, and
+a reviewer will be told nothing has changed.

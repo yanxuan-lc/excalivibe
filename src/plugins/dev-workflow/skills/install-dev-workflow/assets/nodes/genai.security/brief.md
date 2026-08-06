@@ -1,7 +1,9 @@
-# 安全检查
+# Run the static security checks over this change
 
-派给 `security-runner`，它组合 `dev-toolkit:security-scan`。
+**Include this step when** the diff touches authentication, authorization, input handling, crypto,
+file-path construction, or the third-party dependency list — and before any outward release,
+whatever the diff touched.
 
-**什么时候必须纳入图**：本次 diff 触及认证、鉴权、输入处理、加密、文件路径拼接或第三方依赖清单时；以及任何一次对外发布之前。
-
-**扫描范围要写进报告。** 只扫 diff 看不见上个月提交的密钥，而从 HEAD 删掉不等于从别人已经克隆的仓库里删掉。
+**State the scope you scanned.** A diff-only scan cannot see a credential committed last month, and
+removing one from HEAD does not remove it from any clone that already exists. A report without its
+scope reads as "nothing was found" when the truth is "nothing was looked for".

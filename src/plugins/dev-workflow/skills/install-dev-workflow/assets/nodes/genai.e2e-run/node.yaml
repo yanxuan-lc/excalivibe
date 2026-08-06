@@ -26,7 +26,7 @@ gates:
         verdict: pass
       mismatched:
         verdict: reject
-        message: 代码自上次执行以来已变更，先前的验收结论已失效
+        message: the code has changed since this ran, so the earlier acceptance result no longer holds
   - rule_id: outputs
     checker:
       type: outputs_present
@@ -35,7 +35,7 @@ gates:
         verdict: pass
       missing:
         verdict: reject
-        message: 验收报告未落盘
+        message: the acceptance report is not on disk
   - rule_id: outcome
     checker:
       type: report
@@ -47,10 +47,10 @@ gates:
           ran_against: "{{inputs.code}}"
       partial:
         verdict: reject
-        message: 部分场景未通过或未覆盖，按报告处理
+        message: some scenarios failed or went uncovered - work through the report
       failed:
         verdict: reject
-        message: 验收失败，按报告逐条处理
+        message: acceptance failed - work through the report
       blocked:
         verdict: delegate
-        message: 应用起不来或环境不具备，不是实现能解决的
+        message: the application would not start, or the environment is not available - not something the implementation can fix

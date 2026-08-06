@@ -21,4 +21,4 @@ gates:
         verdict: pass
       missing:
         verdict: reject
-        message: 测试清单未落盘
+        message: the test manifest is not on disk

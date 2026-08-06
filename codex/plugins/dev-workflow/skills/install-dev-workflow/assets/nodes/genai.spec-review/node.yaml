@@ -23,7 +23,7 @@ gates:
         verdict: pass
       mismatched:
         verdict: reject
-        message: 设计自上次评审以来已变更，先前结论已失效
+        message: the design has changed since it was reviewed, so the earlier conclusion no longer holds
   - rule_id: outputs
     checker:
       type: outputs_present
@@ -32,7 +32,7 @@ gates:
         verdict: pass
       missing:
         verdict: reject
-        message: 评审记录未落盘
+        message: the review note is not on disk
   - rule_id: verdict
     checker:
       type: report
@@ -44,7 +44,7 @@ gates:
           reviewed_design: "{{inputs.design}}"
       reject:
         verdict: reject
-        message: 设计评审未通过，按记录逐条修改设计本身
+        message: the design was not approved - work through the note and change the design itself, not the code
       conditional:
         verdict: reject
-        message: 有条件通过，先补齐记录中标为阻塞的项
+        message: approved with conditions - clear the items marked blocking first

@@ -1,7 +1,11 @@
-# 在写第一行代码之前评审设计
+# Review the design before a line of code is written
 
-评的是**设计**，不是代码——此刻改一处等于改一次设计，实现之后改一处等于重写。
+At this moment a correction costs one design edit. After implementation it costs a rewrite.
 
-重点看数据模型变更、新增或改动的对外契约、跨模块的拆分，以及任何删除（删表、删模块、破坏性契约变更）。删除要看有没有列清消费者、有没有回滚路径。
+Look hardest at data-model changes, new or changed external contracts, cross-module decomposition,
+and any removal — a dropped table, a deleted module, a breaking contract change. A removal needs
+its consumers enumerated and a rollback present before it can be called safe.
 
-纯逻辑、无 schema、无新接口、无删除的小改动，如实判 approve 并写明「本次无值得评审的设计面」。
+A small pure-logic change with no schema, no new interface and no removal is a legitimate approve.
+Say so, and say there was no design surface worth reviewing. Manufacturing findings to look
+thorough costs the next reader their trust in this report.

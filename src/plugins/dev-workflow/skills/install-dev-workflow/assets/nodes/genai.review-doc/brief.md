@@ -1,7 +1,12 @@
-# 生成人要签字的那份文档
+# Produce the document a person signs
 
-组合 **`dev-workflow:review-doc`**——它定义决策优先的结构、三段固定顺序、锚点，以及那三条硬性要求。
+Compose **`dev-workflow:review-doc`** — the decision-first structure, the three sections, the
+anchors, and the three hard requirements.
 
-要点只重复一条，因为它决定这个节点要不要存在：**没有可决策的事就不要生成**，如实报告「本次无需人工评审」。造一个假选择比不做更糟——它花掉一个人的注意力，还让评审看起来很有效。
+One point is worth repeating here because it decides whether this step should run at all: **if
+there is genuinely nothing for a person to rule on, produce nothing and say so.** A manufactured
+choice spends someone's attention and makes the review look effective, which is worse than having
+no review.
 
-设计每改一次就重新生成一次。门控会比对设计签名，改了不重生成会被打回。
+Regenerate this after every revision of the design. The gate compares signatures, so a design that
+moved without this being regenerated is caught rather than quietly approved.

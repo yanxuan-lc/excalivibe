@@ -17,4 +17,4 @@ gates:
         verdict: pass
       missing:
         verdict: reject
-        message: 交付材料未落盘
+        message: the release dossier is not on disk

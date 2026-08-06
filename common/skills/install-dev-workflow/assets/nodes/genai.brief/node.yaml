@@ -17,4 +17,4 @@ gates:
         verdict: pass
       missing:
         verdict: reject
-        message: 意图纪要未落盘，请写入 genai/BRIEF.md
+        message: the brief is not on disk

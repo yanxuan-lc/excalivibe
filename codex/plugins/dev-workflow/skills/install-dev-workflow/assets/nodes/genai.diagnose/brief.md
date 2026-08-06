@@ -1,7 +1,10 @@
-# 定位根因，并用一个失败的测试把它钉住
+# Find the cause, and pin it with a test that fails now
 
-不在主链上——反复失败卡住时由主 Agent 用 `fsx graph patch` 插进图。
+Not on the main path. This gets inserted with `fsx graph patch` when something is stuck failing and
+the cause is not obvious.
 
-组合 **`dev-toolkit:debug`**：按症状选调查回路，跑到证伪为止，而不是一路读代码直到某处看着可疑。
+Compose **`dev-toolkit:debug`**: pick the investigation loop the symptom calls for and run it to
+falsification, rather than reading code until something looks wrong.
 
-产出诊断记录，以及一个**当前会失败**的回归测试。**不要顺手把产品代码改好**——证明 bug 存在的测试，不能由将要满足它的人来写。
+**Do not fix the product code while you are here.** The test that proves the bug must not be
+written by whoever will satisfy it — otherwise it proves only that the fix matches itself.

@@ -17,4 +17,4 @@ gates:
         verdict: pass
       missing:
         verdict: reject
-        message: 诊断记录未落盘
+        message: the diagnosis is not on disk

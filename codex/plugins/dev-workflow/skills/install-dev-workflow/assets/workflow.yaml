@@ -1,5 +1,5 @@
-# excalivibe 的开发流程。由 install-dev-workflow 装入，不要手改——
-# 改动走源码，重新安装。
+# The excalivibe development flow. Installed by install-dev-workflow — do not hand-edit;
+# change the source and install again.
 nodes:
   - genai.brief
   - genai.spec
@@ -17,5 +17,5 @@ nodes:
   - genai.release-prep
 
 defaults:
-  # 门控打回两次后转人工。判定类节点自己声明更宽的配额。
+  # Two rejections, then it goes to a person. Judging steps declare a wider quota themselves.
   patience: 2

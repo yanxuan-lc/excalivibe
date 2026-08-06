@@ -1,7 +1,11 @@
-# 合并前审这次的 diff
+# Review this change's diff before it merges
 
-增量、只读、全新上下文。给出**两个独立判定**：符不符合设计，以及代码质量本身。
+Incremental, read-only, in a fresh context. **Two independent verdicts**: whether it complies with
+the design, and whether the code itself is sound. One verdict covering both hides which of the two
+failed.
 
-顺带做坏味道扫描——组合 **`dev-toolkit:smell-scan`**，它是检测器，不改代码也不决定哪些要处理。
+Sweep for accumulated bad smells while you are here — compose **`dev-toolkit:smell-scan`**. It
+detects; it does not edit, and it does not decide which candidates get acted on.
 
-只读:发现一行就能修好的问题也不要动手。谁验证谁就不能修，否则下一次评审评的是你自己的产出。
+Read-only means read-only: finding a one-line fix is not a licence to apply it. Whoever verifies
+must not also repair, or the next review is of your own work.

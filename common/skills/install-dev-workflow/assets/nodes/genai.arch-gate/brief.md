@@ -1,7 +1,9 @@
-# 人拍板
+# A person decides
 
-用 `fsx human` 录入决定，框架会把它构造成一份合规报告并签名。
+Record the decision with `fsx human`. The engine constructs it into a compliant report and signs
+it, so there is no human special case anywhere in the gating layer.
 
-**耐心设为 null：只计量不强制。** 返工次数要统计，但不该把人卡住。
+Patience is null here, deliberately: rework should be counted, but a person should not be blocked
+by a counter.
 
-无人值守时挂起等待，不会自己往下走——这一条是这个节点存在的理由。
+Unattended, this suspends rather than proceeding. That is the reason the step exists.

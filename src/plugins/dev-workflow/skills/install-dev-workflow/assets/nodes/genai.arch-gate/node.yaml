@@ -23,7 +23,7 @@ gates:
         verdict: pass
       missing:
         verdict: reject
-        message: 人工决定未落盘
+        message: the decision is not on disk
   - rule_id: verdict
     checker:
       type: report
@@ -33,7 +33,7 @@ gates:
         verdict: pass
       reject:
         verdict: reject
-        message: 人工评审要求修改设计，意见已回流到设计
+        message: the reviewer asked for design changes - fold the feedback into the design and regenerate
       conditional:
         verdict: reject
-        message: 有条件通过，先处理提出的条件
+        message: approved with conditions - address them first

@@ -25,7 +25,7 @@ gates:
         verdict: pass
       missing:
         verdict: reject
-        message: 实现证据未落盘
+        message: the implementation evidence is not on disk
   - rule_id: progress
     checker:
       type: signature_changed
@@ -34,4 +34,4 @@ gates:
         verdict: pass
       stalled:
         verdict: reject
-        message: 这一轮交上来的和上一轮完全一样，说明上游反馈没有被处理
+        message: this round is byte-identical to the last one, so the feedback was never acted on

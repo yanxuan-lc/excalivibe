@@ -1,7 +1,10 @@
-# 无障碍检查
+# Check the accessibility of what this change renders
 
-派给 `a11y-runner`，它组合 `dev-toolkit:a11y-check`。
+**Include this step when** the diff touches any file that renders a user-visible surface. That is a
+fact you can check against the diff, not a judgement about whether something counts as a UI change.
 
-**什么时候必须纳入图**：本次 diff 触及任何渲染用户可见界面的文件时。这是个可核对的事实，不是「算不算 UI 改动」的判断题。
+The surface has to be running. A read of the components is not a scan, and presenting one as a scan
+result is worse than reporting that you could not reach the surface.
 
-页面必须是跑起来的。扫描器全绿不等于页面可用——自动化测不到的准则要列成开放项，而不是默默算通过。
+A clean scanner run is not an accessible page. The criteria automation could not evaluate are the
+reason a person reads this report at all.

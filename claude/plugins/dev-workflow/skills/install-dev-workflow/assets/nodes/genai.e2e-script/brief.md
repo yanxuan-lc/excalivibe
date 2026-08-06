@@ -1,7 +1,11 @@
-# 从验收场景派生测试代码
+# Derive test code from the acceptance scenarios
 
-**从规格派生，永远不从实现派生。** 实现正是你的测试要审判的东西——照着它写测试，测试就只能证明代码做了它做的事。
+**From the scenarios, never from the implementation.** The implementation is what these tests
+judge; written by reading it, they can only prove that the code does what it does.
 
-产出测试代码，外加一份清单：每个稳定 ID 映射到哪个测试用例，或声明为「实时驱动」「有意未覆盖」。
+Deliver the test code plus a manifest mapping every stable identifier to a test case — or
+declaring it agent-driven, or deliberately uncovered. A scenario missing from the manifest is
+indistinguishable from one nobody noticed.
 
-只写测试代码，不写产品代码。可以和实现并行开工——你们依据的是同一份已确认的设计。
+Test code only, never product code. This runs in parallel with implementation; you both work from
+the same confirmed design.

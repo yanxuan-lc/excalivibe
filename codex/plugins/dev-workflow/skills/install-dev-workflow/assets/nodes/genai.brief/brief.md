@@ -1,8 +1,11 @@
-# 把这次要做的事问清楚
+# Pin down what this change is for
 
-组合 **`dev-toolkit:grill`**：一次一个问题，每个问题都自带你的推荐答案，凡是看代码能查到的都不要问。
+Compose **`dev-toolkit:grill`**: one question at a time, each carrying your own recommended
+answer, and nothing asked that reading the code would have answered.
 
-这一步留在主 Agent 而不是派给 subagent，原因是结构性的：这是**与人的对话**，而 subagent 根本不能和用户说话。
+This step runs as the main agent rather than a subagent for a structural reason — it is a
+conversation with the user, and a subagent cannot talk to one.
 
-写出 `genai/BRIEF.md`：这次要解决什么、完成的判据是什么、哪些明确不做。
-需求已经足够精确时，如实写下来并跳过提问——把已经清楚的事再问一遍是纯损耗。
+Record what the change is for, what done looks like, and what is explicitly out of scope. If the
+request is already precise, say so and skip the questioning: asking about what is already settled
+spends attention and returns nothing.
