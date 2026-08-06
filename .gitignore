@@ -9,11 +9,18 @@ __pycache__/
 
 # 本仓库开发期用的 agent 本地配置与集成目录。仅供在本仓库内开发时使用，不应随 git-源
 # marketplace 分发给消费者 —— 否则会被 clone 进消费者机器、注入技能并触发未受信项目警告。
-#
-# 三条全部用 / 锚定到仓库根，这不是风格问题：根目录的 `.agents/` 装的是 **Codex 的
-# marketplace 清单**（`.agents/plugins/marketplace.json`，由 make build 生成且必须提交），
-# 与这里要忽略的本地配置目录同名相近。不锚定的话，任意层级的同名目录都会被吞掉，而构建
-# 产物被静默漏提交时 verify-build 在本地依然是绿的 —— 消费者 clone 到的却是坏的清单。
+# 全部用 / 锚定到仓库根：这些是本仓库自己的配置目录，不是任意层级的同名目录。
 /.codex/
 /.claude/
 /.agent/
+
+# .agents/ 同理被忽略，但它多一层：它同时是 scripts/build.ts 的 OUT_ROOTS 之一，
+# `.agents/plugins/marketplace.json`（Codex 的 marketplace 清单）由 make build 生成
+# 且**必须提交** —— 消费者的 Codex 就是从这个路径读市场的。
+#
+# 所以不能直接写 /.agents/：git 不会下降进被排除的目录，那样后面任何 ! 反选都失效。
+# 下面四行是「排除目录内容、再逐层放行一条路径」的标准写法，顺序不能动。
+/.agents/*
+!/.agents/plugins/
+/.agents/plugins/*
+!/.agents/plugins/marketplace.json
