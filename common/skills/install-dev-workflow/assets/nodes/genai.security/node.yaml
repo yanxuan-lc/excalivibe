@@ -1,0 +1,53 @@
+id: genai.security
+kind: verify
+executor: security-runner
+
+inputs:
+  - name: code
+    from: genai.implement
+
+outputs:
+  - name: report
+    kind: glob
+    locator: openspec/changes/*/genai/security-report.md
+    signature: checksum
+
+gates:
+  - rule_id: still_valid
+    checker:
+      type: signature_match
+      state_key: checked_code
+      against: code
+    on_result:
+      matched:
+        verdict: pass
+      mismatched:
+        verdict: reject
+        message: 代码自上次安全检查以来已变更，先前结论已失效
+  - rule_id: outputs
+    checker:
+      type: outputs_present
+    on_result:
+      satisfied:
+        verdict: pass
+      missing:
+        verdict: reject
+        message: 安全报告未落盘
+  - rule_id: outcome
+    checker:
+      type: report
+      field: outcome
+    on_result:
+      completed:
+        verdict: pass
+        state:
+          checked_code: "{{inputs.code}}"
+      partial:
+        verdict: reject
+        message: 安全检查部分完成，按报告处理未决项
+      failed:
+        verdict: reject
+        message: 安全检查未通过，按报告逐条处理
+      blocked:
+        verdict: delegate
+        message: 工具或环境不具备，不是实现能解决的

@@ -1,6 +1,6 @@
 # ExcaliVibe
 
-一份源码，编译出三端产物。能力只写一次，落在 `src/plugins/<name>/`，`make build` 同时生成 Claude 插件、Codex 插件和厂商中立的 `.agents/` 布局。
+一份源码，编译出三端产物。能力只写一次，落在 `src/plugins/<name>/`，`make build` 同时生成 Claude 插件、Codex 插件和厂商中立的 `common/` 布局。
 
 ## 三个插件
 
@@ -8,7 +8,7 @@
 |---|---|---|
 | `computer-use` | 如何使用电脑 —— 让 agent 越过自身文本输出、作用于真实机器的能力 | `graceful-browser`、`mdx-artifact` |
 | `dev-toolkit` | 原子开发能力 —— 每个独立成立、按自身主题触发、不假设谁来调 | 18 个（规约 6 / 方法 4 / 流程约定 1 / 检查器 4 / 实地调研 3） |
-| `dev-workflow` | 流程编排 —— 把原子能力串成带门禁与角色的管线 | 9 个 agent + `review-doc`；编排引擎仍在设计中 |
+| `dev-workflow` | 流程编排 —— 把原子能力串成带门禁与角色的管线 | 12 个 agent + 2 个 skill + 14 份节点定义；引擎是外部包 `fsx` |
 
 **一条贯穿全仓的规则：skill 不写调用者。** description 只回答「什么情况下该用我」，绝不回答「谁会调我」。写着 `invoked by name from the developer agent` 的 skill 有三重问题 —— 人直接提出同样需求时它不触发（描述的是派发而非情境）、那个 agent 一改名它就得重写、以及可复用的东西反过来依赖了具体的东西。箭头只能单向：**编排者点名它调用的 skill，skill 永不点名编排者。**
 
@@ -73,6 +73,7 @@ src/
       SKILL.md           触发面 + 主干,进上下文的部分
       references/**      按需加载的深度内容
       scripts/**         可执行件,权限位随源码保留
+      assets/**          随 skill 发出去、由它的脚本消费的数据
       evals/**           触发率 fixture,留在 src 不发给用户
     agents/<name>.md     一份正文,三种序列化
     hooks/**             Claude 独有
@@ -84,6 +85,6 @@ scripts/
 
 ## 已知的粗糙处
 
-- `.agents/` 在本仓库里放的是 **Codex 的 marketplace 清单**，而 `common/` 才是给消费者拷进**他们自己**的 `.agents/skills/` 的东西。同一个名字两种角色，容易看岔。
+- `.agents/` 在本仓库里放的是 **Codex 的 marketplace 清单**，而 `common/` 才是给消费者拷进**他们自己**的 `.agents/skills/` 的东西。同一个名字两种角色，容易看岔。编译器因此只拥有 `.agents/plugins`——它一度拥有整个 `.agents/`，于是每次 `make build` 都把别的工具装在 `.agents/skills/` 下的东西当孤儿扫掉。
 - common 端的 `${PLUGIN_ROOT}` 解析成项目相对的 `.agents`，因此**用户级安装**（`~/.agents/`）下这个变量不成立。需要在 common 端工作的正文，优先用相对 skill 自身目录的路径。
 - 没有 LICENSE：清空仓库时一并删了，等真实设计定下来再补。

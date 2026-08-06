@@ -1,0 +1,42 @@
+id: genai.spec
+kind: produce
+executor: planner
+
+inputs:
+  - name: brief
+    from: genai.brief
+    required: false
+
+outputs:
+  - name: design
+    kind: glob
+    locator: openspec/changes/*/design.md
+    signature: checksum
+  - name: specs
+    kind: glob
+    locator: openspec/changes/*/specs/**/*.md
+    signature: checksum
+
+gates:
+  - rule_id: outputs
+    checker:
+      type: outputs_present
+    on_result:
+      satisfied:
+        verdict: pass
+      missing:
+        verdict: reject
+        message: 设计与规格未落盘
+  - rule_id: completeness
+    checker:
+      type: command
+      command: "{{CHECK_SPEC}} --all"
+    on_result:
+      satisfied:
+        verdict: pass
+      failed:
+        verdict: reject
+        message: 完整性检查未通过，逐条修掉它报出的缺口；不适用的段落也要写明「不适用」
+      unexecutable:
+        verdict: delegate
+        message: 完整性检查跑不起来（openspec 缺失或不在项目根），这不是撰写者能解决的

@@ -1,0 +1,37 @@
+id: genai.implement
+kind: produce
+executor: developer
+
+inputs:
+  - name: design
+    from: genai.spec
+
+outputs:
+  - name: evidence
+    kind: glob
+    locator: openspec/changes/*/genai/tdd-evidence.md
+    signature: checksum
+  - name: code
+    kind: git_commit
+    locator: HEAD
+    signature: commit_sha
+
+gates:
+  - rule_id: outputs
+    checker:
+      type: outputs_present
+    on_result:
+      satisfied:
+        verdict: pass
+      missing:
+        verdict: reject
+        message: 实现证据未落盘
+  - rule_id: progress
+    checker:
+      type: signature_changed
+    on_result:
+      satisfied:
+        verdict: pass
+      stalled:
+        verdict: reject
+        message: 这一轮交上来的和上一轮完全一样，说明上游反馈没有被处理

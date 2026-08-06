@@ -345,8 +345,18 @@ emit(
 
 // ───────────────────────── mode dispatch ─────────────────────────
 
-/** Every root the compiler owns. Anything inside them the source does not produce is junk. */
-const OUT_ROOTS = ['claude', 'codex', 'common', '.claude-plugin', '.agents'];
+/**
+ * Every root the compiler owns. Anything inside them the source does not produce is junk, so a
+ * root must be scoped to exactly what this compiler emits — never to a directory it merely writes
+ * one file into.
+ *
+ * `.agents/plugins`, not `.agents`. The compiler emits exactly one file there, the Codex
+ * marketplace manifest, but `.agents/` is a shared vendor-neutral convention: other tools install
+ * into `.agents/skills/`, and OpenSpec really does. Owning the parent made every `make build`
+ * silently delete those as orphans — recoverable, since the tool that wrote them can write them
+ * again, but recurring once per build and buried in the middle of the output where nobody reads it.
+ */
+const OUT_ROOTS = ['claude', 'codex', 'common', '.claude-plugin', '.agents/plugins'];
 
 function pruneEmptyDirs(): void {
   for (let pass = 0; pass < 8; pass++) {

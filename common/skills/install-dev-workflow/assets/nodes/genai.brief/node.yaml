@@ -1,0 +1,20 @@
+id: genai.brief
+kind: produce
+executor: main
+
+outputs:
+  - name: brief
+    kind: glob
+    locator: openspec/changes/*/genai/BRIEF.md
+    signature: checksum
+
+gates:
+  - rule_id: outputs
+    checker:
+      type: outputs_present
+    on_result:
+      satisfied:
+        verdict: pass
+      missing:
+        verdict: reject
+        message: 意图纪要未落盘，请写入 genai/BRIEF.md

@@ -1,0 +1,24 @@
+id: genai.e2e-script
+kind: produce
+executor: e2e-author
+
+inputs:
+  - name: specs
+    from: genai.spec
+
+outputs:
+  - name: manifest
+    kind: glob
+    locator: openspec/changes/*/genai/e2e-manifest.md
+    signature: checksum
+
+gates:
+  - rule_id: outputs
+    checker:
+      type: outputs_present
+    on_result:
+      satisfied:
+        verdict: pass
+      missing:
+        verdict: reject
+        message: 测试清单未落盘

@@ -1,0 +1,37 @@
+id: genai.review-doc
+kind: produce
+executor: planner
+
+inputs:
+  - name: design
+    from: genai.spec
+
+outputs:
+  - name: review
+    kind: glob
+    locator: openspec/changes/*/review.mdx
+    signature: checksum
+
+gates:
+  - rule_id: still_valid
+    checker:
+      type: signature_match
+      state_key: generated_from
+      against: design
+    on_result:
+      matched:
+        verdict: pass
+      mismatched:
+        verdict: reject
+        message: 设计自本文档生成以来已变更，重新生成，别只改戳
+  - rule_id: outputs
+    checker:
+      type: outputs_present
+    on_result:
+      satisfied:
+        verdict: pass
+        state:
+          generated_from: "{{inputs.design}}"
+      missing:
+        verdict: reject
+        message: 评审文档未落盘

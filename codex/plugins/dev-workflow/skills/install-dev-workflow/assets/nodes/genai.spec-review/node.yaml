@@ -1,0 +1,50 @@
+id: genai.spec-review
+kind: judge
+executor: arch-reviewer
+
+inputs:
+  - name: design
+    from: genai.spec
+
+outputs:
+  - name: note
+    kind: glob
+    locator: openspec/changes/*/genai/spec-review.md
+    signature: checksum
+
+gates:
+  - rule_id: still_valid
+    checker:
+      type: signature_match
+      state_key: reviewed_design
+      against: design
+    on_result:
+      matched:
+        verdict: pass
+      mismatched:
+        verdict: reject
+        message: 设计自上次评审以来已变更，先前结论已失效
+  - rule_id: outputs
+    checker:
+      type: outputs_present
+    on_result:
+      satisfied:
+        verdict: pass
+      missing:
+        verdict: reject
+        message: 评审记录未落盘
+  - rule_id: verdict
+    checker:
+      type: report
+      field: verdict
+    on_result:
+      approve:
+        verdict: pass
+        state:
+          reviewed_design: "{{inputs.design}}"
+      reject:
+        verdict: reject
+        message: 设计评审未通过，按记录逐条修改设计本身
+      conditional:
+        verdict: reject
+        message: 有条件通过，先补齐记录中标为阻塞的项

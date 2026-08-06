@@ -1,0 +1,21 @@
+# excalivibe 的开发流程。由 install-dev-workflow 装入，不要手改——
+# 改动走源码，重新安装。
+nodes:
+  - genai.brief
+  - genai.spec
+  - genai.review-doc
+  - genai.spec-review
+  - genai.arch-gate
+  - genai.implement
+  - genai.e2e-script
+  - genai.e2e-run
+  - genai.code-review
+  - genai.a11y
+  - genai.security
+  - genai.perf
+  - genai.diagnose
+  - genai.release-prep
+
+defaults:
+  # 门控打回两次后转人工。判定类节点自己声明更宽的配额。
+  patience: 2

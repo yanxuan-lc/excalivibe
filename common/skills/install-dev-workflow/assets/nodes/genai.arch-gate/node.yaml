@@ -1,0 +1,39 @@
+id: genai.arch-gate
+kind: judge
+executor: human
+patience: null
+unattended: suspend
+
+inputs:
+  - name: review
+    from: genai.review-doc
+
+outputs:
+  - name: decision
+    kind: glob
+    locator: openspec/changes/*/genai/arch-gate.md
+    signature: checksum
+
+gates:
+  - rule_id: outputs
+    checker:
+      type: outputs_present
+    on_result:
+      satisfied:
+        verdict: pass
+      missing:
+        verdict: reject
+        message: 人工决定未落盘
+  - rule_id: verdict
+    checker:
+      type: report
+      field: verdict
+    on_result:
+      approve:
+        verdict: pass
+      reject:
+        verdict: reject
+        message: 人工评审要求修改设计，意见已回流到设计
+      conditional:
+        verdict: reject
+        message: 有条件通过，先处理提出的条件

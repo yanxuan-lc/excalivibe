@@ -1,0 +1,20 @@
+id: genai.diagnose
+kind: produce
+executor: debugger
+
+outputs:
+  - name: diagnosis
+    kind: glob
+    locator: openspec/changes/*/genai/diagnosis.md
+    signature: checksum
+
+gates:
+  - rule_id: outputs
+    checker:
+      type: outputs_present
+    on_result:
+      satisfied:
+        verdict: pass
+      missing:
+        verdict: reject
+        message: 诊断记录未落盘
