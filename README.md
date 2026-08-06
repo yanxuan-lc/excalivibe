@@ -1,205 +1,89 @@
-# ExcaliVibe ⚔️
+# ExcaliVibe
 
-**English** · [中文](./README.zh-CN.md)
+一份源码，编译出三端产物。能力只写一次，落在 `src/plugins/<name>/`，`make build` 同时生成 Claude 插件、Codex 插件和厂商中立的 `.agents/` 布局。
 
-> Excalibur + Vibe — a **Vibe Working** relic, like King Arthur's legendary sword.
+## 三个插件
 
-ExcaliVibe is a **Vibe Working** capability suite. The idea grows out of Vibe Coding, but it isn't limited to coding — it targets a broader range of business scenarios, turning the Agent into a more capable all-rounder.
-
-The project **supports both the Claude Code and Codex agents**, with every capability carried by each agent's own **marketplace + plugin** mechanism. A given capability solves the same problem and follows the same main flow on both sides — it's just implemented with whatever primitives fit each agent best (command / skill / subagent / hooks / MCP). That is the "seek common ground while preserving differences" principle described below.
-
-## Plugins at a glance
-
-| Plugin | What it does | Detailed usage |
+| 插件 | 定位 | 内容 |
 |---|---|---|
-| `gen-ai-development` | Generative-AI development workflow suite. Its core is an **autonomy controller** that sets an autonomy ceiling per task from `change archetype × criticality × reversibility`, then assembles the track and the human gates; two paradigms — SDD (spec contracts) + TDD — over a three-tier architecture (orchestration skill + single-responsibility subagents + independent capability skills). | [Claude](./claude/plugins/gen-ai-development/README.md) · [Codex](./codex/plugins/gen-ai-development/README.md) |
-| `plugin-infra` | Shared infrastructure: browser automation (Chrome DevTools / Playwright MCP; the Claude side adds the graceful-browser decision layer). | [Claude](./claude/plugins/plugin-infra/README.md) · [Codex](./codex/plugins/plugin-infra/README.md) |
-| `opc-workflow` | One-Person-Company workflow: a capability slot for non-development scenarios such as content / operations (no skills yet). | [Claude](./claude/plugins/opc-workflow/README.md) · [Codex](./codex/plugins/opc-workflow/README.md) |
+| `computer-use` | 如何使用电脑 —— 让 agent 越过自身文本输出、作用于真实机器的能力 | `graceful-browser`、`mdx-artifact` |
+| `dev-toolkit` | 原子开发能力 —— 每个独立成立、按自身主题触发、不假设谁来调 | 17 个（规约 5 / 方法 4 / 流程约定 1 / 检查器 4 / 实地调研 3） |
+| `dev-workflow` | 流程编排 —— 把原子能力串成带门禁与角色的管线 | 空壳，`0.0.0`，编排模型重新设计中 |
 
-> Each plugin's commands, skills, subagents, and concrete usage are authoritative in its own README; the main flow is identical on both sides, while implementation details are each optimized under "seek common ground while preserving differences".
+**一条贯穿全仓的规则：skill 不写调用者。** description 只回答「什么情况下该用我」，绝不回答「谁会调我」。写着 `invoked by name from the developer agent` 的 skill 有三重问题 —— 人直接提出同样需求时它不触发（描述的是派发而非情境）、那个 agent 一改名它就得重写、以及可复用的东西反过来依赖了具体的东西。箭头只能单向：**编排者点名它调用的 skill，skill 永不点名编排者。**
 
-## Install from GitHub
+## 三端
 
-This is a public repository, and both marketplace manifests live at the **repo root**.
-Plugins can therefore be installed directly from GitHub without cloning the repository
-first. Codex subagents are standalone TOML files and have a separate installation step.
-
-**Prerequisites**
-
-- **Claude Code**: a recent version (with `plugin marketplace` support).
-- **Codex CLI**: v0.117.0+ (project-tested minimum; the commands below were most recently verified on v0.145.0).
-
-### Claude Code
-
-```bash
-# 1. Add the marketplace (pulled straight from GitHub; pin a branch/tag with @main, @v1.0)
-claude plugin marketplace add yanxuan-lc/excalivibe
-
-# 2. Install plugins as needed
-claude plugin install gen-ai-development@excalivibe
-claude plugin install plugin-infra@excalivibe
-claude plugin install opc-workflow@excalivibe
-
-# Pull repo updates later
-claude plugin marketplace update excalivibe
-```
-
-### Codex (CLI v0.117.0+)
-
-#### First install
-
-```bash
-# Add the marketplace once. owner/repo, HTTPS Git, and SSH Git sources are supported.
-codex plugin marketplace add yanxuan-lc/excalivibe
-
-# Install only the plugins you need.
-codex plugin add gen-ai-development@excalivibe
-codex plugin add plugin-infra@excalivibe
-codex plugin add opc-workflow@excalivibe
-```
-
-Start a new chat or CLI session after installation so bundled skills and MCP servers are
-loaded.
-
-`gen-ai-development`'s **9 subagents** ship as standalone TOML files because plugins do
-not auto-register custom-agent TOMLs. Clone the repository once and copy them into the
-personal or project-scoped agents directory:
-
-```bash
-git clone https://github.com/yanxuan-lc/excalivibe.git
-mkdir -p ~/.codex/agents
-cp excalivibe/codex/agents/*.toml ~/.codex/agents/
-
-# Project-scoped alternative, run from the target project:
-# mkdir -p .codex/agents
-# cp /path/to/excalivibe/codex/agents/*.toml .codex/agents/
-```
-
-Start a new chat or CLI session after copying the agents.
-
-#### Update an existing GitHub installation
-
-Do not repeat `marketplace add`. Refresh the configured Git marketplace, reinstall the
-plugins you use, and then start a new chat or CLI session:
-
-```bash
-codex plugin marketplace upgrade excalivibe
-codex plugin add gen-ai-development@excalivibe
-codex plugin add plugin-infra@excalivibe
-codex plugin add opc-workflow@excalivibe
-```
-
-Released plugin updates should change the plugin's SemVer. Reinstalling the same version
-may reuse cached content; local iteration uses the cachebuster flow below.
-
-Update separately installed subagents from the cloned repository:
-
-```bash
-git -C excalivibe pull --ff-only
-mkdir -p ~/.codex/agents
-cp excalivibe/codex/agents/*.toml ~/.codex/agents/
-```
-
-## Local development install
-
-When editing plugins and iterating, install from a **local directory** (the marketplace manifests are at the repo root, so SOURCE is `.`).
-
-**Claude**
-
-```bash
-claude plugin marketplace add .                     # register the local marketplace (repo root)
-claude plugin install gen-ai-development@excalivibe # install as needed
-claude plugin marketplace update excalivibe         # refresh after edits
-```
-
-**Codex**
-
-```bash
-# Run once from the ExcaliVibe repository root.
-codex plugin marketplace add .
-
-# Install a plugin and the standalone subagents.
-codex plugin add gen-ai-development@excalivibe
-mkdir -p ~/.codex/agents
-cp codex/agents/*.toml ~/.codex/agents/
-```
-
-For each local plugin iteration, generate a development-only version suffix, reinstall,
-and open a new chat or CLI session:
-
-```bash
-python3 ~/.codex/skills/.system/plugin-creator/scripts/update_plugin_cachebuster.py \
-  codex/plugins/gen-ai-development
-codex plugin add gen-ai-development@excalivibe
-```
-
-Do not commit the temporary `+codex.<cachebuster>` version suffix. Repeat the same flow
-with the corresponding plugin directory and plugin name for `plugin-infra` or
-`opc-workflow`.
-
-To test the GitHub `dev` branch instead of a local checkout, configure that ref explicitly.
-If `excalivibe` is already registered, remove the existing source first:
-
-```bash
-codex plugin marketplace remove excalivibe
-codex plugin marketplace add yanxuan-lc/excalivibe --ref dev
-codex plugin add gen-ai-development@excalivibe
-```
-
-## Design principle: seek common ground while preserving differences
-
-**The architecture and main flow are identical on both sides; implementation details are each optimized, never compromised for compatibility.** For example:
-
-| Scenario | Claude side | Codex side | Shared fallback |
+| 端 | 产物 | 安装方式 | 平台约束 |
 |---|---|---|---|
-| Research | `deep-research` + dynamic workflow | ordinary subagent | — |
-| Browser | `claude --chrome` | discover available app / connector / built-in | chrome-devtools MCP / Playwright |
+| claude | `claude/plugins/<name>/` | marketplace（`.claude-plugin/marketplace.json`） | 独有 `commands/`、`hooks/`，agent 可随插件打包 |
+| codex | `codex/plugins/<name>/` + `codex/agents/*.toml` | Codex 插件市场（`.agents/plugins/marketplace.json`） | 无 commands 概念；插件**不能**打包 agent，需手工 `cp` 到 `~/.codex/agents/`；manifest 里写 `hooks` 字段会让校验器 exit 1 |
+| common | `common/` | 手工拷进目标项目的 `.agents/` | 无插件、无 manifest、无 hook；opencode 等宿主原生识别 `.agents/skills/<name>/SKILL.md` |
 
-## Directory layout
+`claude/`、`codex/`、`common/` 以及两份 marketplace 清单**全部是构建产物**，一个手写文件都没有。改动一律走 `src/`，然后 `make build`。产物提交进 git 是因为 Claude marketplace 直接从仓库安装——用户 clone 到的必须是现成的 `claude/plugins/<name>/`，不能是「构建后才存在」的东西。
 
-```
-excalivibe/
-├── .claude-plugin/marketplace.json       # Claude marketplace manifest (repo root, name: excalivibe)
-├── .agents/plugins/marketplace.json      # Codex marketplace manifest (repo root, name: excalivibe)
-├── claude/                               # Claude-side plugins (commands / agents / skills / hooks / .mcp.json)
-│   └── plugins/{plugin-infra, gen-ai-development, opc-workflow}/
-├── codex/                                # Codex-side plugins (skills / .mcp.json / .app.json)
-│   ├── plugins/{plugin-infra, gen-ai-development, opc-workflow}/
-│   ├── agents/*.toml                     # 9 Codex subagents (installed separately)
-│   └── ADAPTING-FROM-CLAUDE.md           # Claude→Codex adaptation handbook
-├── docs/                                 # project docs as an MDX tree (tech = source of truth, research = historical)
-├── openspec/                             # OpenSpec workflow artifacts
-├── AGENTS.md                             # cross-agent project facts and collaboration norms
-├── CLAUDE.md                             # Claude Code-specific preferences and collaboration rules
-└── README.md
-```
-
-> Both marketplaces are named `excalivibe`; each plugin's `source` resolves relative to the **repo root**, pointing at `./claude/plugins/<name>` and `./codex/plugins/<name>` respectively.
-
-## Docs (MDX)
-
-Project docs live under [`docs/`](./docs/) as an **MDX tree** (`.mdx`), partitioned by authority: [`docs/tech/`](./docs/tech/) is the as-built source of truth, [`docs/research/`](./docs/research/) is historical. They follow the authoring conventions of `plugin-infra`'s **mdx-artifact** skill and are meant to be read through [mdx-viewer](https://github.com/yanxuan-lc/mdx-viewer) — GitHub renders `.mdx` as raw source, so use the preview below for the intended experience.
-
-**View the whole tree (recommended):**
+## 上手
 
 ```bash
-npm install -g mdx-viewer   # one-time: provides the mdxv preview command
-mdxv docs                   # browsable preview rooted at docs/
+npm install          # 只装 typescript / @types/node，供类型检查用
+make build           # src/ → claude/ + codex/ + common/
+make check           # 提交前的完整门禁
+make help            # 全部 target
 ```
 
-The preview lists every `.mdx` under `docs/` in a left-hand file drawer; relative links between docs route inside the preview, and editing a file hot-reloads it. Point `mdxv` at one file (`mdxv docs/tech/README.mdx`) to open just that one.
+运行时**零依赖**：Node ≥22.18 在加载时擦除类型，所以 `node scripts/build.ts` 直接可跑。`typescript` 只服务于 `make typecheck`——这也是 `tsconfig.json` 打开 `erasableSyntaxOnly` 的原因：它禁掉 `enum`、`namespace` 这类 Node 擦不掉的语法，避免出现「类型检查通过但跑不起来」。
 
-> The renderer lives in its own package — it is not vendored here, so `mdxv` works from any directory. Authoring conventions live in the skill's [SKILL.md](./claude/plugins/plugin-infra/skills/mdx-artifact/SKILL.md); the Codex side mirrors the same skill.
+## 单端差异怎么表达
 
-## More docs
+共享是默认，差异必须显式声明。八种机制：
 
-- [docs/](./docs/) — project docs as an MDX tree (`tech/` = source of truth, `research/` = historical); view via the preview above.
-- [AGENTS.md](./AGENTS.md) — cross-agent project facts, marketplace / plugin structure norms, validation, and the flow for adding a capability.
-- [CLAUDE.md](./CLAUDE.md) — Claude Code-specific primitives, subagent collaboration, and delegation rules.
-- [codex/ADAPTING-FROM-CLAUDE.md](./codex/ADAPTING-FROM-CLAUDE.md) — the Claude→Codex adaptation rules.
+| 机制 | 声明位置 | 编译器行为 |
+|---|---|---|
+| variant 块 | 任意 `.md` 里的 `@claude` … `@end` 注释对 | 保留指名端的片段，其余丢弃；未被指名的端什么都拿不到 |
+| 分端描述 | frontmatter 的 `description-claude:` / `description-codex:` | 覆盖该端；`description` 是兜底，也正是 common 取到的值（详见 [AGENTS.md](./AGENTS.md#description-三槽制)） |
+| 分端文件名 | `probe.claude.sh` | 只有该端拿到，并重命名为 `probe.sh` |
+| 分端数据 | `realization.json`，每端一个 key | 每端只拿自己那半 |
+| 根路径 | 正文里的 `${PLUGIN_ROOT}` | 替换为各端真实的根变量 |
+| 模型档位 | agent frontmatter 的 `tier: top\|standard\|light` | 查 `src/common.ts` 的 `TIER` 表 —— top/standard/light 对应 opus/sonnet/haiku 与 sol/terra/luna |
+| 单端目录树 | `hooks/**` | 天然只编到 Claude |
+| 命令包装 | skill frontmatter 的 `command: true` | Claude 额外得到一个薄的 `commands/<name>.md` |
 
-## License
+## 四道门禁，各自防什么
 
-[MIT](./LICENSE) © ExcaliVibe Contributors.
+`make check` 由四步组成，每步都可单独跑：
 
-This covers the whole repository — both the `claude/` and `codex/` plugin trees and the docs. Each plugin directory carries a copy of the same license text and declares `MIT` in its manifest (`package.json` / `plugin.json`), so the license travels with a plugin however it is installed.
+- **`verify-build`** —— 产物与源码是否一致。抓「忘了编译」「手改了产物」「产物里有源码不产生的孤儿文件」三类。
+- **`typecheck`** —— `tsc --noEmit` 扫 `src/` 和 `scripts/`。
+- **`verify-skills`** —— 两件事：产出的 SKILL.md / agent frontmatter 是合法 YAML 子集，以及每份渲染后的 SKILL.md 不超过 500 行的上下文预算。都跑产物而非源码，因为分端描述可能只在**一个端**上把 frontmatter 弄坏，而源码文件同时装着三端的正文、行数根本不代表实际入上下文的量。
+- **`verify-variants`** —— variant 块边界是否嵌错。这是编译器**看不见**的一类失败：边界错位会让某个端整段丢失，而产物依然是源码逐字生成的、round-trip 依然字节一致、所有测试依然绿。它的办法是渲染每个端，找**没有对应物的孤儿标题**；确属有意的单端章节，逐条登记进 `src/variant-exceptions.json` 并写明理由。
+
+另外两道防线在编译器内部，不在门禁里：`lintVariants` 拒绝输出任何残留 marker 的文件（端名拼错、漏了 `@end` 都是这个signature），`emit` 拒绝两个源码编到同一路径（common 端没有插件目录，skill 名在那里是仓库全局的）。
+
+## 目录
+
+```
+src/
+  common.ts              端定义、TIER 表、variant 渲染、frontmatter 解析
+  marketplace.json       两份 marketplace 清单的共同来源
+  variant-exceptions.json 已登记的有意单端差异
+  plugins/<name>/
+    plugin.json          一份 manifest,编译成各端各自的形状
+    README.md
+    skills/<name>/
+      SKILL.md           触发面 + 主干,进上下文的部分
+      references/**      按需加载的深度内容
+      scripts/**         可执行件,权限位随源码保留
+      evals/**           触发率 fixture,留在 src 不发给用户
+    agents/<name>.md     一份正文,三种序列化
+    hooks/**             Claude 独有
+scripts/
+  build.ts               编译器
+  check-skills.ts        frontmatter 合法性 + SKILL.md 行数预算
+  verify-variants.ts     variant 块边界完整性
+```
+
+## 已知的粗糙处
+
+- `.agents/` 在本仓库里放的是 **Codex 的 marketplace 清单**，而 `common/` 才是给消费者拷进**他们自己**的 `.agents/skills/` 的东西。同一个名字两种角色，容易看岔。
+- common 端的 `${PLUGIN_ROOT}` 解析成项目相对的 `.agents`，因此**用户级安装**（`~/.agents/`）下这个变量不成立。需要在 common 端工作的正文，优先用相对 skill 自身目录的路径。
+- 没有 LICENSE：清空仓库时一并删了，等真实设计定下来再补。

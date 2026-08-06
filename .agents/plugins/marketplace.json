@@ -5,10 +5,10 @@
   },
   "plugins": [
     {
-      "name": "plugin-infra",
+      "name": "computer-use",
       "source": {
         "source": "local",
-        "path": "./codex/plugins/plugin-infra"
+        "path": "./codex/plugins/computer-use"
       },
       "policy": {
         "installation": "AVAILABLE",
@@ -17,10 +17,10 @@
       "category": "Developer Tools"
     },
     {
-      "name": "gen-ai-development",
+      "name": "dev-toolkit",
       "source": {
         "source": "local",
-        "path": "./codex/plugins/gen-ai-development"
+        "path": "./codex/plugins/dev-toolkit"
       },
       "policy": {
         "installation": "AVAILABLE",
@@ -29,16 +29,16 @@
       "category": "Developer Tools"
     },
     {
-      "name": "opc-workflow",
+      "name": "dev-workflow",
       "source": {
         "source": "local",
-        "path": "./codex/plugins/opc-workflow"
+        "path": "./codex/plugins/dev-workflow"
       },
       "policy": {
         "installation": "AVAILABLE",
         "authentication": "ON_INSTALL"
       },
-      "category": "Productivity"
+      "category": "Developer Tools"
     }
   ]
 }

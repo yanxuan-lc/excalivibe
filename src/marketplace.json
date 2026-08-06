@@ -1,0 +1,9 @@
+{
+  "name": "excalivibe",
+  "displayName": "ExcaliVibe",
+  "description": "Vibe Working capability suite — authored once under src/, compiled to Claude plugins, Codex plugins and the vendor-neutral .agents/ layout.",
+  "owner": {
+    "name": "ExcaliVibe",
+    "url": "https://github.com/yanxuan-lc/excalivibe"
+  }
+}

@@ -1,0 +1,25 @@
+{
+  "compilerOptions": {
+    "module": "nodenext",
+    "target": "esnext",
+    "lib": ["esnext"],
+    "types": ["node"],
+
+    // Node strips types at run time; nothing is ever emitted, so `tsc` is a checker only.
+    "noEmit": true,
+    "allowImportingTsExtensions": true,
+
+    // The whole point: refuse any syntax Node's stripper cannot erase (enum, namespace,
+    // parameter properties). Without this the code type-checks but fails to run.
+    "erasableSyntaxOnly": true,
+    "verbatimModuleSyntax": true,
+    "isolatedModules": true,
+    "moduleDetection": "force",
+
+    "strict": true,
+    "noImplicitOverride": true,
+    "noFallthroughCasesInSwitch": true,
+    "skipLibCheck": true
+  },
+  "include": ["src/**/*.ts", "scripts/**/*.ts"]
+}

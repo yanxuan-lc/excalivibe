@@ -1,0 +1,19 @@
+{
+  "name": "excalivibe",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Vibe Working capability suite — one source under src/, compiled to Claude, Codex and the vendor-neutral .agents/ layout.",
+  "license": "MIT",
+  "engines": {
+    "node": ">=22.18"
+  },
+  "scripts": {
+    "build": "node scripts/build.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@types/node": "^24.10.1",
+    "typescript": "^5.9.3"
+  }
+}

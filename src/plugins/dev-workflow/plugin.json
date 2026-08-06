@@ -1,0 +1,47 @@
+{
+  "name": "dev-workflow",
+  "version": "0.1.0",
+  "description": "Development pipeline roles \u2014 the subagents that make up an orchestrated flow, each a single responsibility with its own inputs, outputs and boundaries. The orchestration engine that sequences them is still being designed, so the roles here carry no wiring to any particular one.",
+  "author": {
+    "name": "ExcaliVibe Contributors"
+  },
+  "category": "Developer Tools",
+  "keywords": {
+    "claude": [
+      "excalivibe",
+      "dev-workflow",
+      "subagent",
+      "pipeline",
+      "code-review",
+      "tdd",
+      "e2e",
+      "research",
+      "release"
+    ],
+    "codex": [
+      "excalivibe",
+      "dev-workflow",
+      "subagent",
+      "pipeline",
+      "code-review",
+      "tdd",
+      "e2e",
+      "research",
+      "release"
+    ]
+  },
+  "interface": {
+    "displayName": "Dev Workflow",
+    "shortDescription": "Development pipeline roles as subagents",
+    "longDescription": "Nine subagents covering the roles an orchestrated development flow needs \u2014 spec authoring, design review, implementation, e2e authoring and execution, incremental code review, debugging, research, and release preparation. Each is one responsibility with explicit boundaries, and the separations between them are load-bearing: whoever produces does not verify. They carry no wiring to a specific orchestration engine, so a caller supplies the artifact locations.",
+    "developerName": "ExcaliVibe Contributors",
+    "category": "Developer Tools",
+    "capabilities": [
+      "Interactive"
+    ],
+    "defaultPrompt": [
+      "Review this change before I merge it",
+      "Implement the confirmed spec and its unit tests"
+    ]
+  }
+}

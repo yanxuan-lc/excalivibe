@@ -1,26 +1,26 @@
 {
   "$schema": "https://json.schemastore.org/claude-code-marketplace.json",
   "name": "excalivibe",
-  "description": "Vibe Working 能力套件 —— 汇集生成式 AI 开发（类 OpenSpec 流程、编码 / 数据库规约、交互式 UI-UX 设计、开发子代理）与浏览器自动化等基础设施的 plugin 集合。",
+  "description": "Vibe Working capability suite — authored once under src/, compiled to Claude plugins, Codex plugins and the vendor-neutral .agents/ layout.",
   "owner": {
     "name": "ExcaliVibe",
     "url": "https://github.com/yanxuan-lc/excalivibe"
   },
   "plugins": [
     {
-      "name": "plugin-infra",
-      "description": "通用基础设施 plugin —— Chrome DevTools 浏览器 MCP + graceful-browser 框架选择 + mdx-artifact 富文档产物（组件化 MDX + mdxv 预览）。",
-      "source": "./claude/plugins/plugin-infra"
+      "name": "computer-use",
+      "description": "How to operate a computer — the capabilities an agent needs to reach past its own text output and act on a real machine. Currently browser control with automatic framework selection and degradation, and rich human-readable document artifacts with a local preview.",
+      "source": "./claude/plugins/computer-use"
     },
     {
-      "name": "gen-ai-development",
-      "description": "生成式 AI 开发套件 2.0 —— 自治控制器按「变更原型 × 可逆性」给每条轨道定自动化档位，架构门 + 意图门双门人审，SDD+TDD 两范式，专人专事 subagent + 独立功能 skill 三层架构，PreToolUse 不可逆动作护栏。",
-      "source": "./claude/plugins/gen-ai-development"
+      "name": "dev-toolkit",
+      "description": "Atomic development skills — engineering conventions, working methods, and check-and-verdict passes. Each one stands alone, triggers on its own subject matter, and assumes nothing about who invoked it, so they compose freely rather than only inside a pipeline.",
+      "source": "./claude/plugins/dev-toolkit"
     },
     {
-      "name": "opc-workflow",
-      "description": "一人公司（One Person Company）工作流套件 —— 面向非研发场景（内容 / 运营等多顶帽子）的能力位，当前暂无技能。",
-      "source": "./claude/plugins/opc-workflow"
+      "name": "dev-workflow",
+      "description": "Development pipeline roles — the subagents that make up an orchestrated flow, each a single responsibility with its own inputs, outputs and boundaries. The orchestration engine that sequences them is still being designed, so the roles here carry no wiring to any particular one.",
+      "source": "./claude/plugins/dev-workflow"
     }
   ]
 }

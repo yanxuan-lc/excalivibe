@@ -1,0 +1,19 @@
+{
+  "name": "dev-workflow",
+  "version": "0.1.0",
+  "description": "Development pipeline roles — the subagents that make up an orchestrated flow, each a single responsibility with its own inputs, outputs and boundaries. The orchestration engine that sequences them is still being designed, so the roles here carry no wiring to any particular one.",
+  "author": {
+    "name": "ExcaliVibe Contributors"
+  },
+  "keywords": [
+    "excalivibe",
+    "dev-workflow",
+    "subagent",
+    "pipeline",
+    "code-review",
+    "tdd",
+    "e2e",
+    "research",
+    "release"
+  ]
+}

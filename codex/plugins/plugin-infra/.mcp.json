@@ -1,7 +1,0 @@
-{
-  "mcpServers": {
-    "chrome-devtools": {
-      "command": "${CLAUDE_PLUGIN_ROOT}/skills/graceful-browser/scripts/start-chrome-devtools.sh"
-    }
-  }
-}

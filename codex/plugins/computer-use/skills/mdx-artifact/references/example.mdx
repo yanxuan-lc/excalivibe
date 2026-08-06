@@ -1,0 +1,116 @@
+---
+title: ExcaliVibe ⚔️
+subtitle: A Vibe Working capability suite
+author: Claude Opus 5
+datetime: 2026-07-25 16:58:00
+org: ExcaliVibe
+copyright: ExcaliVibe
+hero: false
+palette: lime
+mode: auto
+toc: true
+---
+
+<Hero eyebrow="a Vibe Working relic, like Excalibur" title="ExcaliVibe ⚔️" sub="Excalibur + Vibe — a Vibe Working capability suite" date="2026-07-25 · runs on both Claude Code and Codex" stats={[{v:"2",l:"agents supported"},{v:"3",l:"capability plugins"},{v:"9",l:"dev subagents"}]}>
+Born out of Vibe Coding, but not confined to coding: aimed at a wider set of business scenarios, installing capabilities through each agent's own marketplace + plugin mechanism.
+</Hero>
+
+The same capability solves the same problem and follows the same main flow on the Claude side and the Codex side; only the implementation differs, each landing on the primitives that suit it best — that is "seek common ground while preserving differences".
+
+<Section number="01" eyebrow="Top principle" title="Seek common ground, preserve differences" />
+
+<Callout tone="info" title="Seek common ground while preserving differences">
+
+**Common ground**: architecture and main flow are identical on both sides. **Preserved differences**: each side implements in whatever way is best for it — never lower one side's capability to a compromise just to line the two up.
+
+</Callout>
+
+<Section number="02" eyebrow="Capability matrix" title="Three plugins" />
+
+<Card tone="primary" title="gen-ai-development" badge="3.0" badgeTone="success">
+
+The generative-AI development workflow suite. At its core is the **FLOW engine**: nodes are data, state is detected from disk, and every gate is a machine-checkable predicate. Paradigm = SDD + TDD, landing on a three-layer architecture.
+
+</Card>
+
+<Card title="plugin-infra" badge="v0.3.0" badgeTone="success">
+
+Shared infrastructure: browser automation (Chrome DevTools / Playwright MCP, with a graceful-browser decision layer on the Claude side) plus **mdx-artifact rich document artifacts** (this very page is written to its conventions).
+
+</Card>
+
+<Card title="opc-workflow" badge="no skills yet" badgeTone="warning">
+
+One-Person-Company workflow: a capability slot for non-engineering work such as content and operations.
+
+</Card>
+
+<Section number="03" eyebrow="Engineering" title="Project structure" />
+
+<Fields>
+<Field k="dual-end mirror" v="one copy each under claude/ and codex/, same main flow" />
+<Field k="process convention" v="OpenSpec + opsx:* commands, built in" />
+<Field k="manifest location" v="both marketplace manifests sit at the repo root, one-click install from GitHub" />
+</Fields>
+
+<Section number="04" eyebrow="Getting started" title="Installation" />
+
+**Claude Code**:
+
+```bash
+claude plugin marketplace add yanxuan-lc/excalivibe
+claude plugin install gen-ai-development@excalivibe
+```
+
+**Codex** (CLI v0.117.0+):
+
+```bash
+codex plugin marketplace add yanxuan-lc/excalivibe
+codex plugin add gen-ai-development@excalivibe
+```
+
+<Section number="05" eyebrow="Metrics" title="Capacity model" />
+
+Capacity is estimated from peak QPS; single-instance throughput follows:
+
+<Math tex="\text{QPS}_{\max} = \frac{N_{\text{worker}}}{\bar{t}_{\text{req}}} \times \eta" />
+
+| metric | target | current |
+|---|---|---|
+| availability | 99.95% | 99.97% |
+| P99 latency | 240ms | 228ms |
+
+<Section number="06" eyebrow="Process" title="Adding a capability" />
+
+<Steps>
+<Step title="Locate" status="done">Decide which plugin the capability belongs to and which primitive it uses</Step>
+<Step title="Implement on both ends" status="active">Land it in claude/ and codex/ together, main flows aligned</Step>
+<Step title="Register">Append it to the marketplace / plugin manifests on both sides</Step>
+</Steps>
+
+<Figure caption="Dual-end sync, main flow (rendered by Graphviz)">
+
+```dot
+digraph { rankdir=LR
+  locate -> "claude impl"; locate -> "codex impl"
+  "claude impl" -> validate; "codex impl" -> validate
+  validate -> register [label="common ground, preserved differences"]
+  { rank=same; "claude impl"; "codex impl" }
+}
+```
+
+</Figure>
+
+<Section number="07" eyebrow="Appendix" title="Capability index" />
+
+<Grid filterable facets="infra:infrastructure,dev:engineering,ops:operations">
+<Item tags="dev">gen-ai-development</Item>
+<Item tags="infra">plugin-infra</Item>
+<Item tags="ops">opc-workflow</Item>
+</Grid>
+
+<Footer>
+
+This page is written to plugin-infra's **mdx-artifact** conventions (eating our own dog food) and previewed with `mdxv` — the colophon below is appended by the renderer from the frontmatter.
+
+</Footer>
