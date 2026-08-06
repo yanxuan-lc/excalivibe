@@ -27,6 +27,38 @@ answers instead of each rediscovering one.
 4. Consult the domain guidelines for the judgment this skill deliberately does not carry:
    `dba-guideline` for whether a schema is right, `coding-guideline` for module structure,
    `middleware-guideline` for what a service must expose.
+5. Run the checker before calling the design done:
+
+   ```bash
+   node ${CODEX_PLUGIN_ROOT}/skills/spec-guideline/scripts/check-spec.mjs <change-id>   # or --all
+   ```
+
+## The checker, and the exact size of what it proves
+
+`scripts/check-spec.mjs` runs `openspec validate` first, then adds the two things it does not
+cover. That split is measured rather than assumed: `openspec validate` catches a scenario
+heading demoted from four hashtags to three, and **passes a change whose `design.md` does not
+exist at all** — even under `--strict`. Its coverage is `specs/**` and nothing else.
+
+| Checked | How |
+|---|---|
+| `design.md` exists | it is otherwise entirely unvalidated |
+| every declared section is present | the list is read from the schema's `design.md` template, never hardcoded |
+| every section has something written in it | template guidance lives in HTML comments, so an unwritten section is empty once they are stripped |
+| Verification Carrier names exactly one legal value | only enforced when the change actually has scenarios |
+| every scenario heading parses into an identifier | a heading that does not parse drops out of the coverage denominator |
+| identifiers are unique inside the change | — |
+| no identifier contains `:` | it is the cross-change namespace separator |
+
+**Exit codes are the contract**: `0` both halves ran and passed · `1` ran, found problems ·
+`2` could not run. Never conflate `1` and `2` — "the check failed" and "the check never
+executed" look identical in the output otherwise, and a broken checker then reads as good news.
+
+**A green run proves presence, not quality [MUST read this way].** Section bodies are free
+prose; there is no grammar to parse. A Database Design section containing the word `TODO`
+passes. The checker separates *written* from *unwritten* and nothing else — whether the DDL is
+right, whether a budget number is sensible, whether a "not applicable" is true, none of that is
+in scope and none of it can be.
 
 ## Severity
 
