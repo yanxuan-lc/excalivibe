@@ -70,6 +70,29 @@ reading a definition:
   what exists now. This is what makes "reviewed, then the code changed" a caught condition instead
   of a silent one. It passes on first evaluation, when there is nothing recorded yet.
 
+## Every graph built on these steps needs an intent naming the change [MUST]
+
+```bash
+fsx graph create --file graph.json --intent 'add-user-export — artifacts under openspec/changes/add-user-export/'
+```
+
+Every artifact these steps declare is a **glob** — `openspec/changes/*/genai/a11y-report.md` and so
+on — because artifacts belong to a change and a locator cannot interpolate one. The engine appends
+that pattern to the dispatch instruction unconditionally, which tells an executor the shape of the
+path but not which change it is working in.
+
+The intent closes that. It is injected unconditionally too, and renders directly above the artifact
+list, so the executor reads the change directory and the pattern together. Without it, a project
+with one active change is merely ambiguous and a project with two is wrong.
+
+**Nothing enforces this.** The intent is optional as far as the engine is concerned, and a graph
+created without one produces instructions that look complete. It is on whoever creates the graph.
+
+The same fact bounds concurrency: **these definitions assume one change in flight at a time.**
+Running two concurrent graphs makes every glob match both changes' artifacts, so a signature
+covering one moves when the other is edited, and the freshness gates start rejecting work that
+never changed.
+
 ## Verify
 
 ```bash
