@@ -1,0 +1,21 @@
+{
+  "workflow": "genai-feature",
+  "nodes": [
+    { "id": "genai.brief#1", "node": "genai.brief" },
+    { "id": "genai.intent-slice#1", "node": "genai.intent-slice" },
+    { "id": "genai.spec#1", "node": "genai.spec" },
+    { "id": "genai.spec-review#1", "node": "genai.spec-review" },
+    { "id": "genai.review-doc#1", "node": "genai.review-doc" },
+    { "id": "genai.arch-gate#1", "node": "genai.arch-gate" }
+  ],
+  "edges": [
+    { "from": "genai.brief#1", "to": "genai.intent-slice#1", "on": "pass" },
+    { "from": "genai.intent-slice#1", "to": "genai.spec#1", "on": "pass" },
+    { "from": "genai.intent-slice#1", "to": "genai.brief#1", "on": "reject" },
+    { "from": "genai.spec#1", "to": "genai.spec-review#1", "on": "pass" },
+    { "from": "genai.spec-review#1", "to": "genai.review-doc#1", "on": "pass" },
+    { "from": "genai.spec-review#1", "to": "genai.spec#1", "on": "reject" },
+    { "from": "genai.review-doc#1", "to": "genai.arch-gate#1", "on": "pass" },
+    { "from": "genai.arch-gate#1", "to": "genai.spec#1", "on": "reject" }
+  ]
+}

@@ -1,0 +1,16 @@
+{
+  "workflow": "genai-feature",
+  "nodes": [
+    { "id": "genai.implement#1", "node": "genai.implement" },
+    { "id": "genai.existing-suite#1", "node": "genai.existing-suite" },
+    { "id": "genai.code-review#1", "node": "genai.code-review" },
+    { "id": "genai.e2e-script#1", "node": "genai.e2e-script" }
+  ],
+  "edges": [
+    { "from": "genai.implement#1", "to": "genai.existing-suite#1", "on": "pass" },
+    { "from": "genai.implement#1", "to": "genai.e2e-script#1", "on": "pass" },
+    { "from": "genai.existing-suite#1", "to": "genai.code-review#1", "on": "pass" },
+    { "from": "genai.existing-suite#1", "to": "genai.implement#1", "on": "reject" },
+    { "from": "genai.code-review#1", "to": "genai.implement#1", "on": "reject" }
+  ]
+}
