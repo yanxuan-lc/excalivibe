@@ -33,6 +33,17 @@ const CJK = /[　-〿㐀-䶿一-鿿！-｠]/;
 /** Binary files have no language to be wrong about; this is the set worth reading. */
 const TEXTUAL = new Set(['.md', '.mdx', '.json', '.ts', '.js', '.mjs', '.sh', '.py', '.toml', '.yaml', '.yml', '.txt']);
 
+/**
+ * `evals/` is exempt as a directory, not file by file.
+ *
+ * Trigger fixtures are Chinese **on purpose** — the question they exist to answer is whether an
+ * English description catches a Chinese request, which cannot be asked in English. They are also
+ * the one part of `src/` that never ships: the compile drops `evals/` from every end. So they are
+ * not corpus, and registering eleven near-identical exceptions for them would say nothing an
+ * exclusion does not, while going stale one file at a time.
+ */
+const EXEMPT_DIR = /(^|\/)evals\//;
+
 /** source path relative to `src/` → why Chinese is allowed to stay there */
 type ExceptionFile = Record<string, string>;
 
@@ -52,6 +63,7 @@ const allow: ExceptionFile = fs.existsSync(EXCEPTIONS)
 const found = new Map<string, number[]>();
 for (const rel of walk(SRC).sort()) {
   if (rel === 'cjk-exceptions.json') continue; // it exists to describe Chinese; its reasons may quote it
+  if (EXEMPT_DIR.test(rel)) continue;
   const lines = fs.readFileSync(path.join(SRC, rel), 'utf8').split('\n');
   const hits = lines.flatMap((l, i) => (CJK.test(l) ? [i + 1] : []));
   if (hits.length) found.set(rel, hits);

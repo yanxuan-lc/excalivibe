@@ -1,0 +1,50 @@
+[
+ {
+  "query": "记到 backlog：搜索结果要支持按时间排序",
+  "should_trigger": true
+ },
+ {
+  "query": "backlog 里现在都有什么",
+  "should_trigger": true
+ },
+ {
+  "query": "这个技术债该还了吧，攒了小半年了",
+  "should_trigger": true
+ },
+ {
+  "query": "下一步做什么比较好",
+  "should_trigger": true
+ },
+ {
+  "query": "这批发哪几个 change，你列一下",
+  "should_trigger": true
+ },
+ {
+  "query": "冻结 2026-w33 这个批次",
+  "should_trigger": true
+ },
+ {
+  "query": "顺嘴提一句，我们的邮件模板早晚得重写，先别做",
+  "should_trigger": true
+ },
+ {
+  "query": "that idea about SSO — park it for now",
+  "should_trigger": true
+ },
+ {
+  "query": "把 add-user-export 这个需求现在就做了",
+  "should_trigger": false
+ },
+ {
+  "query": "这个需求到底要解决什么问题，帮我问清楚再说",
+  "should_trigger": false
+ },
+ {
+  "query": "线上报了个 500，看一下",
+  "should_trigger": false
+ },
+ {
+  "query": "git log 看看上周合了哪些分支",
+  "should_trigger": false
+ }
+]

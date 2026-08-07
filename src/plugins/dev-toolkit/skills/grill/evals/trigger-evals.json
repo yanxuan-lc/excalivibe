@@ -1,0 +1,50 @@
+[
+ {
+  "query": "we should build a way for users to share their dashboards with people outside the org",
+  "should_trigger": true
+ },
+ {
+  "query": "给后台加个导出功能吧",
+  "should_trigger": true
+ },
+ {
+  "query": "I want something that keeps track of my competitors' pricing and tells me when it changes",
+  "should_trigger": true
+ },
+ {
+  "query": "现在的搜索太难用了，做一个更好的搜索",
+  "should_trigger": true
+ },
+ {
+  "query": "把通知系统搞得智能一点，别老是轰炸用户",
+  "should_trigger": true
+ },
+ {
+  "query": "let's add teams support to the app",
+  "should_trigger": true
+ },
+ {
+  "query": "实现 openspec/changes/add-auth 里的 spec，四契约都已经确认过了",
+  "should_trigger": false
+ },
+ {
+  "query": "把登录按钮的背景色改成 #0055ff，圆角 8px",
+  "should_trigger": false
+ },
+ {
+  "query": "调研一下竞品的定价策略，出个对比报告",
+  "should_trigger": false
+ },
+ {
+  "query": "这个函数报错了帮我修一下，栈回溯贴在下面了",
+  "should_trigger": false
+ },
+ {
+  "query": "给我讲讲 DDD 里 bounded context 是什么意思",
+  "should_trigger": false
+ },
+ {
+  "query": "按照 docs/PRD.md 里的验收标准把购物车实现了，场景都写清楚了",
+  "should_trigger": false
+ }
+]

@@ -1,0 +1,50 @@
+[
+ {
+  "query": "继续做用户导出那个需求",
+  "should_trigger": true
+ },
+ {
+  "query": "这个需求做一下：支持按团队筛选订单",
+  "should_trigger": true
+ },
+ {
+  "query": "这批改动发了吧，都测完了",
+  "should_trigger": true
+ },
+ {
+  "query": "帮我查一下现在主流的 feature flag 服务都怎么定价",
+  "should_trigger": true
+ },
+ {
+  "query": "start on the add-user-export change",
+  "should_trigger": true
+ },
+ {
+  "query": "接下来这块工作怎么推进，你安排一下",
+  "should_trigger": true
+ },
+ {
+  "query": "这个 change 的 design 已经签了，往下走",
+  "should_trigger": true
+ },
+ {
+  "query": "记一下：以后 backlog 里加一条把日志接入 OTel",
+  "should_trigger": false
+ },
+ {
+  "query": "OrderService.settle 这段在干什么，给我讲讲",
+  "should_trigger": false
+ },
+ {
+  "query": "把 config/redis.yml 里的超时从 3s 改成 10s",
+  "should_trigger": false
+ },
+ {
+  "query": "跑一下测试，看看还有几个红的",
+  "should_trigger": false
+ },
+ {
+  "query": "这个项目还没配过流程，先把 .flow 建起来",
+  "should_trigger": false
+ }
+]

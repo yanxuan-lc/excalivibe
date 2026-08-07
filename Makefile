@@ -14,8 +14,14 @@ NODE := node
 # formats a table in awk and owns its own layout.
 UI := $(NODE) scripts/ui.ts
 
+# Where `make eval` leaves its prompt and answer. Outside the repo on purpose: they are one run's
+# scratch, not a result — and a stray answer.json committed alongside the fixtures would read as a
+# recorded baseline that nothing regenerates.
+EVAL_TMP := $(if $(CLAUDE_JOB_DIR),$(CLAUDE_JOB_DIR)/tmp,$(TMPDIR))
+
 .PHONY: help build rebuild clean check check-banner typecheck \
         verify-build verify-skills verify-variants verify-json verify-no-cjk \
+        eval eval-build eval-score \
         bump pack release-check publish tag \
         install-claude install-codex install-common
 
@@ -57,6 +63,24 @@ verify-json: ## every JSON in src/ parses; graph skeletons refer only to nodes t
 
 verify-no-cjk: ## src/ stays English; Chinese lives in src/cjk-exceptions.json with a reason
 	@$(NODE) scripts/verify-no-cjk.ts
+
+# ────────────────────────────── evals ──────────────────────────────
+# Not part of `check`: it costs a model call, and a description is retuned deliberately, not on
+# every commit. Two phases because the whole corpus then costs **one** call rather than one per
+# query — and because the answer has to come from a context that has not just read the source.
+
+eval-build: ## write the router prompt for every skill description + every trigger fixture
+	@$(NODE) scripts/eval-triggers.ts build $(if $(END),--end=$(END),)
+
+eval-score: ## score a router answer: accuracy overall, by language, and every miss
+	@[ -n "$(ANSWER)" ] || { $(UI) fail "eval-score needs ANSWER"; $(UI) next "make eval-score ANSWER=<answer.json>"; exit 2; }
+	@$(NODE) scripts/eval-triggers.ts score $(ANSWER) $(if $(END),--end=$(END),)
+
+eval: ## the whole loop: build → answer in a fresh Claude → score. One model call.
+	@$(NODE) scripts/eval-triggers.ts build $(if $(END),--end=$(END),) > $(EVAL_TMP)/prompt.md
+	@$(UI) detail "prompt $(EVAL_TMP)/prompt.md — answering in a fresh context, this may take a minute"
+	@cd $(EVAL_TMP) && claude -p --model opus < prompt.md > answer.json
+	@$(NODE) scripts/eval-triggers.ts score $(EVAL_TMP)/answer.json $(if $(END),--end=$(END),)
 
 # ───────────────────────────── release ─────────────────────────────
 # bump on dev → MR into main → pull main → build → publish.
@@ -137,12 +161,14 @@ install-common: build ## show how to install the vendor-neutral artifact into a 
 help: ## list every target, grouped by domain
 	@printf "\n\033[1mexcalivibe — make targets\033[0m\n"
 	@printf "\033[2mclaude/, codex/ and common/ are build artifacts — edit src/, then make build\033[0m\n"
-	@for group in general verify release install; do \
+	@for group in general verify eval release install; do \
 		case "$$group" in \
 			general) title="general — day-to-day entry points"; \
 			         pat="^(help|build|rebuild|clean|check):" ;; \
 			verify)  title="verify  — the parts of check, each runnable on its own"; \
 			         pat="^(verify-[a-zA-Z-]*|typecheck):" ;; \
+			eval)    title="eval    — measure the routing surface (costs one model call)"; \
+			         pat="^eval[a-zA-Z-]*:" ;; \
 			release) title="release — versions and publishing (publish cannot be undone)"; \
 			         pat="^(bump|pack|release-check|publish|tag):" ;; \
 			install) title="install — local install for debugging"; \

@@ -1,0 +1,50 @@
+[
+ {
+  "query": "给用户表加个软删除",
+  "should_trigger": true
+ },
+ {
+  "query": "design a schema for storing chat messages with threads and reactions, postgres",
+  "should_trigger": true
+ },
+ {
+  "query": "这条 SQL 怎么这么慢：select * from orders where date(created_time) = '2026-07-01'",
+  "should_trigger": true
+ },
+ {
+  "query": "写个迁移，把 price 字段从 float 改掉，钱不能用浮点吧",
+  "should_trigger": true
+ },
+ {
+  "query": "review 下 migrations/0042_add_coupon.sql 有没有坑，表挺大的",
+  "should_trigger": true
+ },
+ {
+  "query": "orders 表查询慢，要加索引的话加在哪个列？",
+  "should_trigger": true
+ },
+ {
+  "query": "数据库连不上了，报 connection refused，容器是起着的",
+  "should_trigger": false
+ },
+ {
+  "query": "redis 里这批 key 怎么设置过期时间？",
+  "should_trigger": false
+ },
+ {
+  "query": "用 pandas 把这个 csv 按地区分组算下客单价",
+  "should_trigger": false
+ },
+ {
+  "query": "mongodb 的聚合管道怎么写才能按月分桶？",
+  "should_trigger": false
+ },
+ {
+  "query": "把这个 SQL 查询结果导出成 excel 发我",
+  "should_trigger": false
+ },
+ {
+  "query": "数据库密码现在明文放配置里，放哪里比较安全？",
+  "should_trigger": false
+ }
+]

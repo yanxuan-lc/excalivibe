@@ -1,0 +1,50 @@
+[
+ {
+  "query": "把这个项目按你们那套开发流程配起来",
+  "should_trigger": true
+ },
+ {
+  "query": "install the dev workflow here",
+  "should_trigger": true
+ },
+ {
+  "query": "刚升级了插件，项目里的节点定义要不要跟着更新",
+  "should_trigger": true
+ },
+ {
+  "query": "这个仓库还没有 .flow，先初始化一下",
+  "should_trigger": true
+ },
+ {
+  "query": "genai 在这个项目里初始化一下",
+  "should_trigger": true
+ },
+ {
+  "query": "节点定义看着是旧的，跟插件里的对不上了",
+  "should_trigger": true
+ },
+ {
+  "query": "这次要做的活儿该建一张什么样的图",
+  "should_trigger": false
+ },
+ {
+  "query": "图跑起来了，下一步派发哪个节点",
+  "should_trigger": false
+ },
+ {
+  "query": "npm install 一下，依赖装不全",
+  "should_trigger": false
+ },
+ {
+  "query": "帮我配一下 eslint 和 prettier",
+  "should_trigger": false
+ },
+ {
+  "query": "新建一个 React 项目脚手架",
+  "should_trigger": false
+ },
+ {
+  "query": "改一下 genai.implement 的门控，加一条跑构建的检查",
+  "should_trigger": false
+ }
+]
