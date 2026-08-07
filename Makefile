@@ -15,7 +15,7 @@ NODE := node
 UI := $(NODE) scripts/ui.ts
 
 .PHONY: help build rebuild clean check check-banner typecheck \
-        verify-build verify-skills verify-variants \
+        verify-build verify-skills verify-variants verify-json verify-no-cjk \
         bump pack release-check publish tag \
         install-claude install-codex install-common
 
@@ -26,7 +26,7 @@ build: ## compile src/ → claude/ + codex/ + common/ (all three are artifacts, 
 
 # check-banner comes first so the four verdicts below it read as a list under a subject rather than
 # as four unrelated lines. Prerequisites run left to right, which is why the banner lands on top.
-check: check-banner verify-build typecheck verify-skills verify-variants ## the full pre-commit gate
+check: check-banner verify-build typecheck verify-json verify-skills verify-variants verify-no-cjk ## the full pre-commit gate
 	@$(UI) result "all checks passed"
 
 check-banner:
@@ -51,6 +51,12 @@ verify-skills: ## emitted skills — frontmatter is valid YAML, SKILL.md within 
 
 verify-variants: ## no variant block ate one end's whole section (the compile cannot see this)
 	@$(NODE) scripts/verify-variants.ts
+
+verify-json: ## every JSON in src/ parses; graph skeletons refer only to nodes they declare
+	@$(NODE) scripts/verify-json.ts
+
+verify-no-cjk: ## src/ stays English; Chinese lives in src/cjk-exceptions.json with a reason
+	@$(NODE) scripts/verify-no-cjk.ts
 
 # ───────────────────────────── release ─────────────────────────────
 # bump on dev → MR into main → pull main → build → publish.
