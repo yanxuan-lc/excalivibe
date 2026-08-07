@@ -5,7 +5,7 @@ the step definitions that wire them into a graph.
 
 The orchestration engine is a separate package (`fsx`, from flow-scratch). This plugin does not
 vendor it and does not reimplement it: what ships here is the **flow**, in the form the engine
-consumes. `install-dev-workflow` puts fourteen step definitions into a project's `.flow/`, each one
+consumes. `genai-init` brings a project to the state where the flow runs — twenty-three step definitions in its `.flow/`, each one
 naming the role that executes it and the gates that decide whether it passed. The split is the
 point — the engine knows how to schedule and gate but nothing about this flow; this plugin knows
 the flow but nothing about scheduling.
@@ -14,7 +14,7 @@ The two skills live here rather than in `dev-toolkit` for the same reason: each 
 **contract another role decides from**, not a self-contained report. `review-doc`'s whole shape —
 decisions first, background compressed, design demoted to an appendix — is justified by there
 being an approval step that spends one unit of a person's attention; without that step the
-inversion has no argument behind it. `install-dev-workflow` is flow-shaped by definition.
+inversion has no argument behind it. `genai-init` is flow-shaped by definition.
 
 | role | tier | writes | does |
 |---|---|---|---|

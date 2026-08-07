@@ -1,0 +1,88 @@
+id: genai.full-check
+kind: verify
+executor:
+  protocol: main
+
+inputs:
+  - name: tree
+    from: genai.integrate
+
+outputs:
+  - name: checks
+    kind: file
+    locator: genai/sprints/{{vars.sprint}}/full-check.md
+    signature: checksum
+
+gates:
+  # First on purpose: a result from an earlier commit must be rejected as stale even though the
+  # file is present and says it completed.
+  - rule_id: still_valid
+    checker:
+      type: signature_match
+      state_key: checked_tree
+      against: tree
+    on_result:
+      matched:
+        verdict: pass
+      mismatched:
+        verdict: reject
+        message: the integrated tree has moved since this ran - the recorded result describes a commit that is no longer HEAD
+  - rule_id: outputs
+    checker:
+      type: outputs_present
+    on_result:
+      satisfied:
+        verdict: pass
+      missing:
+        verdict: reject
+        message: the full-check report is not on disk - the checks have not been run, which is not the same as them having passed
+  - rule_id: outcome
+    checker:
+      type: report
+      field: outcome
+    on_result:
+      completed:
+        verdict: pass
+        state:
+          checked_tree: "{{inputs.tree}}"
+      partial:
+        verdict: reject
+        message: the run ended early - it says nothing about the checks it never reached
+      failed:
+        verdict: reject
+        message: the checks failed on the integrated tree - this is what integration was supposed to surface
+      blocked:
+        verdict: delegate
+        message: the checks could not be run at all - resolve that before treating this as a code problem
+  # {{CMD_TEST_BEGIN}}
+  # Re-run rather than trust the report. The per-change stage verifies freshness and believes its
+  # runner; this is the sweep, and the sweep's whole value is executing the thing itself.
+  - rule_id: full_suite
+    checker:
+      type: command
+      command: "{{CMD_TEST}}"
+    on_result:
+      satisfied:
+        verdict: pass
+      failed:
+        verdict: reject
+        message: the full suite failed on the integrated tree
+      unexecutable:
+        verdict: delegate
+        message: the full suite could not be run at all - an environment problem, not a code one
+  # {{CMD_TEST_END}}
+  # {{CMD_LINT_BEGIN}}
+  - rule_id: full_lint
+    checker:
+      type: command
+      command: "{{CMD_LINT}}"
+    on_result:
+      satisfied:
+        verdict: pass
+      failed:
+        verdict: reject
+        message: the static checks failed over the integrated tree
+      unexecutable:
+        verdict: delegate
+        message: the static checks could not be run at all
+  # {{CMD_LINT_END}}

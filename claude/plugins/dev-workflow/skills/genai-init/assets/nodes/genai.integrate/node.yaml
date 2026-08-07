@@ -1,0 +1,66 @@
+id: genai.integrate
+kind: effect
+executor:
+  protocol: main
+
+inputs:
+  - name: roster
+    from: genai.changes
+
+outputs:
+  # A branch per batch, not HEAD. Two reasons: HEAD is already the implementation step's `code`
+  # locator, and the engine refuses two steps sharing one - the presence check would be satisfied by
+  # someone else's write. And a named branch is what integration actually produces; HEAD is wherever
+  # the last command happened to leave the worktree.
+  - name: tree
+    kind: git_commit
+    locator: genai/sprint/{{vars.sprint}}
+    signature: commit_sha
+  - name: record
+    kind: file
+    locator: genai/sprints/{{vars.sprint}}/integrate.md
+    signature: checksum
+
+gates:
+  - rule_id: outputs
+    checker:
+      type: outputs_present
+    on_result:
+      satisfied:
+        verdict: pass
+      missing:
+        verdict: reject
+        message: the integration record is not on disk, or HEAD does not resolve
+  - rule_id: outcome
+    checker:
+      type: report
+      field: outcome
+    on_result:
+      completed:
+        verdict: pass
+      partial:
+        verdict: reject
+        message: some changes in the roster were not integrated - a partial integration is not a tree anyone can check
+      failed:
+        verdict: reject
+        message: integration failed - resolve the conflicts, then run this again
+      blocked:
+        verdict: delegate
+        message: the integration branch could not be reached - an environment problem, not a code one
+  # {{CMD_BUILD_BEGIN}}
+  # A tree that does not build is not a tree the later checks can say anything about, so this runs
+  # here rather than being discovered by the suite.
+  - rule_id: builds
+    checker:
+      type: command
+      command: "{{CMD_BUILD}}"
+    on_result:
+      satisfied:
+        verdict: pass
+      failed:
+        verdict: reject
+        message: the integrated tree does not build - resolve that before anything downstream runs
+      unexecutable:
+        verdict: delegate
+        message: the build command could not be run at all
+  # {{CMD_BUILD_END}}

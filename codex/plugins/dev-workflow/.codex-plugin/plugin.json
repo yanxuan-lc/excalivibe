@@ -23,7 +23,7 @@
   "interface": {
     "displayName": "Dev Workflow",
     "shortDescription": "Development pipeline roles, and the flow that schedules them",
-    "longDescription": "Twelve subagents covering the roles an orchestrated development flow needs — spec authoring, design review, implementation, e2e authoring and execution, accessibility, security and performance checks, incremental code review, debugging, research, and release preparation. Each is one responsibility with explicit boundaries, and the separations between them are load-bearing: whoever produces does not verify. Alongside them ship fourteen step definitions with their gates, installed into a project by install-dev-workflow and scheduled by an external graph engine.",
+    "longDescription": "Twelve subagents covering the roles an orchestrated development flow needs — spec authoring, design review, implementation, e2e authoring and execution, accessibility, security and performance checks, incremental code review, debugging, research, and release preparation. Each is one responsibility with explicit boundaries, and the separations between them are load-bearing: whoever produces does not verify. Alongside them ship twenty-three step definitions with their gates, brought into a project by genai-init and scheduled by an external graph engine.",
     "developerName": "ExcaliVibe Contributors",
     "category": "Developer Tools",
     "capabilities": [
