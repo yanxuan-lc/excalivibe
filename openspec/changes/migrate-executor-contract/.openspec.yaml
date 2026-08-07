@@ -1,0 +1,6 @@
+schema: excalivibe
+
+# Tooling migration: the shipped node definitions move to the engine's new `executor`
+# contract. No spec-level behaviour changes, so there is no delta spec to write — see the
+# schema's note on not inventing a requirement just to satisfy validation.
+skip_specs: true
