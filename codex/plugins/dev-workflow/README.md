@@ -1,20 +1,23 @@
 # dev-workflow
 
-Twelve subagents — the **roles** an orchestrated development flow is made of — plus two skills and
-the step definitions that wire them into a graph.
+Twelve subagents — the **roles** an orchestrated development flow is made of — plus four skills and
+the step definitions that wire them into two graphs.
 
 The orchestration engine is a separate package (`fsx`, from flow-scratch). This plugin does not
 vendor it and does not reimplement it: what ships here is the **flow**, in the form the engine
-consumes. `genai-init` brings a project to the state where the flow runs — twenty-three step definitions in its `.flow/`, each one
-naming the role that executes it and the gates that decide whether it passed. The split is the
+consumes. `genai-init` brings a project to the state where the flow runs — twenty-eight step definitions
+across two workflows in its `.flow/`, each one naming the role that executes it and the gates that
+decide whether it passed. The split is the
 point — the engine knows how to schedule and gate but nothing about this flow; this plugin knows
 the flow but nothing about scheduling.
 
-The two skills live here rather than in `dev-toolkit` for the same reason: each produces a
+The four skills live here rather than in `dev-toolkit` for the same reason: each produces a
 **contract another role decides from**, not a self-contained report. `review-doc`'s whole shape —
 decisions first, background compressed, design demoted to an appendix — is justified by there
 being an approval step that spends one unit of a person's attention; without that step the
-inversion has no argument behind it. `genai-init` is flow-shaped by definition.
+inversion has no argument behind it. `genai-init`, `genai-flow` and `backlog` are flow-shaped by
+definition: one sets the flow up, one decides which graph a request calls for, one holds the work
+that is not a graph yet.
 
 | role | tier | writes | does |
 |---|---|---|---|
@@ -31,10 +34,16 @@ inversion has no argument behind it. `genai-init` is flow-shaped by definition.
 | `release-coordinator` | standard | a dossier | Prepare a release; never perform one |
 | `researcher` | top | findings, or a report | Probe the real thing and report with provenance |
 
-## Three of the fourteen steps are not subagents
+## Twelve of the twenty-eight steps are not subagents
 
-`genai.brief` runs as `main` because it is a conversation with the user, and a subagent cannot talk
-to one. `genai.arch-gate` runs as `human`. Everything else is a role above.
+Four are conversations or decisions a person owns: `genai.brief` and `genai.research-brief` run as
+`main` because a subagent cannot talk to a user; `genai.intent-slice`, `genai.arch-gate`,
+`genai.research-review` and `genai.deliver` run as `human` because somebody signs.
+
+The rest are the delivery stage's own work — the roster, the integration, the checks on the
+integrated tree, the merge and the archive — and they run as `main` for a boundary reason: a
+subagent must not push to a shared branch, and the main agent is the only executor that can obtain
+consent for an act that cannot be undone.
 
 The three `-runner` checkers exist because the main agent should drive and converse, not do the
 work — but the capabilities they wrap (`a11y-check`, `security-scan`, `perf-budget`) stay atomic

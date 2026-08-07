@@ -1,6 +1,6 @@
 # dev-workflow:意图驱动的流程设计
 
-**状态**:设计已对齐,待开工
+**状态**:已全部落地(2026-08-07),见 §9
 **日期**:2026-08-07
 **依赖**:flow-scratch `d64d37b`(`executor` 新契约已稳定)
 
@@ -375,12 +375,46 @@ backup 的 project-init 每一步都带一条「已经做过的判据」,重跑�
 
 ---
 
-## 9. 落地顺序
+## 9. 落地情况
 
-1. 14 个定义迁到新 `executor` 契约(等 flow-scratch 稳定)
-2. `grill` 补 seed + 搬 `glossary-conformance`
-3. 拆 `genai-feature` 的三段 + installer 改成按工作流分组安装
-4. 新 flow skill 的意图路由(先认 `feature` / `backlog` / `debug`)
-5. 交付段 9 个节点(含第一批 effect)
-6. backlog skill
-7. `genai-research`
+全部落地,每一项一个 OpenSpec change,均已验收并归档到 `openspec/changes/archive/`。
+
+| # | change | 内容 |
+|---|---|---|
+| 1 | `migrate-executor-contract` | 14 个定义迁到 protocol 契约 |
+| 2 | `restore-glossary-chain` | `glossary-conformance` + `genai.brief` 写词表 |
+| 3 | `split-feature-workflow` | `genai` → `genai-feature`,新增 intent-slice、existing-suite |
+| 4 | `add-delivery-stage` | 交付段 9 步,首批 `kind: effect` |
+| 5 | `migrate-guardrail-hook` | 不可逆动作的第二道防线,Claude 单端 |
+| 6 | `genai-init` | 取代 `install-dev-workflow`,吞掉全部安装步骤 |
+| 7 | `backlog-skill` | 队列与批次定义 |
+| 8 | `research-workflow` | `genai-research`,五步 |
+| 9 | `intent-routing` | `genai-flow`,四类活儿与四份骨架图 |
+
+最终形态:28 步、2 个工作流、4 个 skill、539 artifacts。
+
+### 落地过程中被实测推翻的设计
+
+写在这里,因为它们是本文档原本说错的地方:
+
+- **`command` executor protocol 不是「跑脚本」**,是把派发指令交给注册过的 CLI adapter。
+  §3.1 一度以为它能承载交付段的落地动作,不能 —— 那些仍然是 `effect` + 门控里的 `command`
+  检查器
+- **两个步骤不能共用落点。** `genai.integrate` 原本和 `genai.implement` 同用 `HEAD`,被
+  `output_locator_shared` 拒。改成每批一个分支 `genai/sprint/{{vars.sprint}}`
+- **输入名必须等于上游产物名。** 三个检查的产物原本都叫 `report`,`genai.merge` 会得到三个
+  同名输入。改名 `checks` / `audit` / `acceptance`
+- **`openspec init` 写的是 `schema: spec-driven`。** `genai-init` 原本把整个 `config.yaml`
+  当项目的保留,于是 fork 装了没人用。改成只改 `schema:` 那一行
+- **variant 注册表只遍历 `.md`。** 给 `guardrail.py` 加的注册项永远不会被访问,撤掉了 ——
+  单端形态来自 `hooks/**` 的编译规则本身
+
+### 仍然开着的
+
+- **实例级落点** —— 需求已提给 flow-scratch(`../flow-scratch-req-instance-values.md`)。
+  在它之前,`genai.research-probe` 在单节点内部派发,N 路子问题对引擎不可见
+- **`genai-flow` 的 description 未实测** —— 规则检查过了(决定开头、零排除列举、有触发场景),
+  触发准确度需要 eval
+
+`genai.changes` 的 roster 与冻结批次的核对不再列为待办:漏掉的 change 可以在下一批并入,
+代价有限。
