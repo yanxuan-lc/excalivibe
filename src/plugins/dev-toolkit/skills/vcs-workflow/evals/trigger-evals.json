@@ -17,7 +17,7 @@
  },
  {
   "query": "这个 meta 仓库里 submodule 的指针要怎么更新？现在是 detached HEAD",
-  "should_trigger": true
+  "should_trigger": false
  },
  {
   "query": "准备一个到 main 的 merge request",
@@ -45,6 +45,38 @@
  },
  {
   "query": "git stash 之后怎么恢复？我好像 stash 了两次",
+  "should_trigger": false
+ },
+ {
+  "query": "子仓库那边改完合了，外层这个跟着怎么动",
+  "should_trigger": true
+ },
+ {
+  "query": "这块功能是留在主仓里还是拆出去单独一个库，你怎么看",
+  "should_trigger": true
+ },
+ {
+  "query": "两个仓库的版本号老是对不上，以哪个为准",
+  "should_trigger": true
+ },
+ {
+  "query": "we vendored the sdk as a nested repo — how should that land on main",
+  "should_trigger": true
+ },
+ {
+  "query": "git submodule update --remote 和 --merge 有什么区别",
+  "should_trigger": false
+ },
+ {
+  "query": ".gitmodules 里的 url 写错了，改成新的地址",
+  "should_trigger": false
+ },
+ {
+  "query": "clone 完 vendor/sdk 是空的，帮我拉一下",
+  "should_trigger": false
+ },
+ {
+  "query": "把 packages/ui 这个目录整个删掉",
   "should_trigger": false
  }
 ]

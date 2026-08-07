@@ -28,6 +28,23 @@
  * *other* skill. A file of twelve queries for one skill measures whether the twenty-three others
  * correctly stay quiet, so coverage does not have to be complete to be informative.
  *
+ * **Two limits, both measured here, both able to make a run mean something it does not.**
+ *
+ * *The cases are not independent.* One prompt holds every query, so adding fixtures for skill X
+ * changes how X is judged on X's other queries — observed directly: one query went from never
+ * firing to always firing when eight unrelated cases were added to the same file, with the
+ * description untouched. A before/after comparison is therefore only readable when the fixture set
+ * is byte-identical across the two runs.
+ *
+ * *Tuning on this set proves nothing about this set.* There is no train/held-out split here, so a
+ * description edited until a query passes will pass that query by construction. Measure such an
+ * edit on queries written before it and never scored during it — the one time that was done, a
+ * change that looked like it fixed a miss turned out to buy nothing the original wording did not
+ * already do.
+ *
+ * Around 140 queries the single call starts dropping a few ids outright. `score` says how many; a
+ * run missing several is a run to repeat, not to read.
+ *
  * This measures the routing surface, and only that. Whether the skill then does its job is a
  * different question with a different harness.
  */
