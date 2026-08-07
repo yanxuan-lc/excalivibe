@@ -8,8 +8,8 @@ inputs:
 
 outputs:
   - name: manifest
-    kind: glob
-    locator: openspec/changes/*/genai/e2e-manifest.md
+    kind: file
+    locator: openspec/changes/{{vars.change}}/genai/e2e-manifest.md
     signature: checksum
 
 gates:

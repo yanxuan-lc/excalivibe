@@ -4,8 +4,8 @@ executor: debugger
 
 outputs:
   - name: diagnosis
-    kind: glob
-    locator: openspec/changes/*/genai/diagnosis.md
+    kind: file
+    locator: openspec/changes/{{vars.change}}/genai/diagnosis.md
     signature: checksum
 
 gates:

@@ -8,8 +8,8 @@ inputs:
 
 outputs:
   - name: checklist
-    kind: glob
-    locator: openspec/changes/*/genai/code-review.md
+    kind: file
+    locator: openspec/changes/{{vars.change}}/genai/code-review.md
     signature: checksum
 
 gates:

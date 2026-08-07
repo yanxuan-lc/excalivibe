@@ -4,8 +4,8 @@ executor: main
 
 outputs:
   - name: brief
-    kind: glob
-    locator: openspec/changes/*/genai/BRIEF.md
+    kind: file
+    locator: openspec/changes/{{vars.change}}/genai/BRIEF.md
     signature: checksum
 
 gates:

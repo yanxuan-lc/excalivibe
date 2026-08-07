@@ -8,8 +8,8 @@ inputs:
 
 outputs:
   - name: review
-    kind: glob
-    locator: openspec/changes/*/review.mdx
+    kind: file
+    locator: openspec/changes/{{vars.change}}/review.mdx
     signature: checksum
 
 gates:

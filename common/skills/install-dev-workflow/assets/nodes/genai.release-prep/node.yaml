@@ -4,8 +4,8 @@ executor: release-coordinator
 
 outputs:
   - name: dossier
-    kind: glob
-    locator: openspec/changes/*/genai/delivery.md
+    kind: file
+    locator: openspec/changes/{{vars.change}}/genai/delivery.md
     signature: checksum
 
 gates:

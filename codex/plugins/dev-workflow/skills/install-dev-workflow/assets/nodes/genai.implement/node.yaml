@@ -8,8 +8,8 @@ inputs:
 
 outputs:
   - name: evidence
-    kind: glob
-    locator: openspec/changes/*/genai/tdd-evidence.md
+    kind: file
+    locator: openspec/changes/{{vars.change}}/genai/tdd-evidence.md
     signature: checksum
   - name: code
     kind: git_commit

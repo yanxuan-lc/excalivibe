@@ -65,28 +65,26 @@ reading a definition:
   what exists now. This is what makes "reviewed, then the code changed" a caught condition instead
   of a silent one. It passes on first evaluation, when there is nothing recorded yet.
 
-## Every graph built on these steps needs an intent naming the change [MUST]
+## Every graph names the change it is for
 
 ```bash
-fsx graph create --file graph.json --intent 'add-user-export — artifacts under openspec/changes/add-user-export/'
+fsx graph create --file graph.json --var change=add-user-export
 ```
 
-Every artifact these steps declare is a **glob** — `openspec/changes/*/genai/a11y-report.md` and so
-on — because artifacts belong to a change and a locator cannot interpolate one. The engine appends
-that pattern to the dispatch instruction unconditionally, which tells an executor the shape of the
-path but not which change it is working in.
+Every artifact these steps declare sits under `openspec/changes/{{vars.change}}/`, so the value is
+the change directory's name. The engine substitutes it before anything is dispatched or measured:
+the executor is handed `openspec/changes/add-user-export/genai/a11y-report.md`, a path rather than a
+pattern.
 
-The intent closes that. It is injected unconditionally too, and renders directly above the artifact
-list, so the executor reads the change directory and the pattern together. Without it, a project
-with one active change is merely ambiguous and a project with two is wrong.
+Leaving it out is refused at `graph create` — `graph_var_missing`, naming each artifact that wanted
+it. That refusal is the whole enforcement and it is sufficient, because nothing downstream can run
+against a locator that never bound.
 
-**Nothing enforces this.** The intent is optional as far as the engine is concerned, and a graph
-created without one produces instructions that look complete. It is on whoever creates the graph.
+**Two changes may be in flight at once.** Each graph binds its own value, so a freshness gate in one
+measures only that change's artifacts and does not move when the other is edited.
 
-The same fact bounds concurrency: **these definitions assume one change in flight at a time.**
-Running two concurrent graphs makes every glob match both changes' artifacts, so a signature
-covering one moves when the other is edited, and the freshness gates start rejecting work that
-never changed.
+An `--intent` is still worth passing — it renders above the artifact list and says what the run is
+for — but it is now context for a reader, not the thing that tells an executor where to write.
 
 ## Verify
 

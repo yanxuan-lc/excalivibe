@@ -11,8 +11,8 @@ inputs:
 
 outputs:
   - name: report
-    kind: glob
-    locator: openspec/changes/*/genai/e2e-report.md
+    kind: file
+    locator: openspec/changes/{{vars.change}}/genai/e2e-report.md
     signature: checksum
 
 gates:

@@ -10,8 +10,8 @@ inputs:
 
 outputs:
   - name: decision
-    kind: glob
-    locator: openspec/changes/*/genai/arch-gate.md
+    kind: file
+    locator: openspec/changes/{{vars.change}}/genai/arch-gate.md
     signature: checksum
 
 gates:
