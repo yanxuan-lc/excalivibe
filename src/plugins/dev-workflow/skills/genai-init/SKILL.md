@@ -13,8 +13,9 @@ allowed-tools: Bash, Read
 One command brings a project from nothing to runnable, and the same command upgrades it. There is no
 separate install step and no order to remember.
 
-Twenty-three steps under the workflow **`genai-feature`**. Each file in `assets/workflows/` is one
-workflow and **its filename is the workflow name**, so a second process is a file rather than a
+Two workflows. **`genai-feature`** carries twenty-three steps from a brief to a released batch;
+**`genai-research`** carries five, from a question to a ruling. Each file in `assets/workflows/` is
+one workflow and **its filename is the workflow name**, so a third process is a file rather than a
 change to the script.
 
 ## Ask for the project's four check commands first [MUST]
@@ -125,9 +126,10 @@ reading a definition:
 ```bash
 fsx graph create --file graph.json --var change=add-user-export   # one change
 fsx graph create --file graph.json --var sprint=2026-w32          # a batch of them
+fsx graph create --file graph.json --var topic=edge-runtimes      # a research question
 ```
 
-Two graph variables, and **a graph supplies only the one its steps need** — the requirement and
+Three graph variables, and **a graph supplies only the one its steps need** — the requirement and
 implementation steps locate artifacts under `openspec/changes/{{vars.change}}/`, the delivery steps
 under `genai/sprints/{{vars.sprint}}/`. Supplying a variable nothing references is refused
 (`graph_var_unused`), which is almost always a sign the graph mixed stages that do not belong
@@ -154,6 +156,7 @@ for — but it is now context for a reader, not the thing that tells an executor
 ```bash
 fsx check                    # every definition loads and the whitelist is consistent
 fsx nodes -w genai-feature   # the twenty-three steps, from the engine rather than from this page
+fsx nodes -w genai-research  # the five research steps
 ```
 
 The installer prints the executor each step requires. **Nothing validates those names** — the

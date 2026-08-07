@@ -1,0 +1,42 @@
+id: genai.research-probe
+kind: produce
+executor:
+  protocol: subagent
+  params:
+    name: researcher
+
+inputs:
+  - name: plan
+    from: genai.research-plan
+
+outputs:
+  - name: findings
+    kind: file
+    locator: docs/research/{{vars.topic}}/FINDINGS.md
+    signature: checksum
+
+gates:
+  - rule_id: outputs
+    checker: { type: outputs_present }
+    on_result:
+      satisfied: { verdict: pass }
+      missing:
+        verdict: reject
+        message: the findings are not on disk
+  - rule_id: outcome
+    checker:
+      type: report
+      field: outcome
+    on_result:
+      # `partial` passes here, unlike everywhere else in this toolkit. A sub-question that cannot be
+      # answered from available sources is a result; treating it as failure pushes toward answering
+      # it badly, which is the one thing this agent exists not to do.
+      completed: { verdict: pass }
+      partial:
+        verdict: pass
+      failed:
+        verdict: reject
+        message: the probing did not produce usable findings - say what was tried, so the plan can be reshaped rather than repeated
+      blocked:
+        verdict: delegate
+        message: the sources could not be reached at all - an access problem, not a research one
