@@ -5,10 +5,16 @@ executor:
   params:
     name: release-coordinator
 
+inputs:
+  - name: roster
+    from: genai.changes
+  - name: acceptance
+    from: genai.e2e-run
+
 outputs:
   - name: dossier
     kind: file
-    locator: openspec/changes/{{vars.change}}/genai/delivery.md
+    locator: genai/sprints/{{vars.sprint}}/delivery.md
     signature: checksum
 
 gates:

@@ -1,0 +1,45 @@
+id: genai.merge
+kind: effect
+executor:
+  protocol: main
+
+inputs:
+  - name: checks
+    from: genai.full-check
+  - name: audit
+    from: genai.cross-family-audit
+  - name: acceptance
+    from: genai.e2e-run
+
+outputs:
+  - name: landed
+    kind: file
+    locator: genai/sprints/{{vars.sprint}}/merge.md
+    signature: checksum
+
+gates:
+  - rule_id: outputs
+    checker:
+      type: outputs_present
+    on_result:
+      satisfied:
+        verdict: pass
+      missing:
+        verdict: reject
+        message: the merge record is not on disk - without it nothing downstream can tell what landed
+  - rule_id: outcome
+    checker:
+      type: report
+      field: outcome
+    on_result:
+      completed:
+        verdict: pass
+      partial:
+        verdict: reject
+        message: part of the batch landed and part did not - the shared branch is now in a state nobody designed
+      failed:
+        verdict: reject
+        message: the merge did not land - resolve it and run this again
+      blocked:
+        verdict: delegate
+        message: the shared branch could not be reached or is protected against this - not something the batch can fix

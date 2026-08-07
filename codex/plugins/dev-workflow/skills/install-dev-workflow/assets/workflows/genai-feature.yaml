@@ -16,7 +16,14 @@ nodes:
   - genai.security
   - genai.perf
   - genai.diagnose
+  - genai.changes
+  - genai.integrate
+  - genai.full-check
+  - genai.cross-family-audit
+  - genai.merge
   - genai.release-prep
+  - genai.deliver
+  - genai.archive
 
 defaults:
   # Two rejections, then it goes to a person. Judging steps declare a wider quota themselves.

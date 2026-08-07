@@ -1,0 +1,56 @@
+id: genai.cross-family-audit
+kind: verify
+executor:
+  protocol: main
+
+inputs:
+  - name: tree
+    from: genai.integrate
+
+outputs:
+  - name: audit
+    kind: file
+    locator: genai/sprints/{{vars.sprint}}/cross-family-audit.md
+    signature: checksum
+
+gates:
+  # First on purpose: a result from an earlier commit must be rejected as stale even though the
+  # file is present and says it completed.
+  - rule_id: still_valid
+    checker:
+      type: signature_match
+      state_key: audited_tree
+      against: tree
+    on_result:
+      matched:
+        verdict: pass
+      mismatched:
+        verdict: reject
+        message: the integrated tree has moved since this audit ran, so its findings describe a different commit
+  - rule_id: outputs
+    checker:
+      type: outputs_present
+    on_result:
+      satisfied:
+        verdict: pass
+      missing:
+        verdict: reject
+        message: the audit report is not on disk
+  - rule_id: outcome
+    checker:
+      type: report
+      field: outcome
+    on_result:
+      completed:
+        verdict: pass
+        state:
+          audited_tree: "{{inputs.tree}}"
+      partial:
+        verdict: reject
+        message: the audit did not cover every end - an unaudited end is an unknown, not a pass
+      failed:
+        verdict: reject
+        message: the ends have diverged in a way the audit judged unacceptable
+      blocked:
+        verdict: delegate
+        message: an end could not be inspected - resolve that before drawing a conclusion about consistency

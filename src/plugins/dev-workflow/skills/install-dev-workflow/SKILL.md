@@ -14,7 +14,7 @@ This installs the flow's step definitions and their gates into a project's `.flo
 project can be driven by a graph the engine schedules instead of by a description of a process that
 a model has to interpret.
 
-Sixteen steps under the workflow **`genai-feature`**. Each file in the installer's
+Twenty-three steps under the workflow **`genai-feature`**. Each file in the installer's
 `assets/workflows/` directory is one workflow and **its filename is the workflow name**, so a second
 process is a file rather than a change to the installer.
 
@@ -61,8 +61,8 @@ history describes steps that no longer exist. Finish or abort the graph, then in
 
 ## What gets installed
 
-Sixteen steps. An executor declares a **protocol** — how the instruction gets handed over — and
-whatever that protocol needs to identify the recipient. Four steps do not go to a subagent, each for
+Twenty-three steps. An executor declares a **protocol** — how the instruction gets handed over — and
+whatever that protocol needs to identify the recipient. Twelve steps do not go to a subagent, each for
 a structural reason:
 
 | Step | Executor | Why |
@@ -71,7 +71,9 @@ a structural reason:
 | `genai.existing-suite` | `protocol: main` | running the command the project's README names carries no method of its own; a subagent here is a context switch that buys nothing |
 | `genai.intent-slice` | `protocol: human`, `channel: stdout` | a person commits to the slice before design work is spent against it |
 | `genai.arch-gate` | `protocol: human`, `channel: stdout` | a person signs; the engine records the decision and signs it into a compliant report |
-| the other twelve | `protocol: subagent`, `name: …` | one role each, with its own boundaries |
+| `genai.deliver` | `protocol: human`, `channel: stdout` | consent to publish is not something a program gives on someone's behalf |
+| `genai.changes` · `genai.integrate` · `genai.full-check` · `genai.cross-family-audit` · `genai.merge` · `genai.archive` | `protocol: main` | a subagent must not push to a shared branch; main can obtain consent, a subagent cannot |
+| the remaining eleven | `protocol: subagent`, `name: …` | one role each, with its own boundaries |
 
 `channel: stdout` is the only channel the engine defines, and it means the driving agent's ordinary
 output to the user *is* the notification — not a slot waiting to be filled.
@@ -86,14 +88,22 @@ reading a definition:
   what exists now. This is what makes "reviewed, then the code changed" a caught condition instead
   of a silent one. It passes on first evaluation, when there is nothing recorded yet.
 
-## Every graph names the change it is for
+## Every graph names what it is for — a change, or a batch
 
 ```bash
-fsx graph create --file graph.json --var change=add-user-export
+fsx graph create --file graph.json --var change=add-user-export   # one change
+fsx graph create --file graph.json --var sprint=2026-w32          # a batch of them
 ```
 
-Every artifact these steps declare sits under `openspec/changes/{{vars.change}}/`, so the value is
-the change directory's name. The engine substitutes it before anything is dispatched or measured:
+Two graph variables, and **a graph supplies only the one its steps need** — the requirement and
+implementation steps locate artifacts under `openspec/changes/{{vars.change}}/`, the delivery steps
+under `genai/sprints/{{vars.sprint}}/`. Supplying a variable nothing references is refused
+(`graph_var_unused`), which is almost always a sign the graph mixed stages that do not belong
+together.
+
+**A delivery step never declares an input from a per-change step.** A batch covers several changes
+and the variable holds one value, so which changes are in the batch is data — the roster
+`genai.changes` produces — not a variable. The engine substitutes it before anything is dispatched or measured:
 the executor is handed `openspec/changes/add-user-export/genai/a11y-report.md`, a path rather than a
 pattern.
 
@@ -111,7 +121,7 @@ for — but it is now context for a reader, not the thing that tells an executor
 
 ```bash
 fsx check                    # every definition loads and the whitelist is consistent
-fsx nodes -w genai-feature   # the sixteen steps, from the engine rather than from this page
+fsx nodes -w genai-feature   # the twenty-three steps, from the engine rather than from this page
 ```
 
 The installer prints the executor each step requires. **Nothing validates those names** — the

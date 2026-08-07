@@ -1,13 +1,15 @@
-# Execute the suite, and verify what actually landed
+# Run acceptance once, against the tree that will ship
 
-Compose **`dev-toolkit:e2e-test`**.
+The scenarios were authored per change, alongside the spec that motivated them. They are executed
+here, together, on the integrated tree — because a change that passes alone can fail integrated, and
+that is the failure this stage exists to find.
 
-**A green interface assertion sitting on top of a row that was never written is a false pass**, and
-catching that is the whole reason this step exists. Every executed path gets both checks: the
-visible result, and the effect on persisted state.
+Collect the acceptance material from the change directories the roster names. The roster is the only
+place that list exists; there is no variable holding it.
 
-Scenarios with mapped test code run as scripts at no model cost; uncovered ones get driven live.
-Read-only toward product code and test code alike.
+Record the commit you ran against. The gate compares it, so a result from before the last commit is
+rejected even though the report is present and says it passed — it describes a tree that will not
+ship.
 
-The application has to be up. If it will not start, that is `blocked` rather than a failure — it is
-not something the implementation can fix, and it does not consume patience.
+An application that would not start is `blocked`, not `failed`. The first is an environment problem
+and the batch cannot fix it; the second is the batch's problem and it can.

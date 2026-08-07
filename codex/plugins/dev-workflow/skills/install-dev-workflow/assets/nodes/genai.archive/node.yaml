@@ -1,0 +1,41 @@
+id: genai.archive
+kind: effect
+executor:
+  protocol: main
+
+inputs:
+  - name: landed
+    from: genai.merge
+
+outputs:
+  - name: record
+    kind: file
+    locator: genai/sprints/{{vars.sprint}}/archive.md
+    signature: checksum
+
+gates:
+  - rule_id: outputs
+    checker:
+      type: outputs_present
+    on_result:
+      satisfied:
+        verdict: pass
+      missing:
+        verdict: reject
+        message: the archive record is not on disk
+  - rule_id: outcome
+    checker:
+      type: report
+      field: outcome
+    on_result:
+      completed:
+        verdict: pass
+      partial:
+        verdict: reject
+        message: some of the batch was filed and some was left in the active tree - a half-archived batch is worse than an unarchived one
+      failed:
+        verdict: reject
+        message: archiving failed - the batch is still in the active tree
+      blocked:
+        verdict: delegate
+        message: the archive could not be written

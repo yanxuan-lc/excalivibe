@@ -1,0 +1,21 @@
+id: genai.changes
+kind: produce
+executor:
+  protocol: main
+
+outputs:
+  - name: roster
+    kind: file
+    locator: genai/sprints/{{vars.sprint}}/changes.md
+    signature: checksum
+
+gates:
+  - rule_id: outputs
+    checker:
+      type: outputs_present
+    on_result:
+      satisfied:
+        verdict: pass
+      missing:
+        verdict: reject
+        message: the roster is not on disk - every later step reads it to learn what this batch covers

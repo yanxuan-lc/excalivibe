@@ -5,17 +5,18 @@ executor:
   params:
     name: e2e-runner
 
+# The acceptance material is authored per change, but it is executed here, once, against the
+# integrated tree. The manifest is therefore NOT declared as an input: it is produced by a
+# per-change step, and declaring it would make every batch graph demand a `change` value that a
+# batch cannot give. The roster names the change directories to collect manifests from.
 inputs:
-  - name: code
-    from: genai.implement
-  - name: manifest
-    from: genai.e2e-script
-    required: false
+  - name: tree
+    from: genai.integrate
 
 outputs:
-  - name: report
+  - name: acceptance
     kind: file
-    locator: openspec/changes/{{vars.change}}/genai/e2e-report.md
+    locator: genai/sprints/{{vars.sprint}}/e2e-report.md
     signature: checksum
 
 gates:
@@ -23,13 +24,13 @@ gates:
     checker:
       type: signature_match
       state_key: ran_against
-      against: code
+      against: tree
     on_result:
       matched:
         verdict: pass
       mismatched:
         verdict: reject
-        message: the code has changed since this ran, so the earlier acceptance result no longer holds
+        message: the integrated tree has moved since acceptance ran, so the earlier result describes a commit that will not ship
   - rule_id: outputs
     checker:
       type: outputs_present
@@ -47,13 +48,13 @@ gates:
       completed:
         verdict: pass
         state:
-          ran_against: "{{inputs.code}}"
+          ran_against: "{{inputs.tree}}"
       partial:
         verdict: reject
         message: some scenarios failed or went uncovered - work through the report
       failed:
         verdict: reject
-        message: acceptance failed - work through the report
+        message: acceptance failed on the integrated tree - work through the report
       blocked:
         verdict: delegate
-        message: the application would not start, or the environment is not available - not something the implementation can fix
+        message: the application would not start, or the environment is not available - not something the batch can fix

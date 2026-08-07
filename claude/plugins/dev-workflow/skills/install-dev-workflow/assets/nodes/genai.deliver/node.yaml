@@ -1,0 +1,48 @@
+id: genai.deliver
+kind: effect
+executor:
+  protocol: human
+  params:
+    channel: stdout
+patience: null
+unattended: suspend
+require_interactive: true
+
+inputs:
+  - name: dossier
+    from: genai.release-prep
+  - name: landed
+    from: genai.merge
+
+outputs:
+  - name: record
+    kind: file
+    locator: genai/sprints/{{vars.sprint}}/deliver.md
+    signature: checksum
+
+gates:
+  - rule_id: outputs
+    checker:
+      type: outputs_present
+    on_result:
+      satisfied:
+        verdict: pass
+      missing:
+        verdict: reject
+        message: the delivery record is not on disk
+  - rule_id: outcome
+    checker:
+      type: report
+      field: outcome
+    on_result:
+      completed:
+        verdict: pass
+      partial:
+        verdict: reject
+        message: some targets received the release and some did not - say which, before anyone retries
+      failed:
+        verdict: reject
+        message: the release did not go out
+      blocked:
+        verdict: delegate
+        message: the target could not be reached, or consent was not available
