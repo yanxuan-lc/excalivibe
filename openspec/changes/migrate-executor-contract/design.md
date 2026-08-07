@@ -35,7 +35,7 @@ the artifacts read as healthy while being unloadable. That gap outlives this cha
   diff is one field per file
 - Not the three-segment workflow split, the delivery segment, `genai-init`, or intent routing —
   each is its own change (`docs/design/dev-workflow-intent-flows.md` §9)
-- Not teaching `make check` about the engine's contract. Considered and deferred; see Decisions
+- Not teaching `make check` about the engine's contract. Considered and rejected; see Decisions D3
 
 ## Module Design
 
@@ -102,7 +102,7 @@ This change does not touch a database. The plugin ships files; it has no persist
 
 | Dimension | Budget | Where the number comes from |
 |---|---|---|
-| Compiled artifact count | stays 393 | no file added or removed; only contents change |
+| Compiled artifact count | stays 411 | no file added or removed; only contents change |
 | `make check` runtime | unchanged | same file count, same passes |
 | Installer subprocess count | +1 | one `fsx nodes --json` after the install loop, replacing an in-process regex |
 
@@ -138,13 +138,13 @@ script prints that the summary was skipped and why. Silently printing an empty l
 **Forward:** edit source → `make build` → commit. Anyone with an existing install re-runs the
 installer, which refreshes definitions in place.
 
-**Rollback is not symmetric, and this is the one-way door in the change.** Reverting the commit
-restores definitions that the *current* engine rejects. A rollback is therefore only coherent
-together with downgrading `fsx` below `d64d37b`. Reverting our side alone produces exactly the
-broken state this change exists to leave.
+**Rollback:** reverting the commit alone restores definitions the current engine rejects, so a
+coherent rollback also downgrades `fsx` below `d64d37b`.
 
-Practically: if something is wrong with the migrated definitions, fix forward. There is no data to
-back-fill — the definitions are the whole payload.
+That asymmetry is not worth designing around here. **Neither this plugin nor `fsx` has been
+released**, so there are no installs in the wild to strand — the only affected working copy is a
+developer's own, and the fix there is to move forward rather than back. There is no data to
+back-fill; the definitions are the whole payload.
 
 ## Verification Carrier
 
@@ -170,22 +170,33 @@ and two copies disagree eventually. Asking the engine costs one subprocess and c
 YAML. The scaffold `fsx init` writes uses block style, and a reader comparing our definitions to a
 freshly scaffolded one should not have to notice that the difference is cosmetic.
 
-**D3 — `make check` is not taught the engine's contract, and that is a deferral, not a conclusion.**
-The gap is real: the breakage this change fixes was invisible to our own gate. A `make check-flow`
-that installs into a temporary project and runs `fsx check` would close it. It is out of scope here
-because it makes `fsx` a hard dependency of our pre-commit gate, and that trade deserves deciding on
-its own rather than as a rider on a field rename. Recorded under Risks.
+**D3 — `make check` is deliberately *not* taught the engine's contract.** A `make check-flow` that
+installs into a temporary project and runs `fsx check` was considered and rejected. Engine-contract
+drift has two sources and a pre-commit gate is the wrong instrument for both:
+
+- *We author a bad definition.* Already caught — the installer writes through `fsx nodes edit`,
+  which validates before the write, and every change touching definitions carries install-then-
+  `fsx check` in its acceptance (tasks 4.2 here).
+- *`fsx` changes its contract.* Not triggered by our commit. It happens between commits, so the gate
+  fires at a time unrelated to the cause and fails a change that has nothing to do with it. This
+  very breakage was found the right way instead: the engine was upgraded, and the next command run
+  against it failed loudly.
+
+What the gap actually requires is that any change touching node definitions keeps install-then-
+`fsx check` as an acceptance step. That is a habit enforced per change, not a gate — and making
+`fsx` a hard dependency of the pre-commit gate would buy nothing for it.
 
 ## Risks / Trade-offs
 
-**The same class of breakage can recur silently** → `make check` still cannot see engine-contract
-drift (D3). Until `make check-flow` exists, the detection point is whoever next installs the flow.
-This change does not improve that; it is worth naming so the next contract change is not a surprise
-for the same reason twice.
+**The same class of breakage can recur** → `make check` does not see engine-contract drift, by
+decision (D3). The detection point is the next install — during a change's acceptance, or the first
+command run after an `fsx` upgrade. Naming it here so the next contract change is understood as
+expected cost rather than a surprise.
 
-**Existing installs are stale until re-run** → the installer is idempotent and refreshing is the
+**A local `.flow/` is stale until re-run** → the installer is idempotent and refreshing is the
 documented upgrade path, but nothing notifies a project that its `.flow/nodes/` is behind. Accepted:
-the cost is one `fsx check` that names the offending file.
+the cost is one `fsx check` that names the offending file, and with nothing released the blast
+radius is a developer's own checkout.
 
 **`--dry-run` loses information** → the executor summary is unavailable there. Accepted over the
 alternative of keeping a regex solely to serve the dry run, which reintroduces exactly the fragility

@@ -16,7 +16,7 @@
 
 ## 4. Acceptance
 
-- [ ] 4.1 `make build` then `make check` — green, artifact count still 393
+- [ ] 4.1 `make build` then `make check` — green, artifact count still 411
 - [ ] 4.2 In a throwaway project: `fsx init`, run the installer from the **compiled** `claude/` end, then `fsx check` — exits 0, fourteen definitions load
 - [ ] 4.3 `fsx nodes -w genai` lists all fourteen with their executors resolved by the engine
 - [ ] 4.4 Run the installer a second time over the same project — idempotent, no error
