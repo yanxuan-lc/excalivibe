@@ -17,8 +17,3 @@ yanked package and an unsent handover are new acts, not undos.
 
 If part of the release went out and part did not, say which. Somebody is about to retry, and the
 difference between "nothing happened" and "half of it happened" decides whether that is safe.
-
-## Upstream artifacts
-
-{{inputs}}
-{{rejection}}

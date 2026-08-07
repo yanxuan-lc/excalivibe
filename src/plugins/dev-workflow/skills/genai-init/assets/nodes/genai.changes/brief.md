@@ -9,5 +9,3 @@ so an incomplete roster produces a clean run. Reconcile the list against the bat
 before this graph existed, and say in the file what you reconciled it against.
 
 Say which changes you considered and left out, and why. "Not ready" is a finding; silence is not.
-
-{{rejection}}

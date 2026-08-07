@@ -8,8 +8,3 @@ That sentence is what lets a reader tell "unaffected" from "not measured".
 
 One bare number is not a verdict. Measured, threshold, and baseline-plus-delta — three numbers
 are.
-
-## Upstream artifacts
-
-{{inputs}}
-{{rejection}}

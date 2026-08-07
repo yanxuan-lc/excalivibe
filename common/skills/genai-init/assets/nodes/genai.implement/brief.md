@@ -11,11 +11,3 @@ the downstream verdicts worth anything.
 The `code` output signs the current commit — that is how later steps tell whether what they judged
 is still what exists. So commit your work: an uncommitted change leaves that signature unmoved, and
 a reviewer will be told nothing has changed.
-
-## Upstream artifacts
-
-`diagnosis` is optional and is absent on most changes — it exists only where a rescue diagnosis was
-run for this one. Listed as missing, it is not a problem to solve; a missing `design` is.
-
-{{inputs}}
-{{rejection}}

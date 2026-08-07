@@ -16,8 +16,3 @@ find out.
 
 Say which sub-questions you expect to be answerable from what is available, and which are a stretch.
 That is what makes a `partial` result later readable as expected rather than as a failure.
-
-## Upstream artifacts
-
-{{inputs}}
-{{rejection}}

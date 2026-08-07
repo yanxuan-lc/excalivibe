@@ -11,8 +11,3 @@ tell that this batch already landed; a key that changes every attempt guarantees
 
 A partial merge is the worst outcome here and it is worth reporting as such rather than retrying
 into: the shared branch is then in a state nobody designed, and the next person to pull inherits it.
-
-## Upstream artifacts
-
-{{inputs}}
-{{rejection}}

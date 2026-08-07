@@ -15,5 +15,3 @@ term and a one-line meaning to the bounded context's `CONTEXT.md`, creating the 
 absent. That file is where every later step and check looks up the agreed word, and this is the only
 moment the concept is being named — afterwards it is already spreading through spec, tests and code
 under whatever spelling arrived first.
-
-{{rejection}}

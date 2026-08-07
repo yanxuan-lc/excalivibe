@@ -210,13 +210,13 @@ flow-scratch `4b052ca` 起,落点可以写 `{{instance.suffix}}`,取实例 id �
 
 `genai.research-probe` 因此改成真正的多实例(§7.1)。
 
-### 4.2b 派发指令里的上游产物段是 brief 的插槽,不是无条件注入(实测)
+### 4.2b 上游产物段曾经是 brief 的插槽(2026-08-07 已由 flow-scratch 解决)
 
-只有产物契约块是无条件追加的。`{{inputs}}` / `{{rejection}}` / `{{outputs}}` / `{{state}}` 是 `brief.md` 的插槽,不写就不渲染。
+原状:只有产物契约块无条件追加,而上游产物段只在 brief 写了 `{{inputs}}` 时才渲染。契约块里那句「上游产物签名照抄上面『上游产物』里给出的那一个,**它会被核对**」因此指向一个不存在的段 —— 执行者既不知道上游产物在哪,也拿不到要照抄的值。我们 28 份定义无一写了插槽,`fsx check` 全绿。
 
-**代价具体到会让每一次派发都失败**:契约块里有一句「上游产物签名照抄上面『上游产物』里给出的那一个,**它会被核对**」,而那一段根本不存在。执行者既不知道上游产物在哪,也拿不到要照抄的值。
+flow-scratch `de07d95` 把上游产物段挪进契约块,无条件给出。`{{inputs}}` 降级为「摆放位置」,写了就渲染两次 —— **所以我们不写**。驳回原因同理:一直在契约块末尾,`{{rejection}}` 也只决定位置。
 
-`fsx check` 查不出来 —— 它校验定义,而插槽缺失在定义里是合法的。我们 28 份定义全部中招,`fsx check` 全绿。修法:24 个有 `inputs` 的定义 brief 末尾加 `## Upstream artifacts` + `{{inputs}}` + `{{rejection}}`,4 个无输入的只加 `{{rejection}}`。
+同一笔还修掉两处:单实例上游不再被成组(不再印 `1 parts`、不再给两个签名),可选输入缺失时措辞与必需输入分开(`optional, not present this time — nothing to look for`),后者让 `genai.implement` 里那句手写解释可以删掉。
 
 ### 4.3 图变量在建图时冻结
 
@@ -385,7 +385,7 @@ backup 的 project-init 每一步都带一条「已经做过的判据」,重跑�
 2. ~~**派发指令里补一句「产物用什么语言写」**~~ —— 现在无条件印一行「Write every artifact and the report in **English**」
 3. ~~*(缺陷)* `unrecognized_keys` 的提示语里 `{allowed}` 是未替换的占位符~~
 
-本轮实测新提出的三条,见 `../flow-scratch-req-prompt-slots.md`。
+本轮实测新提出的三条(`../flow-scratch-req-prompt-slots.md`)也已由 `de07d95` 全部解决,见 §4.2b。
 
 ---
 
@@ -429,8 +429,9 @@ backup 的 project-init 每一步都带一条「已经做过的判据」,重跑�
   改成真多实例:落点 `docs/research/{{vars.topic}}/findings/{{instance.suffix}}.md`,骨架图带一个
   `#all`,计划落盘后按子问题 `graph patch` 扩成 N 个再删掉 `#all`。实测三个 probe 各自过门控、
   各自计耐心(一个 `failed` 只扣自己那一格),汇聚节点一次拿到三份(§4.2)
-- **28 份 brief 补上 `{{inputs}}` / `{{rejection}}` 插槽。** 此前每一份派发指令都指向一个不存在的
-  「上游产物」段(§4.2b)。这是本轮最重的一处 —— 它不是新特性带来的,是一直都在
+- **派发指令里那个不存在的「上游产物」段。** 本轮最重的一处,而且不是新特性带来的,是一直都在。
+  我们先用 brief 插槽补上,上游随即把它挪进契约块无条件给出(`de07d95`),于是插槽全部撤回 ——
+  写了会渲染两次(§4.2b)
 
 ### 仍然开着的
 

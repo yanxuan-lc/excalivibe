@@ -23,8 +23,3 @@ does not hold up the others — each is gated on its own.
 
 Do not draw the conclusion. That is the next step, run separately so that whoever collected the
 evidence is not also deciding what it means.
-
-## Upstream artifacts
-
-{{inputs}}
-{{rejection}}

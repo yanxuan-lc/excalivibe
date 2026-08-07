@@ -17,8 +17,3 @@ conversation.
 
 Only core changes come through here. If a person is being asked to confirm something routine, the
 graph put a step where it did not belong, and saying so is more useful than rubber-stamping it.
-
-## Upstream artifacts
-
-{{inputs}}
-{{rejection}}

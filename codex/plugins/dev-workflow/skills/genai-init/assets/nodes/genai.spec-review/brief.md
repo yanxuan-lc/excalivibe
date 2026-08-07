@@ -9,8 +9,3 @@ its consumers enumerated and a rollback present before it can be called safe.
 A small pure-logic change with no schema, no new interface and no removal is a legitimate approve.
 Say so, and say there was no design surface worth reviewing. Manufacturing findings to look
 thorough costs the next reader their trust in this report.
-
-## Upstream artifacts
-
-{{inputs}}
-{{rejection}}

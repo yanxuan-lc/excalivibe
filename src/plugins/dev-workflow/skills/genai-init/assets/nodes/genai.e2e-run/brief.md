@@ -13,8 +13,3 @@ ship.
 
 An application that would not start is `blocked`, not `failed`. The first is an environment problem
 and the batch cannot fix it; the second is the batch's problem and it can.
-
-## Upstream artifacts
-
-{{inputs}}
-{{rejection}}

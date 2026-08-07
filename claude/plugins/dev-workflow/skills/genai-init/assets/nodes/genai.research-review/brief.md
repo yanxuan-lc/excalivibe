@@ -15,8 +15,3 @@ Three ways this goes:
 - **Rejected** — it does not answer what was asked. This routes back to the **question**, not to the
   writing, because a synthesis that misses the question is usually evidence the question was wrong.
   Say which part went unanswered; that sentence is what reshapes it.
-
-## Upstream artifacts
-
-{{inputs}}
-{{rejection}}

@@ -14,5 +14,3 @@ Settle three things with the person, and write them down:
 
 **No findings here.** Not even the ones you already have. This step establishes the question; a
 finding recorded now is a finding nobody planned to look for and nobody will check the provenance of.
-
-{{rejection}}

@@ -8,5 +8,3 @@ falsification, rather than reading code until something looks wrong.
 
 **Do not fix the product code while you are here.** The test that proves the bug must not be
 written by whoever will satisfy it — otherwise it proves only that the fix matches itself.
-
-{{rejection}}

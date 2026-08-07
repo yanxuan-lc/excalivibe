@@ -13,8 +13,3 @@ indistinguishable from an overlooked one, and a reader cannot tell a scope decis
 
 The gate runs a completeness check. It separates written from unwritten and nothing else — passing
 it does not mean the design is right.
-
-## Upstream artifacts
-
-{{inputs}}
-{{rejection}}
