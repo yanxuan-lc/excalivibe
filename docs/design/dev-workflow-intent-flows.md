@@ -135,7 +135,7 @@ executor: { protocol: human, params: { channel: stdout } }
 |---|---|---|---|
 | `genai.research-brief` | produce | main | **新**,和用户澄清边界 |
 | `genai.research-plan` | produce | subagent `researcher` | **新**,拆子问题 |
-| `genai.research-probe` | produce | subagent `researcher` | **新**,受约束 §4.2 限制 |
+| `genai.research-probe` | produce | subagent `researcher` | **新**,一个子问题一个实例(§4.2) |
 | `genai.research-synth` | produce | subagent `researcher` | **新**,汇总 |
 | `genai.research-review` | judge | human | **新** |
 
@@ -208,7 +208,7 @@ inputs:
 
 flow-scratch `4b052ca` 起,落点可以写 `{{instance.suffix}}`,取实例 id 里 `#` 后面那一段;一个定义有 ≥2 个实例而落点不随实例变化的图,**建图期**被 `node_instances_share_locator` 拒。扇入那半也一并解决:汇聚节点的 `inputs[].from` 写步骤 id,解析成该步骤的全部实例,派发指令给一个合并签名加逐实例落点。
 
-`genai.research-probe` 因此改成真正的多实例(§7.1)。
+`genai.research-probe` 因此改成真正的多实例:落点带 `{{instance.suffix}}`,骨架图带一个 `#all`,计划落盘后按子问题 `graph patch` 扩成 N 个再删掉 `#all`。
 
 ### 4.2b 上游产物段曾经是 brief 的插槽(2026-08-07 已由 flow-scratch 解决)
 

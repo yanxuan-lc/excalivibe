@@ -170,3 +170,10 @@ that on hosts where agents are not bundled with plugins they need copying into p
   decided per piece of work — that is the judgement the engine deliberately leaves to a model.
 - **Drive the loop.** Dispatching, submitting reports, evaluating gates: the engine's own skill.
 - **Set up the engine.** `fsx init` and `fsx skill install` are prerequisites, not steps here.
+
+## The engine has to be recent enough
+
+These definitions use `{{instance.suffix}}` in a locator, which flow-scratch gained in `4b052ca`.
+An older engine rejects them at load time, so `genai-init` fails loudly rather than installing
+something half-working — but the message names an unknown namespace, which does not say "upgrade".
+If that is what you see, that is what it means.
