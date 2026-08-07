@@ -125,7 +125,6 @@ if (dryRun) console.log(dim('  --dry-run: printing the command sequence, writing
 
 fsx(['workflows', 'new', workflow], `workflows new ${workflow}`);
 
-const executors = new Map();
 for (const id of stepIds) {
   const dir = path.join(ASSETS, 'nodes', id);
   if (!fs.existsSync(dir)) {
@@ -139,7 +138,6 @@ for (const id of stepIds) {
     .replaceAll('{{CHECK_SPEC}}', `node ${checkSpec}`);
   const staged = path.join(tmp, `${id}.yaml`);
   fs.writeFileSync(staged, declaration);
-  executors.set(id, /^executor:\s*(\S+)$/m.exec(declaration)?.[1] ?? '?');
 
   if (!fsx(['nodes', 'new', id, '-w', workflow], id)) continue;
   if (!fsx(['nodes', 'edit', id, '--file', staged], id)) continue;
@@ -167,12 +165,52 @@ if (failures.length) {
 result(true, dryRun ? `${stepIds.length} step(s) would be installed into .flow/` : `${stepIds.length} step(s) installed into .flow/`);
 
 console.log('');
-console.log(dim('  executors these steps require:'));
-const byExec = new Map();
-for (const [id, ex] of executors) byExec.set(ex, [...(byExec.get(ex) ?? []), id]);
-for (const [ex, ids] of [...byExec].sort()) detail(`${ex.padEnd(22)} ${ids.length} step(s)`);
-next(
-  'nothing validates those names - the engine does not own subagent definitions and cannot resolve them',
-  'check them against what is actually installed; a missing one surfaces only when a dispatch fails',
-  '`fsx check` then `fsx nodes -w ' + workflow + '` to see the result from the engine rather than from here'
-);
+summariseExecutors();
+
+/**
+ * What each installed step will dispatch to.
+ *
+ * Read back from the engine rather than parsed out of the assets on the way in. Two reasons, and
+ * the second is the one that matters: an executor declaration is a structure the engine owns, so a
+ * regex here is a second parser for someone else's format that breaks silently the next time that
+ * format moves - which is exactly the failure this rewrite followed. And the warning underneath is
+ * about what is *installed*, so it should be describing what landed, not what was about to be sent.
+ */
+function summariseExecutors() {
+  if (dryRun) {
+    console.log(dim('  executors these steps require: not available under --dry-run'));
+    detail('the list is read back from the engine, and nothing was installed for it to read', '~');
+    return;
+  }
+
+  const r = spawnSync('fsx', ['nodes', '-w', workflow, '--json'], { encoding: 'utf8' });
+  let nodes;
+  try {
+    nodes = JSON.parse(r.stdout).nodes;
+  } catch {
+    nodes = undefined;
+  }
+  if (r.status !== 0 || !Array.isArray(nodes)) {
+    // Say it could not be read. An empty list here would read as "no executors required", and a
+    // reader has no way to tell that apart from a step list that genuinely dispatches to nobody.
+    console.log(dim('  executors these steps require: could not be read back'));
+    detail(`fsx nodes -w ${workflow} --json exited ${r.status ?? '?'}`, '~');
+    return;
+  }
+
+  console.log(dim('  executors these steps require:'));
+  const byExec = new Map();
+  for (const node of nodes) {
+    const e = node.executor ?? {};
+    const label = e.params?.name ?? e.params?.channel ?? e.params?.adapter ?? e.params?.url;
+    const key = label ? `${e.protocol} ${label}` : (e.protocol ?? '?');
+    byExec.set(key, (byExec.get(key) ?? 0) + 1);
+  }
+  for (const [ex, count] of [...byExec].sort()) detail(`${ex.padEnd(30)} ${count} step(s)`);
+
+  next(
+    'nothing validates those names - the engine does not own subagent definitions and cannot resolve them',
+    'check them against what is actually installed; a missing one surfaces only when a dispatch fails',
+    '`fsx check` then `fsx nodes -w ' + workflow + '` to see the full definitions'
+  );
+}

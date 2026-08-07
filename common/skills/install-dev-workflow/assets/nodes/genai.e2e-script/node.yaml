@@ -1,6 +1,9 @@
 id: genai.e2e-script
 kind: produce
-executor: e2e-author
+executor:
+  protocol: subagent
+  params:
+    name: e2e-author
 
 inputs:
   - name: specs

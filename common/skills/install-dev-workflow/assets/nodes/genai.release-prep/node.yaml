@@ -1,6 +1,9 @@
 id: genai.release-prep
 kind: produce
-executor: release-coordinator
+executor:
+  protocol: subagent
+  params:
+    name: release-coordinator
 
 outputs:
   - name: dossier

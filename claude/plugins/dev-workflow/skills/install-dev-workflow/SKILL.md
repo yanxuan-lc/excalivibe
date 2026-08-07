@@ -47,13 +47,18 @@ history describes steps that no longer exist. Finish or abort the graph, then in
 
 ## What gets installed
 
-Fourteen steps. Three executors are not subagents, and each for a structural reason:
+Fourteen steps. An executor declares a **protocol** — how the instruction gets handed over — and
+whatever that protocol needs to identify the recipient. Two steps do not go to a subagent, each for
+a structural reason:
 
 | Step | Executor | Why |
 |---|---|---|
-| `genai.brief` | `main` | it is a conversation with the user, and a subagent cannot talk to one |
-| `genai.arch-gate` | `human` | a person signs; the engine records the decision and signs it into a compliant report |
-| the other twelve | a subagent | one role each, with its own boundaries |
+| `genai.brief` | `protocol: main` | it is a conversation with the user, and a subagent cannot talk to one |
+| `genai.arch-gate` | `protocol: human`, `channel: stdout` | a person signs; the engine records the decision and signs it into a compliant report |
+| the other twelve | `protocol: subagent`, `name: …` | one role each, with its own boundaries |
+
+`channel: stdout` is the only channel the engine defines, and it means the driving agent's ordinary
+output to the user *is* the notification — not a slot waiting to be filled.
 
 The gates are the load-bearing part. Three patterns recur, and they are worth recognising when
 reading a definition:

@@ -1,6 +1,9 @@
 id: genai.e2e-run
 kind: verify
-executor: e2e-runner
+executor:
+  protocol: subagent
+  params:
+    name: e2e-runner
 
 inputs:
   - name: code

@@ -1,6 +1,9 @@
 id: genai.spec
 kind: produce
-executor: planner
+executor:
+  protocol: subagent
+  params:
+    name: planner
 
 inputs:
   - name: brief

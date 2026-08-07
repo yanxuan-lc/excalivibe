@@ -1,6 +1,9 @@
 id: genai.implement
 kind: produce
-executor: developer
+executor:
+  protocol: subagent
+  params:
+    name: developer
 
 inputs:
   - name: design

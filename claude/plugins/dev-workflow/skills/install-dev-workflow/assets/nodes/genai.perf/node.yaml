@@ -1,6 +1,9 @@
 id: genai.perf
 kind: verify
-executor: perf-runner
+executor:
+  protocol: subagent
+  params:
+    name: perf-runner
 
 inputs:
   - name: code

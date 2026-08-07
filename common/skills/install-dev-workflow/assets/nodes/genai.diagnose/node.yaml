@@ -1,6 +1,9 @@
 id: genai.diagnose
 kind: produce
-executor: debugger
+executor:
+  protocol: subagent
+  params:
+    name: debugger
 
 outputs:
   - name: diagnosis

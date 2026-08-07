@@ -1,6 +1,9 @@
 id: genai.code-review
 kind: judge
-executor: code-reviewer
+executor:
+  protocol: subagent
+  params:
+    name: code-reviewer
 
 inputs:
   - name: code

@@ -1,6 +1,9 @@
 id: genai.security
 kind: verify
-executor: security-runner
+executor:
+  protocol: subagent
+  params:
+    name: security-runner
 
 inputs:
   - name: code

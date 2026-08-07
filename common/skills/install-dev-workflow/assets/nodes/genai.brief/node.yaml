@@ -1,6 +1,7 @@
 id: genai.brief
 kind: produce
-executor: main
+executor:
+  protocol: main
 
 outputs:
   - name: brief

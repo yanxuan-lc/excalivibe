@@ -1,6 +1,9 @@
 id: genai.a11y
 kind: verify
-executor: a11y-runner
+executor:
+  protocol: subagent
+  params:
+    name: a11y-runner
 
 inputs:
   - name: code

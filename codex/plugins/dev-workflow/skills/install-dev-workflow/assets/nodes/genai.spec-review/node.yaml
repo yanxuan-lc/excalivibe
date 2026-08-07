@@ -1,6 +1,9 @@
 id: genai.spec-review
 kind: judge
-executor: arch-reviewer
+executor:
+  protocol: subagent
+  params:
+    name: arch-reviewer
 
 inputs:
   - name: design

@@ -1,6 +1,9 @@
 id: genai.arch-gate
 kind: judge
-executor: human
+executor:
+  protocol: human
+  params:
+    channel: stdout
 patience: null
 unattended: suspend
 
