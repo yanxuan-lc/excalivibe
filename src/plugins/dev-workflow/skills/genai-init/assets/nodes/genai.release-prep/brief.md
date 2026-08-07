@@ -11,3 +11,8 @@ preconditions — so that publish-or-not becomes a single informed yes or no.
 requires explicit user consent and a subagent cannot obtain it, so the boundary is structural rather
 than a matter of discipline. Any branch or commit left behind is orphan state someone else has to
 discover and reconcile.
+
+## Upstream artifacts
+
+{{inputs}}
+{{rejection}}

@@ -13,3 +13,8 @@ it passed.
 
 Report `blocked` when the checks could not run at all — that is an environment problem and a
 different person fixes it than fixes a `failed`.
+
+## Upstream artifacts
+
+{{inputs}}
+{{rejection}}

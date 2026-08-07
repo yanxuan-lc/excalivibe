@@ -202,11 +202,21 @@ inputs:
 
 **推论:交付段节点不得声明来自实现段节点的 `inputs`。** 一个 sprint 装多个 change,而 `vars` 是单值字符串,给不出唯一的 `change`。交付段读 change 产物只能靠 `genai.changes` 产出的清单自己去找目录。
 
-### 4.2 同一节点的多个实例共用同一个落点
+### 4.2 同一节点的多个实例各自的落点(2026-08-07 已由 flow-scratch 解决)
 
-实测 `#1` 和 `#2` 产物落点完全相同,互相覆盖。节点实例声明是 `strictObject`,只认 `id` / `node` / `join` —— 传 `vars` 或 `outputs` 都报 `unrecognized_keys`。
+原状:`#1` 和 `#2` 产物落点完全相同,互相覆盖,「把一件工作拆成 N 份并行做」无法表达。
 
-因此「把一件工作拆成 N 份并行做」无法表达。`genai.research-probe` **先按单节点内部派发实现**(执行者自己派 N 个 researcher,落点写成目录 glob),代价是 N 个子问题对引擎不可见,不能各自门控、各自返工。等 flow-scratch 支持实例级取值再优化。
+flow-scratch `4b052ca` 起,落点可以写 `{{instance.suffix}}`,取实例 id 里 `#` 后面那一段;一个定义有 ≥2 个实例而落点不随实例变化的图,**建图期**被 `node_instances_share_locator` 拒。扇入那半也一并解决:汇聚节点的 `inputs[].from` 写步骤 id,解析成该步骤的全部实例,派发指令给一个合并签名加逐实例落点。
+
+`genai.research-probe` 因此改成真正的多实例(§7.1)。
+
+### 4.2b 派发指令里的上游产物段是 brief 的插槽,不是无条件注入(实测)
+
+只有产物契约块是无条件追加的。`{{inputs}}` / `{{rejection}}` / `{{outputs}}` / `{{state}}` 是 `brief.md` 的插槽,不写就不渲染。
+
+**代价具体到会让每一次派发都失败**:契约块里有一句「上游产物签名照抄上面『上游产物』里给出的那一个,**它会被核对**」,而那一段根本不存在。执行者既不知道上游产物在哪,也拿不到要照抄的值。
+
+`fsx check` 查不出来 —— 它校验定义,而插槽缺失在定义里是合法的。我们 28 份定义全部中招,`fsx check` 全绿。修法:24 个有 `inputs` 的定义 brief 末尾加 `## Upstream artifacts` + `{{inputs}}` + `{{rejection}}`,4 个无输入的只加 `{{rejection}}`。
 
 ### 4.3 图变量在建图时冻结
 
@@ -369,9 +379,13 @@ backup 的 project-init 每一步都带一条「已经做过的判据」,重跑�
 
 ## 8. 给 flow-scratch 的需求
 
-1. **节点实例级取值**,使同一节点的 N 个实例产物落点不同(§4.2)
-2. **派发指令里补一句「产物用什么语言写」** —— `instruction_language` 的注释声称它管这件事,实现里没有任何一句这么说
-3. *(缺陷)* `unrecognized_keys` 的提示语里 `{allowed}` 是未替换的占位符,原样打给了使用者
+前三条均已由上游解决(`4b052ca` / `d7f419c`),留档:
+
+1. ~~**节点实例级取值**,使同一节点的 N 个实例产物落点不同(§4.2)~~
+2. ~~**派发指令里补一句「产物用什么语言写」**~~ —— 现在无条件印一行「Write every artifact and the report in **English**」
+3. ~~*(缺陷)* `unrecognized_keys` 的提示语里 `{allowed}` 是未替换的占位符~~
+
+本轮实测新提出的三条,见 `../flow-scratch-req-prompt-slots.md`。
 
 ---
 
@@ -409,12 +423,21 @@ backup 的 project-init 每一步都带一条「已经做过的判据」,重跑�
 - **variant 注册表只遍历 `.md`。** 给 `guardrail.py` 加的注册项永远不会被访问,撤掉了 ——
   单端形态来自 `hooks/**` 的编译规则本身
 
+### 2026-08-07 追加
+
+- **实例级落点已落地。** flow-scratch `4b052ca` 提供 `{{instance.suffix}}`,`genai.research-probe`
+  改成真多实例:落点 `docs/research/{{vars.topic}}/findings/{{instance.suffix}}.md`,骨架图带一个
+  `#all`,计划落盘后按子问题 `graph patch` 扩成 N 个再删掉 `#all`。实测三个 probe 各自过门控、
+  各自计耐心(一个 `failed` 只扣自己那一格),汇聚节点一次拿到三份(§4.2)
+- **28 份 brief 补上 `{{inputs}}` / `{{rejection}}` 插槽。** 此前每一份派发指令都指向一个不存在的
+  「上游产物」段(§4.2b)。这是本轮最重的一处 —— 它不是新特性带来的,是一直都在
+
 ### 仍然开着的
 
-- **实例级落点** —— 需求已提给 flow-scratch(`../flow-scratch-req-instance-values.md`)。
-  在它之前,`genai.research-probe` 在单节点内部派发,N 路子问题对引擎不可见
 - **`genai-flow` 的 description 未实测** —— 规则检查过了(决定开头、零排除列举、有触发场景),
   触发准确度需要 eval
+- **`genai.code-review` 是否拆成多实例** —— 现在是一个 reviewer 出两个判断(合规 / 代码本身)。
+  拆成两个实例可以让两条判断各自返工,但门控语义要重新想,本轮没做
 
 `genai.changes` 的 roster 与冻结批次的核对不再列为待办:漏掉的 change 可以在下一批并入,
 代价有限。

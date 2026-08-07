@@ -7,3 +7,8 @@ Patience is null here, deliberately: rework should be counted, but a person shou
 by a counter.
 
 Unattended, this suspends rather than proceeding. That is the reason the step exists.
+
+## Upstream artifacts
+
+{{inputs}}
+{{rejection}}

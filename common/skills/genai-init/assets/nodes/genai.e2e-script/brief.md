@@ -9,3 +9,8 @@ indistinguishable from one nobody noticed.
 
 Test code only, never product code. This runs in parallel with implementation; you both work from
 the same confirmed design.
+
+## Upstream artifacts
+
+{{inputs}}
+{{rejection}}

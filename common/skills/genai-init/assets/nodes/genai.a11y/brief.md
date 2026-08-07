@@ -8,3 +8,8 @@ result is worse than reporting that you could not reach the surface.
 
 A clean scanner run is not an accessible page. The criteria automation could not evaluate are the
 reason a person reads this report at all.
+
+## Upstream artifacts
+
+{{inputs}}
+{{rejection}}

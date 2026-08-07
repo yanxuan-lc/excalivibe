@@ -11,3 +11,8 @@ This runs **before** the merge, deliberately. An audit of a shared branch report
 already everyone's; an audit of the integration branch is a gate.
 
 An end you could not inspect is `blocked`, not a pass. An unaudited end is an unknown.
+
+## Upstream artifacts
+
+{{inputs}}
+{{rejection}}

@@ -17,3 +17,8 @@ first is an environment problem and the second is a code problem, and they are f
 people. A run that ended early is `partial`, and it says nothing about the cases it never reached;
 reporting it as `completed` because the cases it did reach passed is the one failure mode here that
 nothing downstream can catch.
+
+## Upstream artifacts
+
+{{inputs}}
+{{rejection}}

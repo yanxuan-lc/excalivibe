@@ -10,3 +10,8 @@ no review.
 
 Regenerate this after every revision of the design. The gate compares signatures, so a design that
 moved without this being regenerated is caught rather than quietly approved.
+
+## Upstream artifacts
+
+{{inputs}}
+{{rejection}}

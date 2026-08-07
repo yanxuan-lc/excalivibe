@@ -12,3 +12,8 @@ step and not a gate anyone has to be nervous about.
 
 A half-archived batch is worse than an unarchived one: part of it is where the next reader looks and
 part of it is not. If it cannot be completed, report `failed` and leave the tree as it was.
+
+## Upstream artifacts
+
+{{inputs}}
+{{rejection}}

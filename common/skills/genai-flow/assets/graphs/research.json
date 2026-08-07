@@ -3,14 +3,14 @@
   "nodes": [
     { "id": "genai.research-brief#1", "node": "genai.research-brief" },
     { "id": "genai.research-plan#1", "node": "genai.research-plan" },
-    { "id": "genai.research-probe#1", "node": "genai.research-probe" },
+    { "id": "genai.research-probe#all", "node": "genai.research-probe" },
     { "id": "genai.research-synth#1", "node": "genai.research-synth" },
     { "id": "genai.research-review#1", "node": "genai.research-review" }
   ],
   "edges": [
     { "from": "genai.research-brief#1", "to": "genai.research-plan#1", "on": "pass" },
-    { "from": "genai.research-plan#1", "to": "genai.research-probe#1", "on": "pass" },
-    { "from": "genai.research-probe#1", "to": "genai.research-synth#1", "on": "pass" },
+    { "from": "genai.research-plan#1", "to": "genai.research-probe#all", "on": "pass" },
+    { "from": "genai.research-probe#all", "to": "genai.research-synth#1", "on": "pass" },
     { "from": "genai.research-synth#1", "to": "genai.research-review#1", "on": "pass" },
     { "from": "genai.research-review#1", "to": "genai.research-brief#1", "on": "reject" }
   ]

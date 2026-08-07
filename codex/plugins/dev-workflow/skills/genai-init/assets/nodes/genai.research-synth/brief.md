@@ -16,3 +16,8 @@ reaches the recommendation should not have to go back two documents to learn it 
 
 If the evidence does not support a recommendation, that is the recommendation: say what would have
 to be found out, and what it would cost to find out.
+
+## Upstream artifacts
+
+{{inputs}}
+{{rejection}}

@@ -10,9 +10,12 @@ inputs:
     from: genai.research-plan
 
 outputs:
+  # Per instance, not per run: this step is the one that runs several times side by side, one
+  # instance per sub-question. Two instances sharing a locator would overwrite each other, and the
+  # engine refuses to create such a graph.
   - name: findings
     kind: file
-    locator: docs/research/{{vars.topic}}/FINDINGS.md
+    locator: docs/research/{{vars.topic}}/findings/{{instance.suffix}}.md
     signature: checksum
 
 gates:

@@ -72,6 +72,35 @@ made and did not, and the passing verdict at the end then means less than it app
 `genai.diagnose` is not in any skeleton on purpose: it is inserted with `fsx graph patch` when a
 step is stuck and the cause is not obvious.
 
+## Research fans out after the plan, not when the graph is built
+
+How many probes there are is a fact the *plan* produces, so the graph learns it when the plan lands.
+The skeleton therefore carries one probe, `genai.research-probe#all` — correct as it stands for a
+question small enough to answer in one pass.
+
+When the plan names sub-questions worth answering in parallel, patch them in before dispatching
+anything downstream. Use the plan's own slugs:
+
+```bash
+fsx graph patch --inline '{"ops":[
+  {"op":"add_node","node":{"id":"genai.research-probe#pricing","node":"genai.research-probe"}},
+  {"op":"add_edge","edge":{"from":"genai.research-plan#1","to":"genai.research-probe#pricing","on":"pass"}},
+  {"op":"add_edge","edge":{"from":"genai.research-probe#pricing","to":"genai.research-synth#1","on":"pass"}},
+  {"op":"remove_node","id":"genai.research-probe#all"}
+],"reason":"the plan named 3 sub-questions"}'
+```
+
+**Remove `#all` in the same patch.** Left in, it is a probe nobody was given a sub-question for, and
+`genai.research-synth#1` waits on it — the run stalls on a step that has nothing to do.
+
+Each probe then gates, reworks and counts patience on its own, and the synthesis step receives all
+of them under one input name. That independence is the whole reason to do it: one sub-question
+coming back `partial` no longer says anything about the others.
+
+**Do not fan out inside a single probe.** Sub-questions dispatched by an executor rather than by the
+graph are invisible to it — none of them can be gated, reworked or counted, and a skipped one is
+caught only by a person reading the plan against the findings.
+
 ## Diagnosing without a graph, and when to stop
 
 Fault reports are the common case and a graph would tax every one of them. Dispatch the `debugger`

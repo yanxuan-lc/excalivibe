@@ -14,3 +14,8 @@ this the cheap place to discover a conflict, and the merge into the shared branc
 
 A change that will not integrate is a `failed` outcome, not a `partial` one you route around. A tree
 missing part of the batch is not a tree anyone can draw a conclusion from.
+
+## Upstream artifacts
+
+{{inputs}}
+{{rejection}}
