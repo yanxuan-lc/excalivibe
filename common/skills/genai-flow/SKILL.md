@@ -1,6 +1,6 @@
 ---
 name: genai-flow
-description: "Decide what kind of work a request is and, when it is the kind that runs through a graph, which graph to build — checking first whether one is already in flight for it. Reach for it when someone wants a feature built, a change carried forward, a batch delivered, a question researched, an idea queued, or a fault diagnosed; on \"继续 xxx\"、\"这个需求做一下\"、\"这批发了吧\"、\"帮我查一下 X\"、\"这个报错看看\"; and whenever work is about to start and nobody has said how it will be run. It routes and shapes the graph; dispatching, submitting reports and evaluating gates afterwards belong to the engine's own skill."
+description: "Decide what kind of work a request is and, when it is the kind that runs through a graph, which graph to build — checking first whether one is already in flight for it. Reach for it when someone wants a feature built, a change carried forward, a batch delivered, a question researched, or a fault diagnosed; on \"继续 xxx\"、\"这个需求做一下\"、\"这批发了吧\"、\"帮我查一下 X\"、\"这个报错看看\"; and whenever work is about to start and nobody has said how it will be run. It routes and shapes the graph; dispatching, submitting reports and evaluating gates afterwards belong to the engine's own skill."
 ---
 
 # Where the work goes
