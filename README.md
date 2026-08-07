@@ -6,7 +6,7 @@
 
 | 插件 | 定位 | 内容 |
 |---|---|---|
-| `computer-use` | 如何使用电脑 —— 让 agent 越过自身文本输出、作用于真实机器的能力 | `graceful-browser`、`mdx-artifact` |
+| `computer-use` | 如何使用电脑 —— 让 agent 越过自身文本输出、作用于真实机器的能力 | `graceful-browser`、`mdx-artifact`、`notify-user`、`install-computer-use`（Claude 端另带一份出厂静默的 turn-end hook） |
 | `dev-toolkit` | 原子开发能力 —— 每个独立成立、按自身主题触发、不假设谁来调 | 18 个（规约 6 / 方法 4 / 流程约定 1 / 检查器 4 / 实地调研 3） |
 | `dev-workflow` | 流程编排 —— 把原子能力串成带门禁与角色的管线 | 12 个 agent + 2 个 skill + 14 份节点定义；引擎是外部包 `fsx` |
 

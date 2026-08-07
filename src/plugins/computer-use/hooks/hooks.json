@@ -1,0 +1,43 @@
+{
+  "hooks": {
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/turn-notify.sh",
+            "args": ["prompt-start"],
+            "timeout": 5
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/turn-notify.sh",
+            "args": ["turn-end"],
+            "timeout": 15,
+            "async": true
+          }
+        ]
+      }
+    ],
+    "Notification": [
+      {
+        "matcher": "permission_prompt",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/turn-notify.sh",
+            "args": ["blocked"],
+            "timeout": 15,
+            "async": true
+          }
+        ]
+      }
+    ]
+  }
+}

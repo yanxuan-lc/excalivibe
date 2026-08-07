@@ -1,7 +1,7 @@
 {
   "name": "computer-use",
   "version": "0.1.0",
-  "description": "How to operate a computer — the capabilities an agent needs to reach past its own text output and act on a real machine. Currently browser control with automatic framework selection and degradation, and rich human-readable document artifacts with a local preview.",
+  "description": "How to operate a computer — the capabilities an agent needs to reach past its own text output and act on a real machine. Currently browser control with automatic framework selection and degradation, rich human-readable document artifacts with a local preview, and out-of-band notifications that reach the user when the terminal cannot.",
   "author": {
     "name": "ExcaliVibe Contributors"
   },
@@ -16,14 +16,17 @@
     "mdx",
     "document",
     "report",
-    "preview"
+    "preview",
+    "notification",
+    "notify",
+    "macos"
   ],
   "skills": "./skills/",
   "mcpServers": "./.mcp.json",
   "interface": {
     "displayName": "Computer Use",
-    "shortDescription": "Browser control with graceful degradation, and rich document artifacts",
-    "longDescription": "Capabilities for acting on a real machine rather than only describing what to do. graceful-browser picks the browser automation stack that is genuinely available in the current session and degrades transparently when a higher-priority one is not; a Chrome DevTools MCP server ships with the plugin so there is something to degrade to. mdx-artifact turns content into a componentized MDX document and serves a local preview for a human to read.",
+    "shortDescription": "Browser control with graceful degradation, rich document artifacts, and notifications that reach the user",
+    "longDescription": "Capabilities for acting on a real machine rather than only describing what to do. graceful-browser picks the browser automation stack that is genuinely available in the current session and degrades transparently when a higher-priority one is not; a Chrome DevTools MCP server ships with the plugin so there is something to degrade to. mdx-artifact turns content into a componentized MDX document and serves a local preview for a human to read. notify-user decides whether a moment is worth interrupting someone for and sends it over a configured channel, macOS Notification Center today, and the Claude end can wire it to the end of a turn automatically. install-computer-use collects everything that lives outside the plugin directory — a global renderer, a warmed npm cache, and the one consent notifications-that-fire-on-their-own require — into a single step the user asks for.",
     "developerName": "ExcaliVibe Contributors",
     "category": "Developer Tools",
     "capabilities": [
@@ -31,7 +34,9 @@
     ],
     "defaultPrompt": [
       "Open this page and take a screenshot of the dashboard",
-      "Turn these findings into a good-looking document and start a preview"
+      "Turn these findings into a good-looking document and start a preview",
+      "Run the full suite and ping me when it is done",
+      "Set up computer-use on this machine"
     ]
   }
 }

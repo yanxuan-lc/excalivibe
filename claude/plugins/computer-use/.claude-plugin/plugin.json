@@ -1,7 +1,7 @@
 {
   "name": "computer-use",
   "version": "0.1.0",
-  "description": "How to operate a computer — the capabilities an agent needs to reach past its own text output and act on a real machine. Currently browser control with automatic framework selection and degradation, and rich human-readable document artifacts with a local preview.",
+  "description": "How to operate a computer — the capabilities an agent needs to reach past its own text output and act on a real machine. Currently browser control with automatic framework selection and degradation, rich human-readable document artifacts with a local preview, and out-of-band notifications that reach the user when the terminal cannot.",
   "author": {
     "name": "ExcaliVibe Contributors"
   },
@@ -16,6 +16,10 @@
     "mdx",
     "document",
     "report",
-    "preview"
+    "preview",
+    "notification",
+    "notify",
+    "hook",
+    "macos"
   ]
 }
