@@ -8,6 +8,11 @@ executor:
 inputs:
   - name: design
     from: genai.spec
+  # Only present when a rescue diagnosis was run for this change, which most are not. Declared so
+  # the dispatch hands over its path and signature instead of leaving the developer to find it.
+  - name: diagnosis
+    from: genai.diagnose
+    required: false
 
 outputs:
   - name: evidence

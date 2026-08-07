@@ -48,16 +48,15 @@ const flag = (name) => {
   return i === -1 ? undefined : argv[i + 1];
 };
 if (argv.includes('-h') || argv.includes('--help')) {
-  console.log('usage: install-flow.mjs [--workflow <name>] [--check-spec <path>] [--dry-run]');
+  console.log('usage: install-flow.mjs [--check-spec <path>] [--dry-run]');
   process.exit(0);
 }
 const dryRun = argv.includes('--dry-run');
-const workflow = flag('--workflow') ?? 'genai';
 
 // ── locate the assets that ship beside this script ──────────────────────────────
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const ASSETS = path.resolve(HERE, '..', 'assets');
-if (!fs.existsSync(path.join(ASSETS, 'workflow.yaml'))) {
+if (!fs.existsSync(path.join(ASSETS, 'workflows'))) {
   die(`assets are missing at ${ASSETS}`, 'this script must stay beside the assets/ directory it ships with');
 }
 
@@ -95,13 +94,29 @@ if (!checkSpec) {
   );
 }
 
-// ── the node list and the defaults come from the asset, never from this file ────
-// Two copies of the step list is two copies that will disagree. The workflow asset is the source;
-// this script translates it into commands.
-const wfText = fs.readFileSync(path.join(ASSETS, 'workflow.yaml'), 'utf8');
-const stepIds = [...wfText.matchAll(/^ {2}- (\S+)$/gm)].map((m) => m[1]);
-const defaults = [...wfText.matchAll(/^ {2}(\w+):\s*(\S+)$/gm)].map(([, k, v]) => `${k}=${v}`);
-if (!stepIds.length) die('the workflow asset declares no steps', 'assets/workflow.yaml looks malformed');
+// ── the workflows, their steps and their defaults come from the assets, never from here ────
+// Two copies of a step list is two copies that will disagree. Each file under assets/workflows/
+// is one workflow, and **its filename is the workflow name** - the same rule the node directories
+// already follow, so adding a workflow is a file rather than an edit to this script.
+const workflows = fs
+  .readdirSync(path.join(ASSETS, 'workflows'))
+  .filter((f) => f.endsWith('.yaml'))
+  .sort()
+  .map((f) => {
+    const text = fs.readFileSync(path.join(ASSETS, 'workflows', f), 'utf8');
+    return {
+      name: path.basename(f, '.yaml'),
+      stepIds: [...text.matchAll(/^ {2}- (\S+)$/gm)].map((m) => m[1]),
+      defaults: [...text.matchAll(/^ {2}(\w+):\s*(\S+)$/gm)].map(([, k, v]) => `${k}=${v}`),
+    };
+  });
+if (!workflows.length) die('assets/workflows/ declares no workflows', 'the directory holds one .yaml per workflow');
+for (const wf of workflows) {
+  if (!wf.stepIds.length) die(`workflow ${wf.name} declares no steps`, `assets/workflows/${wf.name}.yaml looks malformed`);
+}
+// Definitions are global; only whitelist membership is per workflow. A step listed by two
+// workflows is written once and listed twice.
+const allSteps = [...new Set(workflows.flatMap((w) => w.stepIds))].sort();
 
 // ── run ─────────────────────────────────────────────────────────────────────────
 const failures = [];
@@ -119,18 +134,30 @@ function fsx(args, label) {
   return false;
 }
 
-console.log(dim(`  engine ${engine.stdout.trim()} · workflow ${workflow} · ${stepIds.length} step(s)`));
+const summary = workflows.map((w) => `${w.name} (${w.stepIds.length})`).join(' · ');
+console.log(dim(`  engine ${engine.stdout.trim()} · ${summary}`));
 console.log(dim(`  completeness checker: ${path.relative(process.cwd(), checkSpec)}`));
 if (dryRun) console.log(dim('  --dry-run: printing the command sequence, writing nothing\n'));
 
-fsx(['workflows', 'new', workflow], `workflows new ${workflow}`);
-
-for (const id of stepIds) {
-  const dir = path.join(ASSETS, 'nodes', id);
-  if (!fs.existsSync(dir)) {
-    failures.push([id, 'declared in the workflow asset but no definition ships for it']);
-    continue;
+// Whitelist membership first, definitions after. `nodes new` creates the definition directory when
+// it is absent and only adds a whitelist entry when it is not, so it is both the create and the
+// attach - and `nodes edit` needs the directory to exist before it can replace anything.
+const missing = new Set();
+for (const wf of workflows) {
+  fsx(['workflows', 'new', wf.name], `workflows new ${wf.name}`);
+  for (const id of wf.stepIds) {
+    if (!fs.existsSync(path.join(ASSETS, 'nodes', id))) {
+      failures.push([id, `listed by workflow ${wf.name} but no definition ships for it`]);
+      missing.add(id);
+      continue;
+    }
+    fsx(['nodes', 'new', id, '-w', wf.name], `${id} → ${wf.name}`);
   }
+}
+
+for (const id of allSteps) {
+  if (missing.has(id)) continue;
+  const dir = path.join(ASSETS, 'nodes', id);
   // The gate that runs the completeness checker needs an absolute path; the asset carries a
   // placeholder so the definition stays host-independent until the moment it is installed.
   const declaration = fs
@@ -139,14 +166,15 @@ for (const id of stepIds) {
   const staged = path.join(tmp, `${id}.yaml`);
   fs.writeFileSync(staged, declaration);
 
-  if (!fsx(['nodes', 'new', id, '-w', workflow], id)) continue;
   if (!fsx(['nodes', 'edit', id, '--file', staged], id)) continue;
   fsx(['nodes', 'brief', id, '--file', path.join(dir, 'brief.md')], `${id} (brief)`);
 }
 
-// The scaffold ships a placeholder step; leaving it in the whitelist implies it is part of the flow.
-if (!dryRun) spawnSync('fsx', ['nodes', 'detach', 'task', workflow], { encoding: 'utf8' });
-if (defaults.length) fsx(['workflows', 'set', workflow, ...defaults], 'workflow defaults');
+for (const wf of workflows) {
+  // The scaffold ships a placeholder step; leaving it in a whitelist implies it is part of the flow.
+  if (!dryRun) spawnSync('fsx', ['nodes', 'detach', 'task', wf.name], { encoding: 'utf8' });
+  if (wf.defaults.length) fsx(['workflows', 'set', wf.name, ...wf.defaults], `${wf.name} defaults`);
+}
 
 fs.rmSync(tmp, { recursive: true, force: true });
 
@@ -154,7 +182,7 @@ fs.rmSync(tmp, { recursive: true, force: true });
 for (const [what, why] of failures) detail(`${what}\n      ${why}`, '~');
 
 if (failures.length) {
-  result(false, `${failures.length} of ${stepIds.length + 1} operation(s) failed`);
+  result(false, `${failures.length} operation(s) failed`);
   next(
     'a definition a running graph references cannot be edited - finish or abort that graph, then re-run',
     'everything that did install is valid; re-running is safe'
@@ -162,7 +190,8 @@ if (failures.length) {
   process.exit(1);
 }
 
-result(true, dryRun ? `${stepIds.length} step(s) would be installed into .flow/` : `${stepIds.length} step(s) installed into .flow/`);
+const scope = `${allSteps.length} step(s) across ${workflows.length} workflow(s)`;
+result(true, dryRun ? `${scope} would be installed into .flow/` : `${scope} installed into .flow/`);
 
 console.log('');
 summariseExecutors();
@@ -183,34 +212,53 @@ function summariseExecutors() {
     return;
   }
 
-  const r = spawnSync('fsx', ['nodes', '-w', workflow, '--json'], { encoding: 'utf8' });
-  let nodes;
-  try {
-    nodes = JSON.parse(r.stdout).nodes;
-  } catch {
-    nodes = undefined;
-  }
-  if (r.status !== 0 || !Array.isArray(nodes)) {
-    // Say it could not be read. An empty list here would read as "no executors required", and a
-    // reader has no way to tell that apart from a step list that genuinely dispatches to nobody.
-    console.log(dim('  executors these steps require: could not be read back'));
-    detail(`fsx nodes -w ${workflow} --json exited ${r.status ?? '?'}`, '~');
-    return;
+  const byExec = new Map();
+  const seen = new Set();
+  for (const wf of workflows) {
+    const r = spawnSync('fsx', ['nodes', '-w', wf.name, '--json'], { encoding: 'utf8' });
+    let nodes;
+    try {
+      nodes = JSON.parse(r.stdout).nodes;
+    } catch {
+      nodes = undefined;
+    }
+    if (r.status !== 0 || !Array.isArray(nodes)) {
+      // Say it could not be read. An empty list here would read as "no executors required", and a
+      // reader has no way to tell that apart from a workflow that dispatches to nobody.
+      console.log(dim(`  executors ${wf.name} requires: could not be read back`));
+      detail(`fsx nodes -w ${wf.name} --json exited ${r.status ?? '?'}`, '~');
+      return;
+    }
+    collect(nodes, byExec, seen);
   }
 
   console.log(dim('  executors these steps require:'));
-  const byExec = new Map();
+  render(byExec);
+}
+
+/**
+ * Tally one workflow's executors into the shared map.
+ *
+ * `seen` carries across workflows so a step listed by two of them is counted once - the question
+ * the list answers is "which executors must exist here", and a step does not need its executor
+ * twice for being reachable from two processes.
+ */
+function collect(nodes, byExec, seen) {
   for (const node of nodes) {
+    if (seen.has(node.id)) continue;
+    seen.add(node.id);
     const e = node.executor ?? {};
     const label = e.params?.name ?? e.params?.channel ?? e.params?.adapter ?? e.params?.url;
     const key = label ? `${e.protocol} ${label}` : (e.protocol ?? '?');
     byExec.set(key, (byExec.get(key) ?? 0) + 1);
   }
-  for (const [ex, count] of [...byExec].sort()) detail(`${ex.padEnd(30)} ${count} step(s)`);
+}
 
+function render(byExec) {
+  for (const [ex, count] of [...byExec].sort()) detail(`${ex.padEnd(30)} ${count} step(s)`);
   next(
     'nothing validates those names - the engine does not own subagent definitions and cannot resolve them',
     'check them against what is actually installed; a missing one surfaces only when a dispatch fails',
-    '`fsx check` then `fsx nodes -w ' + workflow + '` to see the full definitions'
+    '`fsx check` then `fsx nodes -w <workflow>` to see the full definitions'
   );
 }

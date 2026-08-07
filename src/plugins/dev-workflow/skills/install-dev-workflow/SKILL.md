@@ -4,15 +4,19 @@ description-claude: "Install this development flow — its step definitions and 
 description-codex: "Install this development flow — its step definitions and their gates — into a project that already runs the flow-scratch engine, so the pipeline is driven by a graph the script schedules rather than by prose the model interprets. Reach for it when someone wants the orchestrated flow set up here, on \"install the dev workflow\", \"set up the pipeline\", \"add the flow steps to this project\", \"wire up the agents into a workflow\", or right after `fsx init` on a project that should follow this flow. It installs and refreshes definitions; designing the graph for a particular piece of work, and driving it afterwards, are separate — the engine's own skill covers those."
 name: install-dev-workflow
 command: true
-argument-hint: "[optional: --workflow <name>]"
+argument-hint: "[optional: --dry-run]"
 allowed-tools: Bash, Read
 ---
 
 # Install the development flow
 
-This installs fourteen step definitions and their gates into a project's `.flow/`, under the
-workflow name `genai`. After it, the project can be driven by a graph the engine schedules instead
-of by a description of a process that a model has to interpret.
+This installs the flow's step definitions and their gates into a project's `.flow/`. After it, the
+project can be driven by a graph the engine schedules instead of by a description of a process that
+a model has to interpret.
+
+Sixteen steps under the workflow **`genai-feature`**. Each file in the installer's
+`assets/workflows/` directory is one workflow and **its filename is the workflow name**, so a second
+process is a file rather than a change to the installer.
 
 ## Prerequisites, in order
 
@@ -31,9 +35,14 @@ of by a description of a process that a model has to interpret.
 node ${PLUGIN_ROOT}/skills/install-dev-workflow/scripts/install-flow.mjs
 ```
 
-Idempotent — run it again after an upgrade to refresh the definitions. Options: `--workflow <name>`
-to install under a different name, `--check-spec <path>` if the completeness checker cannot be
-located automatically, `--dry-run` to see the command sequence without writing.
+Idempotent — run it again after an upgrade to refresh the definitions. Options: `--check-spec
+<path>` if the completeness checker cannot be located automatically, `--dry-run` to see the command
+sequence without writing.
+
+**Upgrading from an install that predates the `genai-feature` name** leaves a stale `genai` workflow
+in `.flow/workflows/`. The installer does not delete it: removing a workflow a graph might still
+reference is not a call an installer should make silently. Check `fsx graph list` for anything
+running against it, then delete the file.
 
 ## Everything goes through the engine's command surface
 
@@ -52,13 +61,15 @@ history describes steps that no longer exist. Finish or abort the graph, then in
 
 ## What gets installed
 
-Fourteen steps. An executor declares a **protocol** — how the instruction gets handed over — and
-whatever that protocol needs to identify the recipient. Two steps do not go to a subagent, each for
+Sixteen steps. An executor declares a **protocol** — how the instruction gets handed over — and
+whatever that protocol needs to identify the recipient. Four steps do not go to a subagent, each for
 a structural reason:
 
 | Step | Executor | Why |
 |---|---|---|
 | `genai.brief` | `protocol: main` | it is a conversation with the user, and a subagent cannot talk to one |
+| `genai.existing-suite` | `protocol: main` | running the command the project's README names carries no method of its own; a subagent here is a context switch that buys nothing |
+| `genai.intent-slice` | `protocol: human`, `channel: stdout` | a person commits to the slice before design work is spent against it |
 | `genai.arch-gate` | `protocol: human`, `channel: stdout` | a person signs; the engine records the decision and signs it into a compliant report |
 | the other twelve | `protocol: subagent`, `name: …` | one role each, with its own boundaries |
 
@@ -100,7 +111,7 @@ for — but it is now context for a reader, not the thing that tells an executor
 
 ```bash
 fsx check                    # every definition loads and the whitelist is consistent
-fsx nodes -w genai           # the fourteen steps, from the engine rather than from this page
+fsx nodes -w genai-feature   # the sixteen steps, from the engine rather than from this page
 ```
 
 The installer prints the executor each step requires. **Nothing validates those names** — the

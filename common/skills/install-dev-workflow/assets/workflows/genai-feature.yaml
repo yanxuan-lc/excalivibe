@@ -1,12 +1,14 @@
-# The excalivibe development flow. Installed by install-dev-workflow — do not hand-edit;
-# change the source and install again.
+# The excalivibe development flow. The file name is the workflow name.
+# Installed by the flow installer — do not hand-edit; change the source and install again.
 nodes:
   - genai.brief
+  - genai.intent-slice
   - genai.spec
   - genai.review-doc
   - genai.spec-review
   - genai.arch-gate
   - genai.implement
+  - genai.existing-suite
   - genai.e2e-script
   - genai.e2e-run
   - genai.code-review
