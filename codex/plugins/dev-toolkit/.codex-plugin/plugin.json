@@ -1,10 +1,11 @@
 {
   "name": "dev-toolkit",
-  "version": "0.1.0",
+  "version": "3.0.0",
   "description": "Atomic development skills — engineering conventions, working methods, and check-and-verdict passes. Each one stands alone, triggers on its own subject matter, and assumes nothing about who invoked it, so they compose freely rather than only inside a pipeline.",
   "author": {
     "name": "ExcaliVibe Contributors"
   },
+  "license": "MIT",
   "keywords": [
     "excalivibe",
     "dev-toolkit",

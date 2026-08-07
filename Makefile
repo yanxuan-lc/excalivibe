@@ -16,6 +16,7 @@ UI := $(NODE) scripts/ui.ts
 
 .PHONY: help build rebuild clean check check-banner typecheck \
         verify-build verify-skills verify-variants \
+        bump pack release-check publish tag \
         install-claude install-codex install-common
 
 # ───────────────────────────── general ─────────────────────────────
@@ -51,6 +52,58 @@ verify-skills: ## emitted skills — frontmatter is valid YAML, SKILL.md within 
 verify-variants: ## no variant block ate one end's whole section (the compile cannot see this)
 	@$(NODE) scripts/verify-variants.ts
 
+# ───────────────────────────── release ─────────────────────────────
+# bump on dev → MR into main → pull main → build → publish.
+# Everything before publish is reversible. Publish is not: a version number cannot be reused,
+# and a bad release can only be superseded by another one.
+
+bump: ## the only way to change a version: make bump PLUGIN=<name> LEVEL=<major|minor|patch|x.y.z>
+	@[ -n "$(PLUGIN)" ] || { $(UI) fail "bump needs PLUGIN"; $(UI) next "make bump PLUGIN=<name> LEVEL=<major|minor|patch|x.y.z>"; exit 2; }
+	@[ -n "$(LEVEL)" ]  || { $(UI) fail "bump needs LEVEL"; $(UI) next "make bump PLUGIN=$(PLUGIN) LEVEL=<major|minor|patch|x.y.z>"; exit 2; }
+	@$(NODE) scripts/bump.ts $(PLUGIN) $(LEVEL)
+	@$(MAKE) --no-print-directory build
+
+pack: ## exactly what would be published, with no external effect (npm pack --dry-run)
+	@[ -n "$(PLUGIN)" ] || { $(UI) fail "pack needs PLUGIN"; $(UI) next "make pack PLUGIN=<name> — available: $(PLUGINS)"; exit 2; }
+	@cd claude/plugins/$(PLUGIN) && npm pack --dry-run
+
+release-check: ## read-only pre-publish report: branch, worktree, gate, npm identity, versions
+	@$(UI) heading "excalivibe — pre-publish checks"
+	@b=$$(git rev-parse --abbrev-ref HEAD); \
+	 [ "$$b" = "main" ] && $(UI) step "on branch main" \
+	                   || $(UI) detail "not on main (on $$b) — a release goes out from main, after the MR lands"
+	@[ -z "$$(git status --porcelain)" ] && $(UI) step "worktree clean" \
+	                                    || $(UI) detail "worktree dirty — what ships must be a commit somebody can return to"
+	@$(MAKE) --no-print-directory check >/dev/null 2>&1 && $(UI) step "gate passed" \
+	                                                  || $(UI) detail "gate failed — run make check to see which part"
+	@npm whoami >/dev/null 2>&1 && $(UI) step "npm as $$(npm whoami) on $$(npm config get registry)" \
+	                           || $(UI) detail "not logged in to npm — npm login first"
+	@for p in $(PLUGINS); do \
+		$(UI) detail "$$p  $$($(NODE) -e "console.log(require('./src/plugins/'+process.argv[1]+'/plugin.json').version)" $$p)"; \
+	done
+	@$(UI) next "make publish PLUGIN=<name> CONFIRM=<that version>"
+
+publish: ## [IRREVERSIBLE] publish one plugin to npm. Needs CONFIRM=<version>; never runs on its own
+	@[ -n "$(PLUGIN)" ] || { $(UI) fail "publish needs PLUGIN"; $(UI) next "make publish PLUGIN=<name> CONFIRM=<version>"; exit 2; }
+	@v=$$($(NODE) -e "console.log(require('./src/plugins/$(PLUGIN)/plugin.json').version)"); \
+	 if [ "$(CONFIRM)" != "$$v" ]; then \
+		$(UI) fail "publish refused — CONFIRM=$$v required, the current version of $(PLUGIN)"; \
+		$(UI) detail "publishing is publicly visible and cannot be undone; a version number is spent once"; \
+		$(UI) next "make release-check" "make publish PLUGIN=$(PLUGIN) CONFIRM=$$v"; \
+		exit 2; \
+	 fi; \
+	 b=$$(git rev-parse --abbrev-ref HEAD); \
+	 [ "$$b" = "main" ] || { $(UI) fail "publish refused — on $$b, a release goes out from main"; exit 2; }; \
+	 [ -z "$$(git status --porcelain)" ] || { $(UI) fail "publish refused — worktree is not clean"; exit 2; }; \
+	 $(MAKE) --no-print-directory check || exit 1; \
+	 $(UI) heading "publishing $(PLUGIN)@$$v to $$(npm config get registry)"; \
+	 cd claude/plugins/$(PLUGIN) && npm publish --access public
+
+tag: ## print the tag commands for a published version — run them yourself; a push is outward
+	@[ -n "$(PLUGIN)" ] || { $(UI) fail "tag needs PLUGIN"; $(UI) next "make tag PLUGIN=<name>"; exit 2; }
+	@v=$$($(NODE) -e "console.log(require('./src/plugins/$(PLUGIN)/plugin.json').version)"); \
+	 $(UI) next "git tag $(PLUGIN)-v$$v" "git push origin $(PLUGIN)-v$$v"
+
 # ───────────────────────────── install ─────────────────────────────
 
 install-claude: build ## install locally into Claude (the marketplace points at the repo root)
@@ -78,12 +131,14 @@ install-common: build ## show how to install the vendor-neutral artifact into a 
 help: ## list every target, grouped by domain
 	@printf "\n\033[1mexcalivibe — make targets\033[0m\n"
 	@printf "\033[2mclaude/, codex/ and common/ are build artifacts — edit src/, then make build\033[0m\n"
-	@for group in general verify install; do \
+	@for group in general verify release install; do \
 		case "$$group" in \
 			general) title="general — day-to-day entry points"; \
 			         pat="^(help|build|rebuild|clean|check):" ;; \
 			verify)  title="verify  — the parts of check, each runnable on its own"; \
 			         pat="^(verify-[a-zA-Z-]*|typecheck):" ;; \
+			release) title="release — versions and publishing (publish cannot be undone)"; \
+			         pat="^(bump|pack|release-check|publish|tag):" ;; \
 			install) title="install — local install for debugging"; \
 			         pat="^install-[a-zA-Z-]*:" ;; \
 		esac; \

@@ -1,9 +1,28 @@
 {
   "name": "dev-toolkit",
-  "version": "0.1.0",
+  "version": "3.0.0",
   "description": "Atomic development skills — engineering conventions, working methods, and check-and-verdict passes. Each one stands alone, triggers on its own subject matter, and assumes nothing about who invoked it, so they compose freely rather than only inside a pipeline.",
   "author": {
     "name": "ExcaliVibe Contributors"
+  },
+  "license": "MIT",
+  "npm": {
+    "name": "@excalivibe/dev-toolkit",
+    "description": "Atomic development skills — engineering conventions, working methods, and check-and-verdict passes. Each one stands alone, triggers on its own subject matter, and assumes nothing about who invoked it, so they compose freely rather than only inside a pipeline.",
+    "type": "module",
+    "license": "MIT",
+    "engines": {
+      "node": ">=22"
+    },
+    "files": [
+      "LICENSE",
+      ".claude-plugin/",
+      "skills/",
+      "README.md",
+      "!**/__pycache__",
+      "!**/__pycache__/**",
+      "!**/*.pyc"
+    ]
   },
   "category": "Developer Tools",
   "keywords": {
@@ -44,7 +63,9 @@
     "longDescription": "Standalone development skills across four kinds — conventions that say how code, SQL, infrastructure and docs should look; methods that describe how to run a working loop such as TDD, debugging, e2e execution or intent clarification; checks that take code or a page and return a pass/fail verdict on accessibility, security, performance or code smell; and grounded research techniques for probing an API, a data source or a library's real source. Every skill triggers on its own subject and names no caller, so they work equally well invoked directly or composed into a larger flow.",
     "developerName": "ExcaliVibe Contributors",
     "category": "Developer Tools",
-    "capabilities": ["Interactive"],
+    "capabilities": [
+      "Interactive"
+    ],
     "defaultPrompt": [
       "Review this schema change against our SQL conventions",
       "This test fails intermittently — help me pin down why"

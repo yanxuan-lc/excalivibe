@@ -1,25 +1,22 @@
 {
-  "name": "computer-use",
+  "name": "@excalivibe/computer-use",
   "version": "3.0.0",
   "description": "How to operate a computer — the capabilities an agent needs to reach past its own text output and act on a real machine. Currently browser control with automatic framework selection and degradation, rich human-readable document artifacts with a local preview, and out-of-band notifications that reach the user when the terminal cannot.",
-  "author": {
-    "name": "ExcaliVibe Contributors"
+  "type": "module",
+  "license": "MIT",
+  "engines": {
+    "node": ">=22"
   },
-  "keywords": [
-    "excalivibe",
-    "computer-use",
-    "browser",
-    "chrome-devtools",
-    "playwright",
-    "screenshot",
-    "mcp",
-    "mdx",
-    "document",
-    "report",
-    "preview",
-    "notification",
-    "notify",
-    "hook",
-    "macos"
+  "files": [
+    "LICENSE",
+    ".claude-plugin/",
+    ".mcp.json",
+    "commands/",
+    "hooks/",
+    "skills/",
+    "README.md",
+    "!**/__pycache__",
+    "!**/__pycache__/**",
+    "!**/*.pyc"
   ]
 }

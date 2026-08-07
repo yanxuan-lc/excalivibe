@@ -1,23 +1,19 @@
 {
-  "name": "dev-toolkit",
+  "name": "@excalivibe/dev-toolkit",
   "version": "3.0.0",
   "description": "Atomic development skills — engineering conventions, working methods, and check-and-verdict passes. Each one stands alone, triggers on its own subject matter, and assumes nothing about who invoked it, so they compose freely rather than only inside a pipeline.",
-  "author": {
-    "name": "ExcaliVibe Contributors"
+  "type": "module",
+  "license": "MIT",
+  "engines": {
+    "node": ">=22"
   },
-  "keywords": [
-    "excalivibe",
-    "dev-toolkit",
-    "coding-standards",
-    "sql",
-    "devops",
-    "testing",
-    "tdd",
-    "debugging",
-    "accessibility",
-    "security",
-    "performance",
-    "code-review",
-    "research"
+  "files": [
+    "LICENSE",
+    ".claude-plugin/",
+    "skills/",
+    "README.md",
+    "!**/__pycache__",
+    "!**/__pycache__/**",
+    "!**/*.pyc"
   ]
 }

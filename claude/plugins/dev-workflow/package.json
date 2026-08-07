@@ -1,22 +1,22 @@
 {
-  "name": "dev-workflow",
+  "name": "@excalivibe/dev-workflow",
   "version": "3.0.0",
   "description": "Development pipeline roles and the flow that wires them — subagents each with a single responsibility, plus the step definitions an external graph engine schedules them from. The engine is a separate package; what ships here is the flow, not the runtime.",
-  "author": {
-    "name": "ExcaliVibe Contributors"
+  "type": "module",
+  "license": "MIT",
+  "engines": {
+    "node": ">=22"
   },
-  "keywords": [
-    "excalivibe",
-    "dev-workflow",
-    "subagent",
-    "pipeline",
-    "workflow",
-    "code-review",
-    "tdd",
-    "e2e",
-    "a11y",
-    "security",
-    "perf",
-    "release"
+  "files": [
+    "LICENSE",
+    ".claude-plugin/",
+    "agents/",
+    "commands/",
+    "hooks/",
+    "skills/",
+    "README.md",
+    "!**/__pycache__",
+    "!**/__pycache__/**",
+    "!**/*.pyc"
   ]
 }

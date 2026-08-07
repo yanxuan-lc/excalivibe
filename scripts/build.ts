@@ -62,6 +62,9 @@ interface PluginManifest {
   /** Codex requires it; the Claude manifest has no such field. */
   interface: Record<string, unknown>;
   mcpServers?: string;
+  license?: string;
+  /** Everything `package.json` needs except the version, which is `version` above. */
+  npm?: { name: string; version?: never } & Record<string, unknown>;
 }
 
 interface MarketplaceSource {
@@ -163,6 +166,7 @@ for (const p of PLUGINS) {
     `codex/plugins/${p}/.codex-plugin/plugin.json`,
     json({
       ...base,
+      ...(m.license ? { license: m.license } : {}),
       keywords: m.keywords.codex,
       skills: './skills/',
       ...(m.mcpServers ? { mcpServers: m.mcpServers } : {}),
@@ -170,6 +174,26 @@ for (const p of PLUGINS) {
     }),
     src
   );
+
+  // ── package.json, from the manifest's `npm` block. The version is **not** copied from there —
+  //    it is taken from `m.version`, so `plugin.json` stays the one place a version exists and
+  //    the two can never disagree. Only the ends npm can publish get one; `common/` is a
+  //    directory layout copied into a project, not a package.
+  if (m.npm) {
+    const { version: _ignored, name, ...restOfNpm } = m.npm;
+    emit(
+      `claude/plugins/${p}/package.json`,
+      json({ name, version: m.version, ...restOfNpm }),
+      src
+    );
+  }
+
+  // ── LICENSE: one copy at the repo root, handed to every published plugin. npm ships whatever
+  //    `files` names, and a package without its licence text is one nobody may legally reuse.
+  for (const end of ENDS) {
+    if (end === 'common') continue;
+    emit(`${end}/plugins/${p}/LICENSE`, fs.readFileSync(R('LICENSE'), 'utf8'), 'LICENSE');
+  }
 
   // ── plugin root files. `.mcp.json` is a Claude/Codex concept; the common tree is flat, so a
   //    per-plugin README has nowhere to go there.
@@ -306,6 +330,33 @@ for (const p of PLUGINS) {
     const body = fs.readFileSync(f, 'utf8');
     if (isProse(rel)) emit(`claude/plugins/${p}/hooks/${rel}`, prose(body, 'claude', from), from);
     else emit(`claude/plugins/${p}/hooks/${rel}`, body, from, modeOf(f));
+  }
+}
+
+// ── `files` must name everything the Claude artifact holds.
+//
+//    npm ships that list and silently drops the rest, so a plugin that grows a directory the list
+//    does not mention publishes without it — installed, importable, and missing the part that was
+//    added. Nothing downstream notices: the tarball is valid and the manifest still parses. Checked
+//    against `out`, which is the compile's own record of what it emitted, so this cannot drift from
+//    what actually ships.
+for (const m of manifests) {
+  if (!m.npm) continue;
+  const listed = new Set(
+    (m.npm['files'] as string[]).filter((f) => !f.startsWith('!')).map((f) => f.replace(/\/$/, ''))
+  );
+  const prefix = `claude/plugins/${m.name}/`;
+  const shipped = new Set(
+    [...out.keys()].filter((k) => k.startsWith(prefix)).map((k) => (k.slice(prefix.length).split('/')[0] as string))
+  );
+  shipped.delete('package.json'); // npm always includes it; naming it in `files` is a no-op
+  const missing = [...shipped].filter((x) => !listed.has(x)).sort();
+  if (missing.length) {
+    die(
+      `src/plugins/${m.name}/plugin.json — npm.files does not name ${missing.join(', ')}\n` +
+        `  The compile emits ${[...shipped].sort().join(', ')} under claude/plugins/${m.name}/.\n` +
+        `  Anything unnamed is dropped from the published package without a warning.`
+    );
   }
 }
 
