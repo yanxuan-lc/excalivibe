@@ -13,6 +13,7 @@ __pycache__/
 /.codex/
 /.claude/
 /.agent/
+/.opencode/
 
 # .agents/ 同理被忽略，但它多一层：它同时是 scripts/build.ts 的 OUT_ROOTS 之一，
 # `.agents/plugins/marketplace.json`（Codex 的 marketplace 清单）由 make build 生成
@@ -24,3 +25,10 @@ __pycache__/
 !/.agents/plugins/
 /.agents/plugins/*
 !/.agents/plugins/marketplace.json
+# flow-scratch runtime state: the event log and projection snapshots.
+# They grow with every run and mean nothing to your collaborators, so they stay out of version control.
+# The config.yaml / workflows/ / nodes/ next to them are your hand-written definitions — commit those.
+.flow/runs/
+# Bookkeeping for fsx skill install. It is how the tool tells "you edited it" from "a new version shipped".
+# Committing it would only put a string of content digests in every upgrade's diff.
+**/.fsx-install.json
