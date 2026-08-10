@@ -28,7 +28,7 @@ another skill delegated.
 
 ## Checks report, they do not gate
 
-The four check skills produce a verdict and stop. They do not decide whether that verdict blocks
+The five check skills produce a verdict and stop. They do not decide whether that verdict blocks
 anything, because the threshold belongs to whoever is doing the blocking — and a check that decides
 its own consequences cannot be reused at a different bar.
 

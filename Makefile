@@ -30,8 +30,8 @@ EVAL_TMP := $(if $(CLAUDE_JOB_DIR),$(CLAUDE_JOB_DIR)/tmp,$(TMPDIR))
 build: ## compile src/ → claude/ + codex/ + common/ (all three are artifacts, never hand-edit them)
 	@$(NODE) scripts/build.ts
 
-# check-banner comes first so the four verdicts below it read as a list under a subject rather than
-# as four unrelated lines. Prerequisites run left to right, which is why the banner lands on top.
+# check-banner comes first so the verdicts below it read as a list under a subject rather than as six
+# unrelated lines. Prerequisites run left to right, which is why the banner lands on top.
 check: check-banner verify-build typecheck verify-json verify-skills verify-variants verify-no-cjk ## the full pre-commit gate
 	@$(UI) result "all checks passed"
 

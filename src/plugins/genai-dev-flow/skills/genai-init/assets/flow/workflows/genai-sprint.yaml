@@ -10,7 +10,7 @@ nodes:
   - genai.release
 
 defaults:
-  # Six nodes, one value — so it is declared once here rather than six times in the definitions.
+  # Seven nodes, one value — so it is declared once here rather than seven times in the definitions.
   # This is a starting number to tune against real runs, not a derived one. Patience is shared
   # across the whole batch now that implement and review are not split per change, so a round
   # that reworks three changes once each spends three of it.

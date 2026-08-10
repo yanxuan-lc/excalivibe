@@ -1,7 +1,7 @@
 {
   "name": "dev-toolkit",
   "version": "3.0.0",
-  "description": "Atomic development skills — engineering conventions, working methods, and check-and-verdict passes. Each one stands alone, triggers on its own subject matter, and assumes nothing about who invoked it, so they compose freely rather than only inside a pipeline.",
+  "description": "Atomic development skills in five kinds — conventions for how code, SQL, infrastructure and docs should look; methods that carry a working loop such as TDD, debugging, e2e execution or intent clarification; the conventions of process for branching, versioning and shipping; checks that take an artifact and return a verdict; and grounded research that goes and looks instead of recalling. Each one stands alone, triggers on its own subject matter, and assumes nothing about who invoked it, so they compose freely rather than only inside a pipeline.",
   "author": {
     "name": "ExcaliVibe Contributors"
   },
@@ -25,7 +25,7 @@
   "interface": {
     "displayName": "Dev Toolkit",
     "shortDescription": "Atomic engineering conventions, methods and checks",
-    "longDescription": "Standalone development skills across four kinds — conventions that say how code, SQL, infrastructure and docs should look; methods that describe how to run a working loop such as TDD, debugging, e2e execution or intent clarification; checks that take code or a page and return a pass/fail verdict on accessibility, security, performance or code smell; and grounded research techniques for probing an API, a data source or a library's real source. Every skill triggers on its own subject and names no caller, so they work equally well invoked directly or composed into a larger flow.",
+    "longDescription": "Standalone development skills across five kinds — conventions that say how code, SQL, infrastructure and docs should look; methods that describe how to run a working loop such as TDD, debugging, e2e execution or intent clarification; the conventions of process, covering how work is branched, versioned and shipped; checks that take code or a page and return a pass/fail verdict on accessibility, security, performance or code smell; and grounded research techniques for probing an API, a data source or a library's real source. Every skill triggers on its own subject and names no caller, so they work equally well invoked directly or composed into a larger flow.",
     "developerName": "ExcaliVibe Contributors",
     "category": "Developer Tools",
     "capabilities": [

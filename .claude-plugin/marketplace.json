@@ -14,7 +14,7 @@
     },
     {
       "name": "dev-toolkit",
-      "description": "Atomic development skills — engineering conventions, working methods, and check-and-verdict passes. Each one stands alone, triggers on its own subject matter, and assumes nothing about who invoked it, so they compose freely rather than only inside a pipeline.",
+      "description": "Atomic development skills in five kinds — conventions for how code, SQL, infrastructure and docs should look; methods that carry a working loop such as TDD, debugging, e2e execution or intent clarification; the conventions of process for branching, versioning and shipping; checks that take an artifact and return a verdict; and grounded research that goes and looks instead of recalling. Each one stands alone, triggers on its own subject matter, and assumes nothing about who invoked it, so they compose freely rather than only inside a pipeline.",
       "source": "./claude/plugins/dev-toolkit"
     },
     {
