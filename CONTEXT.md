@@ -65,8 +65,10 @@ registry side as well.
 (`realization.json`) are implemented in `scripts/build.ts` while no file in `src/` uses either. Change
 that logic and no existing artifact will verify it — build a case first.
 
-**`verify-json`'s skeleton check idles.** No JSON under `src/` declares `nodes`, so that half of the
-check runs over zero objects; `make verify-json` says `0 graph skeletons` for exactly this reason.
+**`verify-json`'s skeleton check idles.** The reference half applies only to files matching
+`assets/graphs/*.json` (`scripts/verify-json.ts`), and no such directory exists — the flow's whitelist is
+YAML at `assets/flow/workflows/`. So `make verify-json` says `0 graph skeletons`: the selector is
+path-based, not content-based, and a skeleton stored anywhere else would be parsed and then skipped.
 
 **`.gitignore` lists `.flow/runs/` with nothing to ignore.** This repository does not run fsx and has
 no `.flow/`.
@@ -85,8 +87,18 @@ recorded in source comments: `lib/openspec.mjs` explains why openspec's exit cod
 and the `checks` rule in `nodes/genai.implement/node.yaml` explains why the judgment has to ship with
 the definition.
 
-## The design rationale exists in exactly two places
+## Where the rationale lives, and where it does not
 
-The reasoning behind `genai-dev-flow` lives in **this file** and in **the comments inside the step
-definitions and the evaluators**. There is no separate design document and no `docs/` directory. When
-you change a node, change its comment with it.
+Four places, with a different job each. Nothing is duplicated between them, so a fact you cannot find
+in one is in the next rather than absent:
+
+| Place | Holds |
+|---|---|
+| **this file** | the trade-offs and the known gaps — why it is shaped this way, and what is still missing |
+| **comments in the step definitions and the evaluators** | the reasoning for one rule, next to that rule |
+| **`src/plugins/genai-dev-flow/AGENTS.md`** | the rules an editor must follow; compiles to nothing |
+| **`docs/tech/`** | the as-built reference: what lands where, what each gate can and cannot see, what a consuming project must supply |
+
+There is still no design proposal and no change log among them: every one of the four describes the
+current state. When you change a node, change its comment with it — and when the behaviour a document
+names moves, move the document in the same commit, because no gate reads `docs/`.

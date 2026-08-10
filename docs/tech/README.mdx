@@ -1,0 +1,64 @@
+---
+title: docs/tech — Technical Design (as-built)
+palette: teal
+mode: auto
+toc: true
+---
+
+中文版: [README.zh-CN.mdx](./README.zh-CN.mdx)
+
+> The authoritative technical documentation for the **current implementation**. Every document here
+> names the code path it tracks; when that code changes, the document changes with it.
+> For how this relates to the root documents, see [`../README.mdx`](../README.mdx).
+
+## How to use this (load on demand)
+
+Do not read it end to end. Read the one area you are about to touch.
+
+| I want to… | Read this |
+|---|---|
+| Add a capability, or express a difference that applies to only one end | [`artifact-contract/`](./artifact-contract/) |
+| Change the compiler, or understand why an artifact came out the way it did | [`artifact-contract/`](./artifact-contract/) |
+| Add a gate, change one, or find out what a gate cannot see | [`toolchain/`](./toolchain/) |
+| Change a version, publish, or run the trigger eval | [`toolchain/`](./toolchain/) |
+| Wire a project up to run `genai-dev-flow`, or change what a step is gated on | [`flow-contract/`](./flow-contract/) |
+| **Use** a capability — what it does for me, how to invoke it, how to configure it, what the pitfalls are | the plugin's manual: [`computer-use/`](./computer-use/) · [`dev-toolkit/`](./dev-toolkit/) · [`genai-dev-flow/`](./genai-dev-flow/) |
+| Write a description, or tune one per end | [`../../AGENTS.md`](../../AGENTS.md) — it owns that, and this tree does not repeat it |
+
+## Organization conventions
+
+**Top level = a shared artifact with code coupling.** `artifact-contract/` is the agreement between
+everyone who writes under `src/` and everything that reads the compiled trees — the compiler, both
+marketplaces, npm, and five of the six gates. `flow-contract/` is the agreement between
+`genai-dev-flow`'s installed definitions and the project that installs them; both sides address fixed
+paths (`.flow/genai/check.mjs`, `tools/genai/thresholds.json`), so it belongs to neither party.
+
+**Module subdir = one component's story.** `toolchain/` is the as-built design of `scripts/`. It links
+out to `artifact-contract/` for the rules it enforces instead of restating them.
+
+One module subdir per plugin — `computer-use/`, `dev-toolkit/`, `genai-dev-flow/` — and each is a
+**manual**: what the capability does for you, how to invoke and configure it, and the practices that keep
+it working. **That is a different document from the `SKILL.md` it describes.** A `SKILL.md` is
+instructions to a model; a manual is for a person deciding what to install and when to reach for it. The
+line to hold is that a manual must never restate the instructions — the moment it starts explaining *how
+the skill does its job*, it has become a second copy of shipped prose and will rot.
+
+Their manifests, their layout and how they compile stay in
+[`artifact-contract/`](./artifact-contract/); `genai-dev-flow`'s engine-side contract stays in
+[`flow-contract/`](./flow-contract/), and its manual links there rather than repeating it.
+
+## Maintenance rules
+
+- **Every document's header names its authoritative source.** That line is what tells the next reader
+  which file to trust when the two disagree, and what to re-read when the code moves.
+- **Nothing here is enforced by a gate.** `make check` does not read `docs/`: not the links, not the
+  language, not whether a document still matches the code it names. `verify-no-cjk` covers `src/` and
+  three root files only. So a claim in this tree is worth exactly as much as the last person's care.
+- **Bilingual in pairs, one pair per level.** `README.mdx` in English and `README.zh-CN.mdx` beside it.
+  The rule is in [`../../AGENTS.md`](../../AGENTS.md)'s hard rules: the two must correspond, changed in
+  the same commit.
+- **Numbers are dated where they appear.** Counts like "379 artifacts" or "27 skills" are true at the
+  time of writing and are given as `make` output you can re-run, never as a fact to be trusted on
+  sight.
+- **Prefer editing in place.** These are living documents, not an append-only log; a change that only
+  adjusts one behaviour is a one-line edit to the right section.

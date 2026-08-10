@@ -1,0 +1,53 @@
+---
+title: docs — Documentation Overview
+palette: teal
+mode: auto
+toc: false
+---
+
+中文版: [README.zh-CN.mdx](./README.zh-CN.mdx)
+
+> The as-built technical reference for this repository. **Authoritativeness, not topic, decides where
+> a document lives**, and the ordering is absolute: source code beats every document here. If a
+> document and the code it names disagree, the document is the bug.
+> For orientation rather than reference, start at [`../README.md`](../README.md).
+
+## The three homes
+
+| Subdir | Holds | Authoritativeness | Present |
+|---|---|---|---|
+| [`tech/`](./tech/) | **as-built** technical design: the compile contract, the toolchain, the flow contract | **Fact standard.** Updated as the implementation changes; on any conflict between two documents, this wins | yes |
+| `research/` | one-time investigation reports, `<date>-<topic>/` | History only. Not maintained; superseded by `tech/` once a design ships | **not yet** — created when the first report lands |
+| `ued/` | prototype / interaction design | The shipped UI is the truth | **never** — this repository has no UI surface |
+
+The two absent areas are named rather than linked, because a link to a directory that does not exist
+is a dead link and this tree is checked for those.
+
+## This tree and the root documents
+
+The root documents came first and keep their jobs. They are **orientation** — short, opinionated, and
+read start to finish. `docs/tech/` is **reference** — read one section, when you are about to change
+that part. Where both mention a mechanism, the root gives the one-line version and this tree gives
+the mechanics; neither restates the other.
+
+| Question | Where it is answered |
+|---|---|
+| What is this repository, and how do I run it? | [`../README.md`](../README.md) · [`../CLAUDE.md`](../CLAUDE.md) |
+| What must I not get wrong before touching anything? | [`../AGENTS.md`](../AGENTS.md) |
+| Why is it shaped this way, and what is already known to be missing? | [`../CONTEXT.md`](../CONTEXT.md) |
+| How exactly does the compile, a gate, or the flow contract behave? | [`tech/`](./tech/) |
+
+## Where to look
+
+- **Want to use a capability** → the plugin's manual: [`tech/computer-use/`](./tech/computer-use/) ·
+  [`tech/dev-toolkit/`](./tech/dev-toolkit/) · [`tech/genai-dev-flow/`](./tech/genai-dev-flow/)
+- **About to change the compiler, or add a per-end difference** → [`tech/artifact-contract/`](./tech/artifact-contract/)
+- **About to add or change a gate, a version bump, or the eval harness** → [`tech/toolchain/`](./tech/toolchain/)
+- **Wiring a project up to `genai-dev-flow`, or changing a gate evaluator** → [`tech/flow-contract/`](./tech/flow-contract/)
+
+## Carrier
+
+These files are MDX, previewed with `mdxv docs` (the `mdx-artifact` skill). GitHub shows `.mdx` as
+source rather than rendering it, so team browsing goes through the preview server. `mdxv --check docs`
+compiles them; **it does not check links** — nothing in this repository's gates does either, so a
+moved file is caught by whoever notices.

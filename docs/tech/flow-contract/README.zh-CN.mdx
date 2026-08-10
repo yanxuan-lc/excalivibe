@@ -1,0 +1,127 @@
+---
+title: genai-dev-flow — 安装后的契约（as-built）
+palette: teal
+mode: auto
+toc: true
+---
+
+English: [README.mdx](./README.mdx)
+
+> `genai-dev-flow` 装进项目后的那份步骤定义，与安装它的项目之间的约定。两边都用固定路径互相寻址，所以它不属于
+> 任何一方。
+> **权威来源：`src/plugins/genai-dev-flow/skills/genai-init/assets/flow/`** —— 七份
+> `nodes/genai.*/node.yaml`，加上
+> [`genai/check.mjs`](../../../src/plugins/genai-dev-flow/skills/genai-init/assets/flow/genai/check.mjs)
+> 和它的五个 `lib/*.mjs`。
+> 安装步骤在
+> [`genai-init/SKILL.md`](../../../src/plugins/genai-dev-flow/skills/genai-init/SKILL.md)；度量协议的完整版在
+> [`genai-guideline/SKILL.md`](../../../src/plugins/genai-dev-flow/skills/genai-guideline/SKILL.md)；
+> 改这些东西要遵守的规则在
+> [`../../../src/plugins/genai-dev-flow/AGENTS.md`](../../../src/plugins/genai-dev-flow/AGENTS.md)。
+
+## 1. 两方，三个位置
+
+三个插件里只有它**有状态**。它的产物不留在插件里 —— 会装进消费方项目，而它们所处理的需求又住在那个项目之外。
+
+| 位置 | 归属 | 是否进 git |
+|---|---|---|
+| `<project>/.flow/nodes/` · `.flow/genai/` · `.flow/workflows/` · `.flow/config.yaml` | 插件 —— 由 `genai-init` 拷进来 | 不进：`genai-init` 会 ignore 整个 `.flow/`，因为它本身就是来源插件里已被版本管理的产物 |
+| `<project>/Makefile`（`genai-metrics`）· `<project>/tools/genai/thresholds.json` | **项目** | 进 |
+| `<project>_genai/backlogs/` · `archive/` —— 仓库的**同级兄弟目录** | 项目所有者 | 由他决定；不额外给的话它没有历史 |
+
+**兄弟目录的名字是承重的。** 门命令拿不到任何变量，所以它只能按 `../$(basename "$PWD")_genai` 去定位需求目录。
+换个名字会弄坏两道门，而且是**静默**弄坏。
+
+## 2. 项目这一侧的契约
+
+四项义务，其中只有两项是项目要写的文件：
+
+| 义务 | 形状 | 缺了会怎样 |
+|---|---|---|
+| 一个 `genai-metrics` make 目标 | 打印一行，以 `genai-metrics: ` 开头，后面跟一个 JSON 对象；**退出码和其余输出一律忽略** | `genai.implement` 的门返回 `metrics_missing`，并要求交给人处理 |
+| `tools/genai/thresholds.json` | 覆盖率下限；`null` 表示放弃某个维度，这是唯一的出口，而且它在文件里看得见 | `thresholds_missing` |
+| 一个 `openspec/` 目录 | `openspec/changes/` 与 `openspec/specs/` | 四个原子都会返回 `unreadable` |
+| 兄弟目录 `<project>_genai/` | 一个需求一个目录，状态写在各自的 frontmatter 里 | backlog 那几个原子返回 `unreadable` |
+
+这个划分就是要点所在。**项目报事实；随插件发出的定义作判决。** 自己判自己的项目等于没有门，而能改动算术的一轮
+不算被它衡量过 —— 所以判定逻辑住在 `.flow/genai/`，那里不进 git、由插件重新安装。只有下限归项目，而且在一个
+本轮也不许编辑的文件里。
+
+## 3. 检查接口
+
+任何一步做的任何检查，都是一个原子，在同一个入口后面：
+
+```bash
+node .flow/genai/check.mjs <atom> [--flag value]
+```
+
+**这个路径相对项目根，而这是引擎的性质，不是一条约定。** 门命令跑在 `checker.cwd ?? projectRoot`，所以无论调用
+方站在哪里，同一个固定路径解析结果都一样。
+
+线上格式是 stdout 上的一个 JSON 文档：`result` 给出标签，其余每个键都是它背后的事实。门通过
+`label_from: result` 读标签，而**整个对象会落进事件日志** —— 这正是让一次拒绝在工作区早已变样之后仍可复现的东西。
+
+标签受两条规则约束，两条都在插件的 `AGENTS.md` 里以规则形式写着：checker 永远 exit 0（非零退出会被引擎报成
+`failed`，标签就丢了），以及一条规则的 `on_result` 必须恰好覆盖 `values + [failed, unexecutable]`。
+
+### 八个原子
+
+| 原子 | 标签 | 谁在读 |
+|---|---|---|
+| `backlog-status --status <s>` | `present` · `absent` · `unreadable` | `genai.spec` 进入 · `genai.accept` 门 · `genai.release` 进入 |
+| `open-changes` | `present` · `absent` · `unreadable` | `genai.archive` 门 · `genai.accept` 进入 |
+| `spec-deltas` | `present` · `absent` · `unreadable` | `genai.implement` 进入 |
+| `openspec-valid --scope <changes\|specs>` | `satisfied` · `validation_failed` · `totals_unreadable` · `openspec_unavailable` | `genai.spec` 门 · `genai.archive` 门 |
+| `backlog-claimed` | `agreed` · `unclaimed` · `none_active` · `unreadable` | `genai.spec` 门 |
+| `worktree` | `clean` · `dirty` · `unreadable` | `genai.merge` 进入 |
+| `metrics` | `satisfied` · `tests_failing` · `no_tests` · `too_many_skipped` · `coverage_below_floor` · `metrics_missing` · `metrics_unreadable` · `thresholds_missing` | `genai.implement` 门 |
+| `signature-archive` | 不是检查 —— 打印一个 sha256 | `genai.accept` 的产出签名 |
+
+**原子只报事实，绝不报判决**，这正是同一个实现能服务两个想要相反答案的调用方的原因：`open-changes` 返回
+`absent`，对归档是 `pass`，对验收是 `ready`，而任何地方都没有取反开关。极性住在调用方的 `on_result` 里。
+
+有两条规则声明了超时，都因为它们要拉起外部进程：`openspec-valid` 给 120 秒，`metrics` 给 600 秒 —— 一整套带覆盖率
+的测试。
+
+`worktree` 忽略未跟踪文件，这是承重的而非顺带的：评审那一步**故意**把记录留在未提交状态，由合并那一步来提交。
+
+## 4. 七个步骤
+
+名册与执行者。**进入条件和门条件不在这里重复** —— 它们在各自的 `node.yaml` 里，紧挨着解释「为什么长这样」的注释；
+在这棵树里抄一份，第一次有人改它就腐烂了。
+
+| 步骤 | kind | 执行者 | 产出 |
+|---|---|---|---|
+| `genai.spec` | produce | 子代理 `genai-spec-writer` | openspec 变更与它们的 spec 增量 |
+| `genai.implement` | produce | 子代理 `genai-developer` | sprint 分支上的提交 |
+| `genai.code-review` | judge | 子代理 `genai-code-reviewer` | 每个变更一份 `review.md` |
+| `genai.merge` | effect | main | 合并提交 |
+| `genai.archive` | produce | main | 折叠后的主 spec |
+| `genai.accept` | judge | 子代理 `genai-requirement-checker` | 已归档的需求（observed 产物，由命令签名） |
+| `genai.release` | effect | main | changelog，以及全轮唯一一次版本号变更 |
+
+有三步跑在 `main` 上而不是子代理里，因为这三步都需要把整轮尽收眼底。`.flow/workflows/genai-sprint.yaml` 是白名单：
+引用了名单之外任何东西的图，在创建时就会被拒。
+
+## 5. 这套流程依赖两个外部工具的哪些行为
+
+两个都是第三方，而且两处依赖的都是容易搞错的行为：
+
+**fsx.** 进入条件失败时**消耗为零** —— 不消耗判决、不消耗耐心、不消耗尝试次数，这正是它们可以放心添加的原因。门
+命令拿不到**任何**变量：没有图变量、没有实例后缀、没有注入的环境。所以每个检查只能从 `$PWD` 或从 git 推出自己的
+上下文 —— 这一个事实同时解释了为什么 `.flow/genai/check.mjs` 是固定路径，以及为什么兄弟目录的名字是承重的。
+
+**openspec.** 它的退出码不可信：`validate` 报了失败仍然 exit 0，`archive` 把警告带过去也仍然 exit 0。所以
+`lib/openspec.mjs` 读输出、解析 totals 行，绝不看退出码 —— 而缺少 totals 行是它自己的一个标签
+（`totals_unreadable`）而不是通过，因为那意味着什么都没被真正校验过。由此得出的规则写在插件的 `AGENTS.md` 里：
+驱动 openspec 自己的命令，绝不把它的规则在本地重新实现一遍。
+
+## 6. 版本耦合
+
+`.flow/nodes/` 和 `.flow/genai/` 是**一个整体**。判定器停在比调用它的定义更旧的版本上，会产出 `unexecutable`
+或一个没被处理的标签，所以重装定义就意味着在同一步里重拷判定器。
+
+---
+> 本仓库自己满足不了自己的流程 —— 没有测试、没有 runner、没有 `genai-metrics` 目标，所以 `genai.implement` 在这里
+> 会返回 `metrics_missing`。已记录在 [`../../../CONTEXT.md`](../../../CONTEXT.md) 的已知缺口里，那里还有这套流程
+> 形状背后的取舍。

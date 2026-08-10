@@ -1,0 +1,164 @@
+---
+title: toolchain — scripts/ Technical Design (as-built)
+palette: teal
+mode: auto
+toc: true
+---
+
+中文版: [README.zh-CN.mdx](./README.zh-CN.mdx)
+
+> Eight files, 1396 lines, no runtime dependency: the compiler, the five verify scripts, the version
+> bump, the trigger-eval harness, and the one output channel they all print through.
+> **Authoritative source: `scripts/` — entry point
+> [`build.ts`](../../../scripts/build.ts) — and [`../../../Makefile`](../../../Makefile).**
+> What the compiler enforces is specified in [`../artifact-contract/`](../artifact-contract/); the three
+> output *shapes* are owned by [`../../../AGENTS.md`](../../../AGENTS.md). This document covers how each
+> script works and **what each one cannot see**.
+
+## 1. Structure
+
+| File | Lines | Role |
+|---|---|---|
+| `build.ts` | 554 | the compiler, and `verify-build` / `clean` / `rebuild` as flags on it |
+| `eval-triggers.ts` | 232 | the trigger eval: `build` a prompt, `score` an answer |
+| `verify-variants.ts` | 125 | variant boundary integrity |
+| `verify-no-cjk.ts` | 125 | the one-language constraint |
+| `check-skills.ts` | 105 | emitted frontmatter validity + the SKILL.md line budget |
+| `ui.ts` | 109 | the single output channel — a module *and* a CLI |
+| `verify-json.ts` | 75 | JSON parseability + graph skeleton reference integrity |
+| `bump.ts` | 71 | the only entry point for a version |
+
+They run as they are: Node ≥22.18 strips the types at load, so `node scripts/build.ts` needs no build
+step of its own. `typescript` is a devDependency for `tsc --noEmit` and nothing else, which is why
+`erasableSyntaxOnly` is on in `tsconfig.json` — it bans the syntax Node cannot strip, so "type-checks
+but will not run" cannot happen.
+
+`ui.ts` is imported by every other script **and** invoked as a CLI by the Makefile
+(`node scripts/ui.ts result "all checks passed"`). Six verbs: `heading`, `detail`, `step`, `result`,
+`fail`, `next`. Note the asymmetry — the `step` and `result` verbs always print a success mark, and
+`fail` is the only way to a `✗` from a recipe.
+
+## 2. The gate, in order
+
+`make check` runs a banner and then six checks, left to right, each runnable on its own. The order is
+cheapest-and-most-fundamental first: if the artifacts are stale, every later verdict describes the
+wrong bytes.
+
+| # | Target | Reads | Method |
+|---|---|---|---|
+| 1 | `verify-build` | source + artifacts | `build.ts --check` — compile into memory, compare, and refuse orphans |
+| 2 | `typecheck` | `src/` + `scripts/` | `npx --no-install tsc --noEmit` |
+| 3 | `verify-json` | `src/**/*.json` | parse everything; reference-check graph skeletons |
+| 4 | `verify-skills` | **the artifacts** | frontmatter is a valid YAML subset; each rendered `SKILL.md` ≤ 500 lines |
+| 5 | `verify-variants` | `src/**/*.md`, rendered per end | orphan headings with no counterpart on another end |
+| 6 | `verify-no-cjk` | `src/**` + three root files | any CJK character outside a registered exception |
+
+### Why two gates read artifacts rather than source
+
+`verify-skills` runs on the compiled trees because both failures it hunts are invisible from `src/`. A
+per-end description can break the frontmatter **on one end only**, and a source file that reads as 300
+lines carries all three ends' prose at once, so its line count says nothing about what actually enters
+context. The 500-line budget exists because `SKILL.md` loads in full the moment a skill triggers, while
+`references/` loads only when the body sends the model there — a long `SKILL.md` spends context on every
+invocation to carry material most invocations do not need.
+
+It checks 89 frontmatter blocks: 81 `SKILL.md` (27 skills × 3 ends) and 8 agent markdown files (4 agents
+× claude and common). **The Codex agents are `.toml` and are not checked by it** — the shape of that
+frontmatter is validated by nothing on this side.
+
+The YAML subset it accepts is deliberately tiny, and one rule in it catches a real failure: a bare
+scalar containing `": "` makes YAML read the value as a nested mapping, so it must be quoted.
+
+### Why `verify-variants` exists at all
+
+A mis-nested variant boundary is a failure **the compiler cannot see**. If `<!--@claude-->` opens one
+level too early, an end silently loses a whole section while the artifact is still generated verbatim
+from the source, `make rebuild` still round-trips byte for byte, and every other check still passes. The
+source itself is what is wrong.
+
+Its method: render each end from the source, collect the headings, and look for one that has no
+counterpart on another end. Comparison is normalized — lower-cased, parentheticals dropped, end names
+dropped, non-alphanumerics stripped (CJK preserved) — so "Detect (claude)" and "Detect" match.
+Legitimate single-end sections are registered individually in `src/variant-exceptions.json` with a
+reason, which turns divergence into a reviewed declaration. A **stale** exception fails too: a
+divergence claim that no longer matches anything is as misleading as an unregistered orphan.
+
+### What each gate cannot see
+
+Worth knowing before trusting a green run:
+
+- **`verify-variants` cannot see a registry entry whose file is gone.** Its loop walks the `.md` files
+  that exist under `src/`, so an exception pointing at a deleted file is never visited and the gate
+  stays green. `verify-no-cjk` does not share this hole — it iterates the registry itself. Recorded in
+  [`../../../CONTEXT.md`](../../../CONTEXT.md) as an open gap.
+- **`verify-json`'s skeleton half currently idles.** The reference check applies only to files matching
+  `assets/graphs/*.json`, and no such directory exists — which is why the gate reports
+  `0 graph skeletons`. The parse half covers all 15 JSON files.
+- **Nothing checks a `command:` value inside a `node.yaml`.** No gate reads the flow's step definitions,
+  which is exactly why `src/plugins/genai-dev-flow/AGENTS.md` states the no-shell rule and says plainly
+  that it holds only because you keep it.
+- **Nothing checks `docs/`.** Not the links, not the language, not whether a document still matches the
+  code it names.
+
+## 3. Versions
+
+A version exists in exactly one place: `src/plugins/<name>/plugin.json`. Both plugin manifests and
+`package.json` derive from it at compile time — `package.json`'s own `version` field is refused in the
+source `npm` block by its type, so the two can never disagree.
+
+`bump.ts` edits that one file and nothing else; recompiling is the caller's job, and `make bump` chains
+it. The split is deliberate: the script does one thing, and the two-step stays visible in the Makefile
+rather than hidden inside the script. **Editing a version by hand reaches the source but not the
+artifacts**, and `make check` then fails on a repository that looks correct in the one file anybody
+opened.
+
+## 4. Release path
+
+`bump` on `dev` → MR into `main` → pull → build → publish. Everything before `publish` is reversible;
+publish is not, because a version number is spent once.
+
+`release-check` is read-only and reports five things: branch, worktree cleanliness, whether the gate
+passes, npm identity and registry, and every plugin's current version. `pack` runs
+`npm pack --dry-run`, so it shows exactly what would ship with no external effect.
+
+`publish` refuses on four conditions, checked in that order: `CONFIRM` not equal to the current version,
+not on `main`, a dirty worktree, or a failing gate. `tag` deliberately **prints** the two git commands
+instead of running them — a push is an outward action.
+
+## 5. The trigger eval
+
+Not part of `make check`: it spends a real model call, and a description is retuned deliberately rather
+than on every commit. Two phases, so the whole corpus costs **one** call instead of one per query —
+`build` assembles a single prompt from every description and every fixture, `score` reads the answers
+back and reports accuracy overall, by language, and every miss.
+
+The prompt and answer are written outside the repository (`$CLAUDE_JOB_DIR/tmp`, else `$TMPDIR`): they
+are one run's scratch, and a stray `answer.json` committed beside the fixtures would read as a recorded
+baseline that nothing regenerates.
+
+One property makes partial fixtures useful — **every query is also a negative case for every other
+skill**, so a file of twelve queries for one skill measures whether the other twenty-six correctly stay
+quiet.
+
+Three limits, all measured, all able to make a run mean something it does not:
+
+1. **The cases are not independent.** One prompt holds every query, so adding fixtures for skill X
+   changes how X is judged on X's other queries. Observed directly: one query went from never firing to
+   always firing when eight unrelated cases were added to the same file, with the description untouched.
+   A before/after comparison is only readable when the fixture set is byte-identical across both runs.
+2. **Tuning on this set proves nothing about this set.** There is no train/held-out split, so a
+   description edited until a query passes will pass that query by construction.
+3. **Around 140 queries the single call starts dropping ids outright.** `score` reports how many; a run
+   missing several is a run to repeat, not to read.
+
+**Answer the prompt in a fresh context.** Answering inside the session that just edited the descriptions
+measures that session's memory, and it scores far too well to notice anything is wrong.
+
+## 6. Makefile conventions
+
+- **Every recipe that prints goes through `$(UI)`.** Hand-rolled escape codes would fork both the
+  palette and the TTY rule, since `printf` cannot tell whether its output is a terminal or a redirected
+  log. `help` is the one deliberate exception: it lays out a table in awk and owns its formatting.
+- **`help` greps only the main makefile**, captured in `MK` before any `-include`, so a target's `##`
+  comment is its documentation and the grouping is by name pattern.
+- **A target that needs an argument fails with the invocation printed**, never with a make error.

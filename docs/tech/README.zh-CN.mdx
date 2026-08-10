@@ -1,0 +1,57 @@
+---
+title: docs/tech — 技术设计（as-built）
+palette: teal
+mode: auto
+toc: true
+---
+
+English: [README.mdx](./README.mdx)
+
+> **当前实现**的权威技术文档。这里每一份都写明它所追踪的代码路径；那段代码改了，文档跟着改。
+> 与根文档的分工见 [`../README.zh-CN.mdx`](../README.zh-CN.mdx)。
+
+## 怎么用（按需加载）
+
+不要从头读到尾。只读你正要动的那一块。
+
+| 我想… | 读这个 |
+|---|---|
+| 加一个能力，或表达一处只对某一端生效的差异 | [`artifact-contract/`](./artifact-contract/README.zh-CN.mdx) |
+| 改编译器，或搞清楚某个产物为什么长这样 | [`artifact-contract/`](./artifact-contract/README.zh-CN.mdx) |
+| 加一道门、改一道门，或搞清楚某道门**看不见**什么 | [`toolchain/`](./toolchain/README.zh-CN.mdx) |
+| 改版本号、发版、跑触发率评测 | [`toolchain/`](./toolchain/README.zh-CN.mdx) |
+| 给项目接上 `genai-dev-flow`，或改某一步被什么门控住 | [`flow-contract/`](./flow-contract/README.zh-CN.mdx) |
+| **使用**某个能力 —— 它能替我做什么、怎么调起来、怎么配、有哪些坑 | 对应插件的手册：[`computer-use/`](./computer-use/README.zh-CN.mdx) · [`dev-toolkit/`](./dev-toolkit/README.zh-CN.mdx) · [`genai-dev-flow/`](./genai-dev-flow/README.zh-CN.mdx) |
+| 写一条 description，或按端调它 | [`../../AGENTS.md`](../../AGENTS.md) —— 那条归它管，这棵树不重复 |
+
+## 组织约定
+
+**顶层 = 有代码耦合的共享物。** `artifact-contract/` 是所有往 `src/` 里写东西的人与所有读编译产物的东西之间的
+约定 —— 编译器、两份 marketplace 清单、npm，以及六道门里的五道。`flow-contract/` 是 `genai-dev-flow` 装进项目
+后的那份定义与项目本身之间的约定；两边都用固定路径互相寻址（`.flow/genai/check.mjs`、
+`tools/genai/thresholds.json`），所以它不属于任何一方。
+
+**模块子目录 = 一个组件自己的故事。** `toolchain/` 是 `scripts/` 的 as-built 设计。它对自己所执行的规则**只往
+外链，不复述**。
+
+每个插件一个模块子目录 —— `computer-use/`、`dev-toolkit/`、`genai-dev-flow/` —— 每一份都是**手册**：这个能力能替你
+做什么、怎么调起来、怎么配，以及让它保持可用的那些实践。**这与它所描述的 `SKILL.md` 是两份不同的文档。**
+`SKILL.md` 是给模型的指令；手册是给一个正在决定"该装哪个、什么时候伸手"的人看的。要守住的线是：**手册绝不复述指令**
+—— 一旦它开始解释*这个 skill 是怎么干活的*，它就变成了已发出正文的第二副本，然后就会腐烂。
+
+它们的 manifest、目录布局和怎么编译仍留在
+[`artifact-contract/`](./artifact-contract/README.zh-CN.mdx)；`genai-dev-flow` 引擎侧的契约仍留在
+[`flow-contract/`](./flow-contract/README.zh-CN.mdx)，它的手册链过去而不重复。
+
+## 维护规则
+
+- **每份文档的抬头都写明它的权威来源。** 那一行的作用是：告诉下一位读者两边不一致时该信哪个文件，以及代码搬家
+  时该回来重读什么。
+- **这里没有任何一条被门禁守着。** `make check` 不读 `docs/`：不读链接、不读语言、也不读文档是否还与它所指的
+  代码相符。`verify-no-cjk` 只管 `src/` 和根目录三份文件。所以这棵树里的一句断言，值多少完全取决于上一个人有多
+  仔细。
+- **双语成对，每级一对。** `README.mdx` 英文 + `README.zh-CN.mdx` 中文，规则写在
+  [`../../AGENTS.md`](../../AGENTS.md) 的硬规则区：两份必须一一对应，同一笔提交里一起改。
+- **数字都带上时间与出处。** 像「379 个产物」「27 个 skill」这类数，写的是当时的实测值，并且一律给出可以重跑的
+  `make` 命令，绝不当成可以凭空相信的事实。
+- **优先原地改。** 这些是活文档，不是只能追加的日志；只调整一处行为的改动，就该是对应小节里的一行修改。

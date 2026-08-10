@@ -1,0 +1,150 @@
+---
+title: genai-dev-flow — Manual
+palette: teal
+mode: auto
+toc: true
+---
+
+中文版: [README.zh-CN.mdx](./README.zh-CN.mdx)
+
+> A whole development flow: requirements in, one release out, every step gated on something re-runnable.
+> **Authoritative source: `src/plugins/genai-dev-flow/`** — 4 skills, 4 agents, 7 step definitions.
+> Version 3.0.0. The engine-side contract is [`../flow-contract/`](../flow-contract/README.mdx); this is
+> the manual for the four skills and how a round is actually run.
+
+## What you get
+
+Not a set of tools — **one flow**, built on two separations that are easy to get wrong.
+
+**What is wanted and how it gets built are different things.** Requirements live in `<project>_genai/`, a
+sibling of the repository. Specs, changes, docs and code live in the repository and are versioned
+together, so any commit has all four in agreement. A requirement spans many versions and corresponds to
+no commit — put it in the repository and every worktree carries its own invisible copy while merging a
+batch guarantees a conflict in the shared list.
+
+**A sprint is a release unit, not a concurrency unit.** One round is one version number, bumped once, and
+it may carry several requirements across several changes. This is the distinction a per-change flow keeps
+losing: inside one change's context that change *is* everything, so finishing it looks like finishing a
+round. What fixes it is not restating "do not bump the version" — in this repository a description that
+explicitly excluded a scenario still triggered on it 5 times out of 5 — but never raising the subject
+upstream and putting the one step that *is* allowed to bump it at the end.
+
+## The four skills, and which one you want
+
+The split between the first three is **learn / install / drive**, and it is deliberate: a manual that also
+drives gets read when nobody wanted to read, and a driver that also teaches makes every round pay for the
+explanation.
+
+| Skill | Command | Use it when |
+|---|---|---|
+| `genai-guideline` | — | you want to understand what a step is gated on, whether a gate is strong enough, or how the pieces a project supplies itself get written |
+| `genai-init` | `/genai-dev-flow:genai-init` | a project needs wiring up, once. **Triggers only when asked for by name** |
+| `genai-flow` | `/genai-dev-flow:genai-flow` | a round should start, is already running, or has a step that will not pass |
+| `genai-backlog` | — | somebody described something they want built, or the question is what to pick up next |
+
+### genai-backlog
+
+**Decides where a stated intention belongs and what state it is in** — capture it, clarify it until it is
+ready, order the candidates, archive it once it ships. One directory per item under
+`<project>_genai/backlogs/`, holding a `brief.md` (goal, why, settled, out of scope, open questions) and a
+`log.md`, with the state in the item's own frontmatter.
+
+**Best practice.** Let an item sit in draft until its open questions are answered. `ready` is what
+`genai.spec`'s entry rule looks for, so promoting something vague does not start a round faster — it
+starts a round that gets rejected at a gate later, having spent patience.
+
+### genai-init
+
+**Installs the flow into a project, once.** Its recall is deliberately narrow — it fires only when you
+name it — because it writes into a repository and that is not something to trigger on a passing mention.
+
+What it puts where, and who owns each piece, is in [`../flow-contract/`](../flow-contract/README.mdx). The
+two pieces the **project** owns are a `genai-metrics` make target and `tools/genai/thresholds.json`.
+
+**Best practice.** Let it create those two; do not hand-write the step definitions. And answer its one
+real question honestly — the coverage floors. `90 / 90 / 100` is right for a project starting from
+nothing; for a project that already has code, agree the numbers against what it actually measures today,
+because **the round may not edit that file**, so a floor above where the project stands rejects every
+round with nothing able to fix it.
+
+### genai-flow
+
+**Drives one round**: builds the graph, dispatches each step, gates the result, routes the rework. It
+detects first and asks second — if the project is already set up, it just starts.
+
+The graph is a straight line with one return edge:
+
+```
+spec ─▶ implement ─▶ code-review ─▶ merge ─▶ archive ─▶ accept ─▶ release
+              ▲            │
+              └── reject ──┘
+```
+
+Patience is 5, shared across the whole batch, so reworking three changes once each spends three of it.
+
+**Best practice — the four routing rules that cost a round when broken:**
+
+- **Never route on `delegate`.** A `delegate` verdict with no matching edge hard-locks the graph.
+- **Never draw a `pass` edge backwards.** Pass edges are dependencies; one pointing back turns the graph
+  into a cycle.
+- **`reject` self-rework needs no edge.** A redundant self-edge is harmless; a missing *cross-node* reject
+  edge is not — `genai.code-review → genai.implement` is the one that matters.
+- **Never route `genai.accept` back with `reject`.** It judges the whole batch, so a return edge reopens
+  all of it. Letting it suspend and handing it to a person is the intended behaviour.
+
+**New work found mid-round: never add it to this round.** The graph is fixed and `genai.spec` has already
+passed. Put it in the backlog.
+
+### genai-guideline
+
+**The manual.** It answers what each of the seven steps is gated on and why, what the project supplies,
+the metrics protocol in full, and the traps. Read it before wiring a project up, and when a verdict needs
+explaining.
+
+## The four agents
+
+Each step that produces or judges is dispatched to a subagent, and **the split between them is not
+organisational — each one has to run in a context that did not produce what it is judging.** A spec author
+who accepts their own requirements is checking work they already convinced themselves about. That
+independence is the only thing the separation buys, and it is why they cannot be collapsed into fewer.
+
+| Agent | Tier | Judges or produces |
+|---|---|---|
+| `genai-spec-writer` | top | decides which requirements belong in one spec and which stay apart, then writes the deltas |
+| `genai-developer` | standard | implements against the spec and commits; lets the project gate decide when it is done |
+| `genai-code-reviewer` | standard | correctness, maintainability, and **whether the edits stayed inside what the change was about** |
+| `genai-requirement-checker` | top | reads what was **asked for** rather than what was specified, and decides whether anything was left behind |
+
+On the Codex end a plugin cannot bundle agents, so they install to `~/.codex/agents/` by hand — see
+`make install-codex`.
+
+## Traps that cost a whole round
+
+These are not hypothetical; each one has happened.
+
+- **`openspec validate` exits 0 even when items fail.** Both openspec gates read the totals line instead
+  of the exit code. Any new check built on a CLI needs the same suspicion: confirm the command actually
+  fails before believing a gate built on it.
+- **`--strict` counts characters, not meaning.** A Purpose that says everything in 38 Chinese characters
+  fails a 50-character minimum. Projects writing specs in Chinese hit this repeatedly.
+- **The reviewer must not commit its own records.** A verdict is recorded against the exact commit handed
+  over, so any commit during that step invalidates the verdict being given — and a passed step cannot be
+  re-run. The records stay uncommitted and the merge picks them up. **No ordering avoids this**; the
+  premise is fixed at dispatch.
+- **`.flow/` is ignored in full, definitions included.** They are versioned in this plugin, so tracking
+  them puts a second copy of an already-versioned artifact in every repository, makes branch switches
+  change the engine's contract, and makes merges conflict on the whitelist.
+- **A definition edited under a running graph invalidates the run.** Even a comment-only change to a
+  step's brief does it. Finish or abort the round first.
+
+## What this flow does not do
+
+It does not choose your test framework, decide your version number for you (`genai.release` reads the
+commits and records its reasoning), or work in a project it has not been installed into. And it cannot
+run **here**: this repository has no tests, no runner and no `genai-metrics` target, so `genai.implement`
+would return `metrics_missing`.
+
+---
+> The engine-side contract — atoms, labels, what the project must supply:
+> [`../flow-contract/`](../flow-contract/README.mdx). The trade-offs behind the flow's shape:
+> [`../../../CONTEXT.md`](../../../CONTEXT.md).

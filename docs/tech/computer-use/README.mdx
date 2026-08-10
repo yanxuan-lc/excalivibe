@@ -1,0 +1,184 @@
+---
+title: computer-use — Manual
+palette: teal
+mode: auto
+toc: true
+---
+
+中文版: [README.zh-CN.mdx](./README.zh-CN.mdx)
+
+> How to operate a computer: the capabilities that let an agent reach past its own text output and act
+> on a real machine — drive a browser, hand a person a document they can read, and get their attention
+> when the terminal cannot.
+> **Authoritative source: `src/plugins/computer-use/`** — 4 skills, plus the only hooks in this
+> repository.
+> Version 3.0.0. Claude gets the hooks; Codex and the common layout get the four skills.
+
+## What you get
+
+| Capability | The problem it solves |
+|---|---|
+| `graceful-browser` | a task needs a real browser, and which automation stack exists on this machine is not knowable in advance |
+| `mdx-artifact` | the output is meant for a person to read, and bare markdown in a terminal is not that |
+| `notify-user` | the work finished, or got stuck, while nobody was watching |
+| `install-computer-use` | the three above each need something on the machine, and nothing should get installed without being asked |
+| hooks (Claude only) | the same notification, sent automatically at turn end — **inert until switched on** |
+
+Nothing here triggers on the word "computer use". Each capability triggers on **its own situation**, so
+they work whether a person asked, an orchestrator dispatched, or another skill delegated.
+
+## Install and prerequisites
+
+```
+/computer-use:install-computer-use
+```
+
+That command is the intended entry point, and it is the one skill you invoke by name. It settles what
+this machine still needs and puts it in place **with your agreement** — it never installs silently.
+
+What each capability actually needs:
+
+| Capability | Needs | If absent |
+|---|---|---|
+| `graceful-browser` | one of: the session's own browser, a Chrome DevTools MCP, Playwright | it degrades down the list and says which one it landed on |
+| `mdx-artifact` | the global `mdxv` CLI | the skill tells you it is missing rather than writing a file nobody can view |
+| `notify-user` | nothing to **send**; consent to be **interrupted** | sending works out of the box; the automatic half stays off |
+| hooks | the plugin installed on the Claude end, and `notify.sh --init` run once | registered but silent |
+
+## graceful-browser
+
+**Decides which browser stack to use before touching a page, and degrades transparently.** The priority
+order is fixed and it matters: the session's own browser first (it has the user's real profile, so
+anything behind a login already works), then a Chrome DevTools MCP, then Playwright as a fallback.
+
+Reach for it whenever a task drives a browser at all — opening a page, a screenshot, a form, a flow,
+checking something behind a login, verifying a deployed page. You do not pick the stack yourself; that
+is the whole point of the skill.
+
+Ships `scripts/start-chrome-devtools.sh` for the middle rung.
+
+**Best practice.** Say what you want done to the page, not which tool to use — naming Playwright when
+the session already has a browser throws away the profile and the login state. When all three rungs
+fail the skill stops and says so; that is a report, not a retry loop, so answer it rather than asking
+again.
+
+## mdx-artifact
+
+**Turns content into a document a person can actually read**, then serves a local themed preview with
+`mdxv`. Reach for it when the deliverable is a report, proposal, design overview, dashboard or
+explainer — including when the ask is only "make this look decent" and MDX is never mentioned.
+
+What it gives you: a Hero header, `<Section>` / `<Callout>` / `<Fields>` blocks, stat cards, card grids,
+five palettes (`indigo` default, `teal`, `rose`, `amber`, `lime`), LaTeX math, and two diagram fences —
+` ```dot ` for dependency and layering graphs, ` ```mermaid ` for class, ER, state and sequence.
+
+Depth lives in `references/blocks.md` (exact component syntax) and `references/example.mdx` (a complete
+document). The skill loads them only when it needs them.
+
+**Best practice.** Write the body as plain markdown and reach for a component only where a section, an
+aside or a metadata block genuinely needs more structure — a document made of components is harder to
+edit than one made of prose. Markdown is already valid MDX, so renaming a `.md` to `.mdx` migrates it
+unchanged. Remember that GitHub shows `.mdx` as source: if the audience browses on GitHub, that is an
+argument for `.md`, not for fighting the renderer.
+
+## notify-user
+
+**Decides whether a moment is worth pulling a human's attention back, and reaches them off-screen when
+it is.** Worth interrupting for: a long job that finished with nobody watching, progress blocked on an
+answer only they can give, something that broke and will not resolve itself, or an explicit "tell me
+when it's done".
+
+**Sending needs no setup; being interrupted does.** That asymmetry is deliberate and it is the design's
+centre of gravity — a notification the model sends is one somebody asked for, while a notification the
+hook sends fires because a plugin got installed on a machine whose owner never agreed to be
+interrupted. So the manual half works immediately and the automatic half ships inert.
+
+### Configuration
+
+Precedence, highest first: **the environment** (`NOTIFY_USER_*`), **a YAML file**
+(`$NOTIFY_USER_CONFIG`, else `~/.config/excalivibe/notify-user.yaml`), then the defaults.
+
+| Setting | YAML key | Default |
+|---|---|---|
+| master switch | `enabled` | on |
+| channels | `channels` | `macos` (the only one shipped) |
+| sound | `sound` | `Glass`; empty or `null` is silent |
+| title | `title` | `Agent` |
+| turn-end threshold | `min-seconds` | 60 |
+| notify at turn end | `on-turn-end` | **off** |
+| notify when blocked | `on-blocked` | **off** |
+
+Two commands:
+
+```bash
+notify.sh --init      # write a commented config file; never overwrites an existing one
+notify.sh --doctor    # what is configured, what will send, and one live test banner
+```
+
+`--init` is where consent is recorded — it is what switches the automatic half on. `--doctor` answers
+the only question anyone actually has, which is "why did I not see anything".
+
+**The accepted YAML is a small subset**: a flat mapping, no nesting, no `- item` sequences, no anchors,
+no multi-line scalars. There is no YAML parser in POSIX sh and this file is read at the end of every
+turn, so depending on `yq` or Python would mean the feature stops working on a machine without them.
+**Anything outside the subset is reported with its line number, never skipped** — a half-understood
+config file is worse than a refused one, because an ignored line looks exactly like a setting that had
+no effect, and silence is this feature's only failure symptom.
+
+**Best practice.** Add a channel by dropping a script into `scripts/channels/` rather than editing
+`notify.sh`. Keep `min-seconds` above the length of a turn you would sit and watch; the fastest way to
+lose this feature entirely is a banner for every eight-second turn.
+
+## The hooks (Claude only)
+
+Two files, `hooks/hooks.json` and `hooks/turn-notify.sh`, and they exist for one reason: to send the
+`notify-user` notification **without being asked**, at the two moments the terminal cannot reach you.
+
+| Event | Argument | Timeout | What it does |
+|---|---|---|---|
+| `UserPromptSubmit` | `prompt-start` | 5 s | stamps when the turn began. **Sends nothing** |
+| `Stop` | `turn-end` | 15 s, async | the turn is over — notify **if it ran longer than `min-seconds`** |
+| `Notification` (`permission_prompt`) | `blocked` | 15 s, async | Claude is stuck on a permission decision |
+
+### Why there is a stamp
+
+`Stop` knows the turn ended and **nothing about how long it took**. Elapsed time is the entire gate, so
+it has to be measured from the other end — hence a `UserPromptSubmit` hook whose only job is to write
+a timestamp. State lives in `$CLAUDE_PLUGIN_DATA` (else `$TMPDIR`) under `notify-user-turns`, one file
+per session, and stamps older than a day are swept on the way in so a crashed turn cannot grow the
+directory without bound.
+
+### Two behaviours worth knowing before you debug it
+
+**Everything writes to stderr; nothing writes to stdout.** A `UserPromptSubmit` hook's stdout is
+injected into the model's context as extra instructions, so a stray `echo` would not be a cosmetic bug
+— it would be text the model reads as though you had typed it. The script redirects `1>&2` on line one.
+
+**It degrades rather than guesses.** The payload is JSON, parsed with whatever is on the machine — `jq`
+first, else `node`. With neither, the fields come back empty and you get a shorter notification. That
+is deliberate: a hand-rolled `sed` parser for `last_assistant_message` would quietly return wrong text
+on any message containing a quote, and wrong is worse than absent. The one visible cost is that without
+a JSON parser there is no session id, so two concurrent sessions in the same directory share a stamp
+and one reports the other's elapsed time — wrong by a few minutes, never wrong about having finished.
+
+**The `blocked` event has no elapsed gate**, on purpose: a blocked turn is not making progress no matter
+how briefly it has been blocked, and the cost of not knowing is the whole session sitting idle.
+
+### Turning it off
+
+Any one of these silences it, from the narrowest up: set `on-turn-end: false`; set `enabled: false` to
+stop every channel including the manual half; or uninstall the plugin. The script exits 0 at the first
+disabled switch it finds, so a disabled hook costs one config read per turn and nothing else.
+
+## Best practices across the plugin
+
+- **Ask for the outcome, not the tool.** "Check the deployed page renders" routes correctly;
+  "use Playwright to check the page" throws away two better rungs.
+- **Run `install-computer-use` once per machine, not per project.** What it configures is user-level.
+- **`--doctor` before assuming a notification bug.** Nine times out of ten it is `on-turn-end` still
+  off, which is the shipped default and not a fault.
+- **A document for a person is `mdx-artifact`'s job, not a wall of terminal text.** The corollary also
+  holds: a two-line answer does not need a document.
+
+---
+> How these files are compiled and what the ends differ on: [`../artifact-contract/`](../artifact-contract/README.mdx).

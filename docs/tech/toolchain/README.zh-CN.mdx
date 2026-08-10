@@ -1,0 +1,138 @@
+---
+title: toolchain — scripts/ 技术设计（as-built）
+palette: teal
+mode: auto
+toc: true
+---
+
+English: [README.mdx](./README.mdx)
+
+> 八个文件、1396 行、运行时零依赖：编译器、五个 verify 脚本、版本号入口、触发率评测台，以及它们全都走的那一个
+> 输出通道。
+> **权威来源：`scripts/` —— 入口是 [`build.ts`](../../../scripts/build.ts) —— 与
+> [`../../../Makefile`](../../../Makefile)。**
+> 编译器**执行的规则**写在 [`../artifact-contract/`](../artifact-contract/README.zh-CN.mdx)；输出的三种**形状**
+> 归 [`../../../AGENTS.md`](../../../AGENTS.md) 管。本文写的是每个脚本怎么工作，以及**每个脚本看不见什么**。
+
+## 1. 构成
+
+| 文件 | 行数 | 角色 |
+|---|---|---|
+| `build.ts` | 554 | 编译器，`verify-build` / `clean` / `rebuild` 都是它的 flag |
+| `eval-triggers.ts` | 232 | 触发率评测：`build` 出题，`score` 打分 |
+| `verify-variants.ts` | 125 | variant 块边界完整性 |
+| `verify-no-cjk.ts` | 125 | 单一语言约束 |
+| `check-skills.ts` | 105 | 输出的 frontmatter 合法性 + SKILL.md 行数预算 |
+| `ui.ts` | 109 | 唯一输出通道 —— 既是模块**也是** CLI |
+| `verify-json.ts` | 75 | JSON 可解析性 + 图骨架引用完整性 |
+| `bump.ts` | 71 | 版本号的唯一入口 |
+
+它们直接就能跑：Node ≥22.18 在加载时擦除类型，所以 `node scripts/build.ts` 自己不需要构建步骤。`typescript` 是
+给 `tsc --noEmit` 用的 devDependency，别无他用 —— 这也是 `tsconfig.json` 打开 `erasableSyntaxOnly` 的原因：它禁掉
+Node 擦不掉的语法，于是「类型检查通过但跑不起来」这种情况不可能发生。
+
+`ui.ts` 被其他每个脚本 import，**同时**被 Makefile 当 CLI 调
+（`node scripts/ui.ts result "all checks passed"`）。六个 verb：`heading`、`detail`、`step`、`result`、`fail`、
+`next`。注意这里的不对称 —— `step` 和 `result` 两个 verb 永远打印成功标记，`fail` 是 recipe 拿到 `✗` 的唯一途径。
+
+## 2. 门禁，按顺序
+
+`make check` 先打一条 banner，然后跑六道检查，从左到右，每道都能单独跑。顺序是「最便宜且最根本的在前」：如果产物
+本身是旧的，后面每一条结论描述的都是错的字节。
+
+| # | 目标 | 读什么 | 方法 |
+|---|---|---|---|
+| 1 | `verify-build` | 源码 + 产物 | `build.ts --check` —— 编到内存里比对，并拒绝孤儿 |
+| 2 | `typecheck` | `src/` + `scripts/` | `npx --no-install tsc --noEmit` |
+| 3 | `verify-json` | `src/**/*.json` | 全部解析；对图骨架做引用检查 |
+| 4 | `verify-skills` | **产物** | frontmatter 是合法的 YAML 子集；每份渲染后的 `SKILL.md` ≤ 500 行 |
+| 5 | `verify-variants` | `src/**/*.md`，按端渲染 | 在别的端找不到对应物的孤儿标题 |
+| 6 | `verify-no-cjk` | `src/**` + 根目录三份文件 | 未登记例外之外的任何 CJK 字符 |
+
+### 为什么有两道门读产物而不读源码
+
+`verify-skills` 跑在编译产物上，因为它要抓的两种失败**从 `src/` 根本看不见**。按端的 description 可以**只在一个
+端**把 frontmatter 弄坏；而一个源文件读起来是 300 行，里面装着三个端的正文，所以它的行数说明不了任何真正进入
+上下文的东西。500 行预算的由来是：`SKILL.md` 在 skill 触发的那一刻整份加载，而 `references/` 只在正文把模型指过去
+时才加载 —— 一份长 `SKILL.md` 于是在每次调用上都花掉上下文，去携带多数调用并不需要的材料。
+
+它检查 89 个 frontmatter 块：81 份 `SKILL.md`（27 个 skill × 3 端）和 8 份 agent markdown（4 个 agent ×
+claude 与 common）。**Codex 的 agent 是 `.toml`，它不检查** —— 那份 frontmatter 的形状在本侧没有任何东西在校验。
+
+它接受的 YAML 子集刻意极小，其中一条抓的是真实故障：裸标量里含 `": "` 会让 YAML 把值读成嵌套映射，所以必须加引号。
+
+### `verify-variants` 为什么必须存在
+
+variant 边界嵌错，是**编译器看不见的**失败。如果 `<!--@claude-->` 早开了一层，某个端会静默丢掉一整节，而产物依然
+是从源码逐字生成的、`make rebuild` 依然逐字节 round-trip、其他每道检查依然通过。**错的是源码本身。**
+
+它的方法：按端从源码渲染，收集标题，找出在别的端没有对应物的那个。比较是归一化的 —— 转小写、去括号内容、去端名、
+剥掉非字母数字（保留 CJK）—— 所以「Detect (claude)」和「Detect」会被认作同一个。合法的单端小节逐条登记在
+`src/variant-exceptions.json` 里并写明理由，这把「差异」从编译的意外变成一次被评审过的声明。**过期的登记同样会
+失败**：一条不再匹配任何东西的差异声明，与漏登记的孤儿一样误导人。
+
+### 每道门看不见什么
+
+在相信一次全绿之前值得知道：
+
+- **`verify-variants` 看不见「登记项指向的文件已不存在」。** 它的循环走的是 `src/` 下**实际存在**的 `.md` 文件，
+  所以一条指向已删除文件的例外永远不会被访问到，门保持绿色。`verify-no-cjk` 没有这个洞 —— 它是从登记表本身遍历
+  的。已记录在 [`../../../CONTEXT.md`](../../../CONTEXT.md) 的已知缺口里。
+- **`verify-json` 的骨架那半目前空转。** 引用检查只作用于匹配 `assets/graphs/*.json` 的文件，而这种目录一个都不
+  存在 —— 所以门报的是 `0 graph skeletons`。解析那半覆盖全部 15 份 JSON。
+- **没有任何东西检查 `node.yaml` 里的 `command:` 值。** 没有门读流程的步骤定义，这正是
+  `src/plugins/genai-dev-flow/AGENTS.md` 要写下「不许写 shell」这条规则、并且明说它只靠人守的原因。
+- **没有任何东西检查 `docs/`。** 不查链接、不查语言、也不查文档是否还与它所指的代码相符。
+
+## 3. 版本号
+
+版本号只存在于一个地方：`src/plugins/<name>/plugin.json`。两份插件 manifest 和 `package.json` 都在编译期从它派生
+—— 源码 `npm` 块里自己的 `version` 字段被类型直接拒掉，所以两者不可能不一致。
+
+`bump.ts` 只改那一个文件，别的都不动；重新编译是调用方的事，`make bump` 把这两步串起来。这个拆分是刻意的：脚本
+只做一件事，而两步走这个事实留在 Makefile 里可见，不藏进脚本内部。**手改版本号只会改到源码、改不到产物**，于是
+`make check` 会在一个「打开的那唯一一个文件看起来完全正确」的仓库上失败。
+
+## 4. 发版路径
+
+在 `dev` 上 `bump` → 合进 `main` → 拉取 → 构建 → 发布。`publish` 之前的一切都可逆；`publish` 不可逆，因为一个版本
+号只能花一次。
+
+`release-check` 只读，报五件事：分支、工作区是否干净、门禁是否通过、npm 身份与 registry、每个插件当前的版本号。
+`pack` 跑 `npm pack --dry-run`，因此它显示的正是会发出去的内容，且没有任何外部影响。
+
+`publish` 在四种情况下拒绝执行，按此顺序检查：`CONFIRM` 与当前版本不符、不在 `main` 上、工作区不干净、门禁不过。
+`tag` 刻意只**打印**那两条 git 命令而不执行 —— push 是一次对外动作。
+
+## 5. 触发率评测
+
+不在 `make check` 里：它要花一次真实的模型调用，而 description 是被刻意重调的，不是每次提交都调。两阶段，好让
+整个语料只花**一次**调用 —— `build` 把每条 description 和每个 fixture 拼成一份 prompt，`score` 把答案读回来，报出
+总体准确率、按语言的准确率，以及每一次误判。
+
+prompt 和 answer 写在仓库之外（`$CLAUDE_JOB_DIR/tmp`，否则 `$TMPDIR`）：它们是一次运行的草稿，而一份误提交在
+fixture 旁边的 `answer.json` 会被读成「一条没有任何东西能再生成的基线记录」。
+
+有一个性质让不完整的 fixture 也有用 —— **每一条 query 同时是其他每个 skill 的负样本**，所以某个 skill 的十二条
+query 同时在测另外二十六个是否正确地保持了沉默。
+
+三条限制，都是实测出来的，也都能让一次运行看起来在说它并没有说的事：
+
+1. **各个 case 并不独立。** 一份 prompt 装着所有 query，所以给 skill X 加 fixture 会改变 X 在 X 的其他 query 上
+   被判成什么。直接观察到过：往同一个文件里加了八条无关 case 之后，某条 query 从「从不触发」变成「总是触发」，
+   而 description 一个字没动。因此只有当 fixture 集在两次运行间**逐字节相同**时，前后对比才读得懂。
+2. **在这套集合上调优，证明不了关于这套集合的任何事。** 这里没有训练/留出集的划分，所以一条被改到某个 query
+   通过为止的 description，按构造就会通过那条 query。
+3. **到 140 条 query 左右，单次调用会开始整条丢 id。** `score` 会报丢了多少；丢了好几条的运行是该重跑的，不是
+   该读的。
+
+**在全新上下文里回答那份 prompt。** 在刚刚改过 description 的那个会话里回答，测的是那个会话的记忆，而且分数会
+高得让人根本注意不到出了问题。
+
+## 6. Makefile 约定
+
+- **每条会打印的 recipe 都走 `$(UI)`。** 在那里手写转义码会同时把配色**和** TTY 判断分叉出去，因为 `printf`
+  分不清自己的输出是终端还是被重定向的日志。`help` 是唯一刻意的例外：它用 awk 排一张表，自己拥有排版。
+- **`help` 只 grep 主 makefile**，在任何 `-include` 之前就捕获进 `MK`，所以一个目标的 `##` 注释就是它的文档，
+  分组按名字模式来。
+- **需要参数的目标会连着调用方式一起失败**，绝不抛一个 make 报错。

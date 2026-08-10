@@ -1,0 +1,142 @@
+---
+title: genai-dev-flow — Installed Contract (as-built)
+palette: teal
+mode: auto
+toc: true
+---
+
+中文版: [README.zh-CN.mdx](./README.zh-CN.mdx)
+
+> The agreement between `genai-dev-flow`'s installed step definitions and the project that installs
+> them. Both sides address fixed paths, so it belongs to neither party.
+> **Authoritative source: `src/plugins/genai-dev-flow/skills/genai-init/assets/flow/`** — the seven
+> `nodes/genai.*/node.yaml`, plus
+> [`genai/check.mjs`](../../../src/plugins/genai-dev-flow/skills/genai-init/assets/flow/genai/check.mjs)
+> and its five `lib/*.mjs`.
+> The installation procedure is
+> [`genai-init/SKILL.md`](../../../src/plugins/genai-dev-flow/skills/genai-init/SKILL.md); the metrics
+> protocol in full is
+> [`genai-guideline/SKILL.md`](../../../src/plugins/genai-dev-flow/skills/genai-guideline/SKILL.md); the
+> rules for editing any of it are
+> [`../../../src/plugins/genai-dev-flow/AGENTS.md`](../../../src/plugins/genai-dev-flow/AGENTS.md).
+
+## 1. Two parties, three locations
+
+This is the only one of the three plugins with state. Its artifacts do not stay in the plugin — they
+install into a consuming project, and the requirements they act on live outside that project again.
+
+| Location | Owned by | Tracked in git |
+|---|---|---|
+| `<project>/.flow/nodes/` · `.flow/genai/` · `.flow/workflows/` · `.flow/config.yaml` | the plugin — copied in by `genai-init` | no: `genai-init` ignores all of `.flow/`, because it is an already-versioned artifact of the plugin it came from |
+| `<project>/Makefile` (`genai-metrics`) · `<project>/tools/genai/thresholds.json` | **the project** | yes |
+| `<project>_genai/backlogs/` · `archive/` — a **sibling** of the repository | the project owner | its own call; it has no history unless given one |
+
+**The sibling directory's name is load-bearing.** A gate command receives no variables of any kind, so
+it locates the requirements as `../$(basename "$PWD")_genai`. A different name breaks two gates, and it
+breaks them silently.
+
+## 2. The project's side of the contract
+
+Four obligations, and only two of them are files the project writes:
+
+| Obligation | Shape | Consequence if absent |
+|---|---|---|
+| a `genai-metrics` make target | prints one line beginning `genai-metrics: ` followed by one JSON object; **the exit code and all other output are ignored** | the `genai.implement` gate returns `metrics_missing` and says to hand it to a person |
+| `tools/genai/thresholds.json` | coverage floors; `null` opts a dimension out, which is the only way out and is visible in the file | `thresholds_missing` |
+| an `openspec/` directory | `openspec/changes/` and `openspec/specs/` | `unreadable` from four atoms |
+| the sibling `<project>_genai/` | one directory per requirement, state in its own frontmatter | `unreadable` from the backlog atoms |
+
+The split is the point. **The project reports facts; the shipped definitions decide the verdict.** A
+project that decides its own verdict has no gate, and a round that can edit the arithmetic is not being
+measured by it — so the judgement lives in `.flow/genai/`, which is untracked and reinstalled from the
+plugin. Only the floors belong to the project, in a file the round may not edit either.
+
+## 3. The check interface
+
+Every check any step makes is one atom behind one entry point:
+
+```bash
+node .flow/genai/check.mjs <atom> [--flag value]
+```
+
+**The path is relative to the project root, and that is a property of the engine, not a convention.** A
+gate command runs in `checker.cwd ?? projectRoot`, so the same fixed path resolves identically no matter
+where the caller stood.
+
+The wire shape is one JSON document on stdout: `result` names the label, every other key is a fact
+behind it. The gate reads the label through `label_from: result`, and **the whole object lands in the
+event log**, which is what keeps a rejection reconstructible after the working tree has moved on.
+
+Two rules govern the labels, both stated as rules in the plugin's `AGENTS.md`: a checker always exits 0
+(a non-zero exit is reported by the engine as `failed` and the label is lost), and a rule's `on_result`
+must cover exactly `values + [failed, unexecutable]`.
+
+### The eight atoms
+
+| Atom | Labels | Read by |
+|---|---|---|
+| `backlog-status --status <s>` | `present` · `absent` · `unreadable` | `genai.spec` entry · `genai.accept` gate · `genai.release` entry |
+| `open-changes` | `present` · `absent` · `unreadable` | `genai.archive` gate · `genai.accept` entry |
+| `spec-deltas` | `present` · `absent` · `unreadable` | `genai.implement` entry |
+| `openspec-valid --scope <changes\|specs>` | `satisfied` · `validation_failed` · `totals_unreadable` · `openspec_unavailable` | `genai.spec` gate · `genai.archive` gate |
+| `backlog-claimed` | `agreed` · `unclaimed` · `none_active` · `unreadable` | `genai.spec` gate |
+| `worktree` | `clean` · `dirty` · `unreadable` | `genai.merge` entry |
+| `metrics` | `satisfied` · `tests_failing` · `no_tests` · `too_many_skipped` · `coverage_below_floor` · `metrics_missing` · `metrics_unreadable` · `thresholds_missing` | `genai.implement` gate |
+| `signature-archive` | not a check — prints a sha256 | `genai.accept` output signature |
+
+**An atom reports a fact, never a verdict**, which is why one implementation serves two callers wanting
+opposite answers: `open-changes` returning `absent` is a `pass` for the archive and a `ready` for the
+acceptance, with no negation flag anywhere. Polarity lives in the caller's `on_result`.
+
+Two rules declare a timeout, both because they spawn an external process: `openspec-valid` allows
+120 s, `metrics` allows 600 s — a full test suite with coverage.
+
+`worktree` ignores untracked files, and that is load-bearing rather than incidental: the review step
+leaves its records uncommitted on purpose, and the merge is what commits them.
+
+## 4. The seven steps
+
+The roster and who runs each one. **The entry and gate rules are not reproduced here** — they are in
+each `node.yaml` next to the comment explaining why they are shaped that way, and a copy in this tree
+would rot the first time one changes.
+
+| Step | Kind | Executor | Produces |
+|---|---|---|---|
+| `genai.spec` | produce | subagent `genai-spec-writer` | openspec changes and their spec deltas |
+| `genai.implement` | produce | subagent `genai-developer` | commits on the sprint branch |
+| `genai.code-review` | judge | subagent `genai-code-reviewer` | one `review.md` per change |
+| `genai.merge` | effect | main | the merge commit |
+| `genai.archive` | produce | main | the folded main specs |
+| `genai.accept` | judge | subagent `genai-requirement-checker` | the archived requirements (an observed artifact, signed by command) |
+| `genai.release` | effect | main | the changelog, and the only version bump of the round |
+
+Three steps run on `main` rather than in a subagent, because all three need the whole round in view.
+`.flow/workflows/genai-sprint.yaml` is the whitelist: a graph referencing anything outside it is refused
+at creation.
+
+## 5. What this flow relies on in its two external tools
+
+Both are third-party, and in both cases the flow depends on a behaviour that is easy to get wrong:
+
+**fsx.** Entry rules consume nothing when they fail — no verdict, no patience, no attempt — which is
+what makes them safe to add. Gate commands receive **no** variables: not graph variables, not the
+instance suffix, no injected environment. Every check therefore derives its context from `$PWD` or from
+git, and that single fact explains both the fixed `.flow/genai/check.mjs` path and the load-bearing name
+of the sibling directory.
+
+**openspec.** Its exit code cannot be trusted: `validate` reports failures and still exits 0, and
+`archive` carries warnings through and exits 0 as well. So `lib/openspec.mjs` reads the output and parses
+the totals line, never the exit code — and a missing totals line is its own label (`totals_unreadable`)
+rather than a pass, because nothing was actually validated. The rule that follows from this is in the
+plugin's `AGENTS.md`: drive openspec's own commands, never reimplement its rules as local checks.
+
+## 6. Version coupling
+
+`.flow/nodes/` and `.flow/genai/` are **one unit**. An evaluator left at an older version than the
+definition that calls it produces `unexecutable` or an unhandled label, so re-installing the definitions
+means re-copying the evaluators in the same step.
+
+---
+> This repository cannot satisfy its own flow — no tests, no runner, no `genai-metrics` target, so
+> `genai.implement` would return `metrics_missing` here. Recorded as an open gap in
+> [`../../../CONTEXT.md`](../../../CONTEXT.md), together with the trade-offs behind the flow's shape.

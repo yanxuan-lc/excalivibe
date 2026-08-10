@@ -1,0 +1,54 @@
+---
+title: docs — 文档总览
+palette: teal
+mode: auto
+toc: false
+---
+
+English: [README.mdx](./README.mdx)
+
+> 本仓库的 as-built 技术参考。**决定一份文档放在哪里的是权威度，不是主题**，而且次序是绝对的：源码高于这里的
+> 任何一份文档。文档与它所指的代码不一致时，**错的是文档**。
+> 想要导览而不是参考，从 [`../README.zh-CN.md`](../README.zh-CN.md) 开始。
+
+## 三个家
+
+| 子目录 | 放什么 | 权威度 | 是否存在 |
+|---|---|---|---|
+| [`tech/`](./tech/README.zh-CN.mdx) | **as-built** 技术设计：编译契约、工具链、流程契约 | **事实标准。** 随实现一起更新；两份文档冲突时以它为准 | 有 |
+| `research/` | 一次性调研报告，`<date>-<topic>/` | 仅作历史。不维护；一旦设计落地就被 `tech/` 取代 | **还没有** —— 等第一份报告出现时才建 |
+| `ued/` | 原型 / 交互设计 | 上线的 UI 才是真相 | **永远不会有** —— 本仓库没有 UI 面 |
+
+缺席的两个是**列名而不是链接**的：指向不存在的目录就是死链，而这棵树是要查死链的。
+
+## 这棵树与根文档的分工
+
+根文档先有，各自的活也保留。它们是**导览** —— 短、有主张、可以从头读到尾。`docs/tech/` 是**参考** ——
+只读你正要改的那一节。同一个机制两边都提到时，根文档给一行版，这棵树给机制，**谁都不复述谁**。
+
+| 问题 | 答案在哪 |
+|---|---|
+| 这个仓库是什么，怎么跑起来？ | [`../README.zh-CN.md`](../README.zh-CN.md) · [`../CLAUDE.md`](../CLAUDE.md) |
+| 动手之前有哪些不能弄错？ | [`../AGENTS.md`](../AGENTS.md) |
+| 为什么是这个形状，已知还缺什么？ | [`../CONTEXT.md`](../CONTEXT.md) |
+| 编译、某道门、流程契约**具体**怎么工作？ | [`tech/`](./tech/README.zh-CN.mdx) |
+
+上表里 `CLAUDE.md` / `AGENTS.md` / `CONTEXT.md` 只有英文版，**这是设计如此**：它们是面向 agent 的语料，
+`verify-no-cjk` 在守它们的语言。面向人的是 `README.md` 与 `README.zh-CN.md` 这一对。
+
+## 去哪儿找
+
+- **想用某个能力** → 对应插件的手册：[`tech/computer-use/`](./tech/computer-use/README.zh-CN.mdx) ·
+  [`tech/dev-toolkit/`](./tech/dev-toolkit/README.zh-CN.mdx) · [`tech/genai-dev-flow/`](./tech/genai-dev-flow/README.zh-CN.mdx)
+- **要改编译器，或要加一处只对某一端生效的差异** → [`tech/artifact-contract/`](./tech/artifact-contract/README.zh-CN.mdx)
+- **要加/改一道门、改版本号、跑触发率评测** → [`tech/toolchain/`](./tech/toolchain/README.zh-CN.mdx)
+- **要给项目接上 `genai-dev-flow`，或要改门的判定** → [`tech/flow-contract/`](./tech/flow-contract/README.zh-CN.mdx)
+
+## 载体与双语
+
+这些文件是 MDX，用 `mdxv docs` 预览（`mdx-artifact` skill）。GitHub 对 `.mdx` 只显示源码不渲染，所以团队浏览
+走预览服务。`mdxv --check docs` 只验证能否编译，**不查链接** —— 本仓库的门禁也不查，所以文件一挪，靠人发现。
+
+每级目录一对文件：`README.mdx` 英文、`README.zh-CN.mdx` 中文，与根目录两份 README 同一个约定。
+**两份内容一一对应，改了一份就改另一份 —— 没有任何机械门禁在看这件事。** 另外，预览里的目录链接一律解析到
+该目录的 `README.mdx`（英文），所以中文页之间必须写明确的 `.zh-CN.mdx` 文件路径，这也是本页的写法。

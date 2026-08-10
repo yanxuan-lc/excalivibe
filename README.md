@@ -59,7 +59,7 @@ Sharing is the default; a difference has to be declared. Eight mechanisms:
 - **`verify-json`** — every JSON under `src/` parses, and a graph skeleton references only the nodes it declares itself.
 - **`verify-skills`** — two things: the emitted SKILL.md and agent frontmatter are a valid YAML subset, and every rendered SKILL.md stays inside its 500-line context budget. Both run over the artifacts rather than the source, because a per-end description can break the frontmatter on **one end only**, and a source file holds all three ends' prose at once so its line count says nothing about what actually enters context.
 - **`verify-variants`** — is a variant block boundary mis-nested? This is a failure the compiler **cannot see**: a misplaced boundary drops a whole section on some end while the artifact is still generated verbatim from the source, the round-trip is still byte-identical, and every check still passes. Its method is to render each end and look for **orphan headings with no counterpart**. A genuinely single-end section is registered in `src/variant-exceptions.json` with its reason.
-- **`verify-no-cjk`** — everything a model reads stays English, comments included: all of `src/`, plus the three agent-facing root files (`AGENTS.md`, `CLAUDE.md`, `CONTEXT.md`) named one by one in the script. Exceptions are registered in `src/cjk-exceptions.json` with a reason, keyed relative to the repository root; `evals/` is exempt as a directory, because trigger fixtures are Chinese on purpose and never ship. The human-facing `README.md` / `README.zh-CN.md` are out of scope by design.
+- **`verify-no-cjk`** — everything a model reads stays English, comments included: all of `src/`, plus the three agent-facing root files (`AGENTS.md`, `CLAUDE.md`, `CONTEXT.md`) named one by one in the script. Exceptions are registered in `src/cjk-exceptions.json` with a reason, keyed relative to the repository root; `evals/` is exempt as a directory, because trigger fixtures are Chinese on purpose and never ship. Human-facing documents are out of scope by design and **bilingual by rule** — `README.md` / `README.zh-CN.md`, and every level of `docs/` as `README.mdx` / `README.zh-CN.mdx` (see [AGENTS.md](./AGENTS.md#hard-rules)). Nothing checks that a pair still corresponds.
 
 Two more defences live inside the compiler rather than in the gate: `lintVariants` refuses to emit any file with a surviving marker (a misspelled end name and a missing `<!--@end-->` share that signature), and `emit` refuses to compile two sources to one path (the common end has no plugin directory, so a skill name is repository-global there).
 
@@ -91,7 +91,15 @@ scripts/
   bump.ts                the only entry point for versions
   eval-triggers.ts       building and scoring the trigger eval
   ui.ts                  the single visual language for terminal output; the Makefile uses it too
+docs/
+  tech/                  as-built reference: the compile contract, the toolchain, the flow contract
 ```
+
+This file is orientation; `docs/tech/` is reference. Read the one area you are about to change —
+[`docs/tech/artifact-contract/`](./docs/tech/artifact-contract/README.mdx) for the compile,
+[`docs/tech/toolchain/`](./docs/tech/toolchain/README.mdx) for the gates and the release path,
+[`docs/tech/flow-contract/`](./docs/tech/flow-contract/README.mdx) for what a project must supply to run
+`genai-dev-flow`. They are MDX, previewed with `mdxv docs`.
 
 ## Known rough edges
 

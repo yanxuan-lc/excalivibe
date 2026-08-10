@@ -30,6 +30,20 @@ character fails the gate, comments included. Human-facing docs are the other kin
 scope: `README.md` is English with `README.zh-CN.md` beside it, and the Chinese one is Chinese by
 design.
 
+**A human-facing document is bilingual, one pair of files per directory.** `<name>.md` in English and
+`<name>.zh-CN.md` beside it — the root READMEs, and every level of `docs/` as `README.mdx` +
+`README.zh-CN.mdx`. Three rules come with the pairing:
+
+- **The two must correspond.** Change one, change the other in the same commit. Nothing checks this,
+  and a pair that has drifted is worse than a single file, because a reader cannot tell which half is
+  current.
+- **The English file is the one links land on.** A directory link resolves through that directory's
+  `README.mdx` in the `mdxv` preview, so a Chinese page must link the explicit `.zh-CN.mdx` path to
+  keep a reader inside their language.
+- **`verify-no-cjk` covers none of it.** Not `docs/`, not either README. The gate's corpus is `src/`
+  plus the three agent-facing root files, so which language a human-facing file is written in is a
+  decision this rule states and nothing enforces.
+
 The root is listed file by file in `scripts/verify-no-cjk.ts` (`AGENT_FACING`), because both kinds of
 document live there and no directory rule separates them. **A fourth agent-facing root file has to be
 added to that list by hand** — deliberate friction, and cheaper than an exclusion list that grows
@@ -41,6 +55,11 @@ phrases — **the description is the routing surface**, so a Chinese request rea
 description only if the phrasing it would arrive in is present in it. `evals/` is exempt as a
 directory, because trigger fixtures are Chinese on purpose and never ship. **A stale exception fails
 too**, so delete the entry when the Chinese goes away.
+
+**`genai-dev-flow` has rules of its own, in `src/plugins/genai-dev-flow/AGENTS.md`.** Read it before
+touching a step definition or a gate evaluator. The shortest of them, because it is the easiest to
+break by accident and no gate catches it: **every check a step makes is one atom behind
+`node .flow/genai/check.mjs <atom>`, and never shell inside a `node.yaml`.**
 
 **There is exactly one way to change a version:**
 `make bump PLUGIN=<name> LEVEL=<major|minor|patch|x.y.z>`. Editing `version` in `plugin.json` by
@@ -133,7 +152,15 @@ scripts/
   bump.ts                the only entry point for versions
   eval-triggers.ts       building and scoring the trigger eval
   ui.ts                  the single visual language for terminal output; the Makefile uses it too
+docs/tech/               as-built reference, one area per thing you might change
 ```
+
+**This file is what you must not get wrong; `docs/tech/` is how it works.** Before changing the
+compiler read [`docs/tech/artifact-contract/`](./docs/tech/artifact-contract/README.mdx), before
+touching a gate read [`docs/tech/toolchain/`](./docs/tech/toolchain/README.mdx), and before touching a
+step definition read [`docs/tech/flow-contract/`](./docs/tech/flow-contract/README.mdx). **No gate
+checks that tree** — not its links, not its language, not whether it still matches the code it names —
+so update it in the same change as the code.
 
 ## Terminal output
 

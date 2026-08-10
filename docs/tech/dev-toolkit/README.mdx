@@ -1,0 +1,147 @@
+---
+title: dev-toolkit — Manual
+palette: teal
+mode: auto
+toc: true
+---
+
+中文版: [README.zh-CN.mdx](./README.zh-CN.mdx)
+
+> Nineteen atomic development capabilities in five kinds. Each one stands alone, triggers on its own
+> subject, and assumes nothing about who invoked it.
+> **Authoritative source: `src/plugins/dev-toolkit/skills/`.** Version 3.0.0; no agents, no hooks.
+
+## The core idea
+
+**None of these skills knows who called it.** A description answers *when should this be used* and never
+*who will use it* — which is what makes the set composable. Everything works identically whether a
+person asked, a pipeline dispatched, or another skill delegated.
+
+The practical consequence for you: **you rarely name one.** Describe the situation and the right skill
+loads itself. Naming one is for when you want a specific lens applied to something it would not have
+triggered on.
+
+The second idea, which changes how you read every verdict here: **checks report, they do not gate.** A
+check skill produces a verdict and stops. It never decides whether that verdict blocks anything, because
+the threshold belongs to whoever is doing the blocking — and a check that decides its own consequences
+cannot be reused at a different bar.
+
+## Conventions — how the artifact should look
+
+Six skills that answer "how should this be written **here**", from the project's recorded conventions
+rather than by inferring them from nearby code.
+
+| Skill | Reach for it when the question is | Depth it carries |
+|---|---|---|
+| `coding-guideline` | what to name this, whether to split a module, what a function does with an error, how much to comment | 11 language/framework guides under `references/` |
+| `dba-guideline` | is this column type right, does this index earn its place, can this migration run on a large live table | `mysql.md`, `postgresql.md` |
+| `devops-guideline` | which single front door do build/test/lint/run go through, what is a local container versus what ships | `make.md`, `dockerfile.md`, `docker-compose.md` |
+| `docs-guideline` | where does this durable knowledge belong now that the work has shipped | `taxonomy.md`, `readme-templates.md` |
+| `middleware-guideline` | how does this service find its config, what does it do when that source is unreachable, where do credentials come from | `nacos.md`, `monitoring.md` |
+| `spec-guideline` | what must this change nail down **before** anyone starts building | `stable-ids.md` + a `check-spec.mjs` checker |
+
+**Usage.** Ask the question, not for the document: "should these be two modules or one" routes better
+than "read the coding conventions". These skills supply the **judgment about how something ought to
+look** — carrying out a change whose shape is already decided is separate work, so they will tell you
+the shape and stop.
+
+**Best practice.** When a guideline and the code around you disagree, that is the finding, not a
+tie-break to resolve quietly. Say which one you followed.
+
+## Methods — how to run a working loop
+
+Four skills that carry a loop rather than an opinion.
+
+| Skill | The loop | Reach for it when |
+|---|---|---|
+| `grill` | one Socratic question at a time, each shipped with your own recommended answer | a request is vague and acting on it would guess |
+| `tdd` | red → green → refactor, with the failing test confirmed to fail *for the expected reason* | new behaviour is being built | 
+| `debug` | three distinct loops — log, exit-code convergence, CLI debugger — run to falsification | a failure's cause is not obvious |
+| `e2e-test` | drive the real UI **and** verify what landed in the database | a flow has to be proven end to end |
+
+`tdd` carries per-toolchain wiring for 8 stacks; `debug` carries 9; `e2e-test` carries 6 platforms plus
+`db-verification.md`.
+
+**Usage.** `grill` asks **one question at a time** and never asks what it could have looked up — if it
+asks, the answer is genuinely yours to give. `debug` starts by establishing a reproduction signal before
+any loop; skipping that is how debugging turns into reading code until something looks wrong.
+
+**Best practice.** `e2e-test`'s whole reason for existing is the second half: **a green UI assertion
+sitting on top of a row that was never written is a passing test of nothing.** If you only want the UI
+checked, say so, and know what you are not getting.
+
+## Conventions of process
+
+`vcs-workflow` — **decides how to branch, version and ship in this project**: feature branches in
+worktrees, merging into an integration branch, MRs into a protected main, and the release sequence of
+bump → merge → build → publish. Depth in `release.md` and `submodule.md`.
+
+**Best practice.** It identifies the repo shape first, and that step is not ceremony — a submodule repo
+and a single repo have different correct answers to "where does this branch go".
+
+## Checks — take an artifact, return a verdict
+
+Five skills. Each returns findings ranked by severity, and none of them blocks anything.
+
+| Skill | Verdict about | Note |
+|---|---|---|
+| `a11y-check` | accessibility, each finding mapped to a WCAG success criterion | **lists what automation cannot check as open items** rather than passing silently over them |
+| `glossary-conformance` | do the words this change uses match the registered glossary for one bounded context | always scoped to **one** context |
+| `perf-budget` | latency, query count and N+1, bundle size, and whatever else the project budgets | reports measured / threshold / baseline+delta per dimension — a bare number is not a verdict |
+| `security-scan` | SAST patterns, dependency CVEs, hardcoded secrets | three classes in one pass |
+| `smell-scan` | architecture and code smells, as a ranked list of refactoring candidates | carries the **deletion test** and a behaviour-preservation cross-reference |
+
+**Usage.** Give a check a target and a bar if you have one. Without a bar it still reports; it simply
+will not pretend to decide.
+
+**Best practice.** Read what a clean report *proves*. `glossary-conformance` and `a11y-check` both state
+their own limits in the skill body for this reason: "no findings" from an automated pass is not
+"conforms", and treating it as such is the failure these skills were shaped to prevent.
+
+## Grounded research — go look instead of recalling
+
+Three skills, one principle: an answer about a real system should rest on **observation**, not on recall
+or on documentation that may be stale.
+
+| Skill | Goes and looks at | Playbook |
+|---|---|---|
+| `research-api` | the real endpoints — discovers the OpenAPI/Swagger spec, then probes, **read-only first** | `probe-playbook.md` |
+| `research-data-source` | the real data — schema, sample rows, value distributions, volume, **read-only** | `explore-playbook.md` |
+| `research-source-code` | the real dependency — clones at an exact tag/commit and records SHA-level provenance | `study-checklist.md` + `clone-ref.sh` |
+
+**Best practice.** Reach for these when being wrong would be expensive and the question is factual
+("what values does this column actually hold", "what does this library do on a timeout"). Each has
+explicit safety red lines — read-only first, no destructive probing — and those are not negotiable by
+asking nicely.
+
+## Choosing between neighbours
+
+The pairs people mix up, and the test that separates them:
+
+| If you are about to… | but the question is really… | use |
+|---|---|---|
+| ask `coding-guideline` to make the change | who decides the shape versus who applies it | guideline for the shape, then implement |
+| use `smell-scan` as a merge gate | who owns the threshold | `smell-scan` reports; the gate is yours |
+| ask `debug` about a vague complaint | is the symptom even pinned down | `grill` first, then `debug` |
+| ask `spec-guideline` whether the code is right | is this about the design or the implementation | `spec-guideline` judges the design bar |
+| recall what a library does | would being wrong cost more than looking | `research-source-code` |
+
+A typical chain, and each arrow is a handoff rather than a call: `grill` → `spec-guideline` → `tdd` →
+`debug` when it breaks → a check skill → `vcs-workflow` to ship.
+
+## Where the depth lives
+
+Every skill keeps its `SKILL.md` inside a context budget (500 lines, enforced by `make verify-skills`)
+and pushes depth into `references/`. `SKILL.md` loads **in full** every time the skill triggers;
+`references/` loads only when the body sends the model there. That split is what lets one skill cover
+eleven languages without paying for eleven languages on every use.
+
+Two skills ship executables: `spec-guideline/scripts/check-spec.mjs` and
+`research-source-code/scripts/clone-ref.sh`.
+
+Seven skills carry trigger fixtures in `evals/` — those never ship; they exist to measure whether a
+description routes, in this repository only.
+
+---
+> How these compile to three ends: [`../artifact-contract/`](../artifact-contract/README.mdx). How the
+> line budget and the other gates are enforced: [`../toolchain/`](../toolchain/README.mdx).

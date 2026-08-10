@@ -59,7 +59,7 @@ make help            # 全部 target
 - **`verify-json`** —— `src/` 里每份 JSON 能否解析，以及图骨架只引用它自己声明过的节点。
 - **`verify-skills`** —— 两件事：产出的 SKILL.md / agent frontmatter 是合法 YAML 子集，以及每份渲染后的 SKILL.md 不超过 500 行的上下文预算。都跑产物而非源码，因为分端描述可能只在**一个端**上把 frontmatter 弄坏，而源码文件同时装着三端的正文、行数根本不代表实际入上下文的量。
 - **`verify-variants`** —— variant 块边界是否嵌错。这是编译器**看不见**的一类失败：边界错位会让某个端整段丢失，而产物依然是源码逐字生成的、round-trip 依然字节一致、所有测试依然绿。它的办法是渲染每个端，找**没有对应物的孤儿标题**；确属有意的单端章节，逐条登记进 `src/variant-exceptions.json` 并写明理由。
-- **`verify-no-cjk`** —— 凡是模型要读的都保持英文，连注释也算:整个 `src/`，外加根目录三份面向 agent 的文件(`AGENTS.md` / `CLAUDE.md` / `CONTEXT.md`，在脚本里逐个列名)。要例外必须登记进 `src/cjk-exceptions.json` 并写明理由，键是相对仓库根的路径；`evals/` 按目录豁免，因为触发 fixture 故意是中文、且从不随产物发出。面向人的 `README.md` / `README.zh-CN.md` 按设计不在范围内。
+- **`verify-no-cjk`** —— 凡是模型要读的都保持英文，连注释也算:整个 `src/`，外加根目录三份面向 agent 的文件(`AGENTS.md` / `CLAUDE.md` / `CONTEXT.md`，在脚本里逐个列名)。要例外必须登记进 `src/cjk-exceptions.json` 并写明理由，键是相对仓库根的路径；`evals/` 按目录豁免，因为触发 fixture 故意是中文、且从不随产物发出。面向人的文档按设计不在范围内，并且**按规定双语** —— `README.md` / `README.zh-CN.md`，以及 `docs/` 每一级的 `README.mdx` / `README.zh-CN.mdx`（见 [AGENTS.md](./AGENTS.md#hard-rules)）。两份是否还对得上，没有任何检查在看。
 
 另外两道防线在编译器内部，不在门禁里：`lintVariants` 拒绝输出任何残留 marker 的文件（端名拼错、漏了 `@end` 都是这个signature），`emit` 拒绝两个源码编到同一路径（common 端没有插件目录，skill 名在那里是仓库全局的）。
 
@@ -91,7 +91,15 @@ scripts/
   bump.ts                版本号的唯一入口
   eval-triggers.ts       触发率评测的构建与打分
   ui.ts                  终端输出的统一视觉语言，Makefile 也走它
+docs/
+  tech/                  as-built 参考：编译契约、工具链、流程契约
 ```
+
+这份 README 是导览，`docs/tech/` 是参考手册。动哪块读哪块 ——
+[`docs/tech/artifact-contract/`](./docs/tech/artifact-contract/README.mdx) 是编译，
+[`docs/tech/toolchain/`](./docs/tech/toolchain/README.mdx) 是门禁与发版，
+[`docs/tech/flow-contract/`](./docs/tech/flow-contract/README.mdx) 是跑 `genai-dev-flow` 时项目自己要提供的东西。
+它们是 MDX，用 `mdxv docs` 预览。**内容是英文的** —— 那棵树面向的是要改代码的人和 agent，与 `src/` 同属一个语料。
 
 两份 README 内容一一对应。改了一份就改另一份 —— 没有机械门禁在看这件事。
 
