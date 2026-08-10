@@ -3,9 +3,12 @@
  * The model-facing corpus stays in one language.
  *
  * Everything under `src/` is English — skills, agent definitions, node briefs, gate messages, the
- * strings the scripts print. What a *person* reads is written in their language instead, and which
- * language that is gets decided at run time by the host's own setting, not by whatever happened to
- * be typed into a source file here.
+ * strings the scripts print. So are the three agent-facing files at the repository root
+ * (`AGENTS.md`, `CLAUDE.md`, `CONTEXT.md`): they are read by the same models and belong to the same
+ * corpus, even though they compile to nothing. What a *person* reads is written in their language
+ * instead — `README.md` in English with `README.zh-CN.md` beside it — and which language a host
+ * speaks to the user in gets decided at run time by its own setting, not by whatever happened to be
+ * typed into a source file here.
  *
  * Why this needs a checker rather than a line in AGENTS.md: the corpus was translated once, in
  * full. Without something that fails the build, the next hurried edit adds one Chinese sentence,
@@ -27,6 +30,16 @@ const ROOT = path.resolve(import.meta.dirname, '..');
 const SRC = path.join(ROOT, 'src');
 const EXCEPTIONS = path.join(SRC, 'cjk-exceptions.json');
 
+/**
+ * Agent-facing files outside `src/`, named one by one rather than swept up.
+ *
+ * The root holds both kinds of document, so a directory rule cannot separate them: `README.md` and
+ * `README.zh-CN.md` are for people and one of them is Chinese by design. Naming the three that are
+ * for models means a fourth has to be added here deliberately, which is the right amount of
+ * friction — the alternative is an exclusion list that grows every time someone adds a doc.
+ */
+const AGENT_FACING = ['AGENTS.md', 'CLAUDE.md', 'CONTEXT.md'];
+
 /** CJK ideographs plus the fullwidth punctuation that always travels with them. */
 const CJK = /[　-〿㐀-䶿一-鿿！-｠]/;
 
@@ -44,7 +57,7 @@ const TEXTUAL = new Set(['.md', '.mdx', '.json', '.ts', '.js', '.mjs', '.sh', '.
  */
 const EXEMPT_DIR = /(^|\/)evals\//;
 
-/** source path relative to `src/` → why Chinese is allowed to stay there */
+/** path relative to the repository root → why Chinese is allowed to stay there */
 type ExceptionFile = Record<string, string>;
 
 function walk(dir: string, base: string = dir, acc: string[] = []): string[] {
@@ -60,11 +73,18 @@ const allow: ExceptionFile = fs.existsSync(EXCEPTIONS)
   ? (JSON.parse(fs.readFileSync(EXCEPTIONS, 'utf8')) as ExceptionFile)
   : {};
 
+/** Every file in the corpus, keyed the way an exception names it: relative to the repository root. */
+const corpus: string[] = [
+  ...walk(SRC)
+    .filter((rel) => rel !== 'cjk-exceptions.json') // it exists to describe Chinese; its reasons may quote it
+    .filter((rel) => !EXEMPT_DIR.test(rel))
+    .map((rel) => `src/${rel}`),
+  ...AGENT_FACING.filter((rel) => fs.existsSync(path.join(ROOT, rel))),
+].sort();
+
 const found = new Map<string, number[]>();
-for (const rel of walk(SRC).sort()) {
-  if (rel === 'cjk-exceptions.json') continue; // it exists to describe Chinese; its reasons may quote it
-  if (EXEMPT_DIR.test(rel)) continue;
-  const lines = fs.readFileSync(path.join(SRC, rel), 'utf8').split('\n');
+for (const rel of corpus) {
+  const lines = fs.readFileSync(path.join(ROOT, rel), 'utf8').split('\n');
   const hits = lines.flatMap((l, i) => (CJK.test(l) ? [i + 1] : []));
   if (hits.length) found.set(rel, hits);
 }
@@ -77,18 +97,18 @@ if (unregistered.length || stale.length) {
   if (unregistered.length) {
     summary.push(`${unregistered.length} file(s) with unregistered Chinese`);
     ui.list(
-      unregistered.map((f) => `src/${f} — line ${(found.get(f) as number[]).slice(0, 6).join(', ')}`),
+      unregistered.map((f) => `${f} — line ${(found.get(f) as number[]).slice(0, 6).join(', ')}`),
       '~'
     );
   }
   if (stale.length) {
     summary.push(`${stale.length} exception(s) covering no Chinese`);
     ui.list(
-      stale.map((f) => `src/${f} — ${allow[f] as string}`),
+      stale.map((f) => `${f} — ${allow[f] as string}`),
       '?'
     );
   }
-  ui.step(false, `src/ is not one language — ${summary.join(', ')}`);
+  ui.step(false, `the corpus is not one language — ${summary.join(', ')}`);
   ui.next(
     ...(unregistered.length
       ? [
@@ -102,4 +122,4 @@ if (unregistered.length || stale.length) {
 }
 
 const n = Object.keys(allow).length;
-ui.step(true, `src/ is English — ${n} registered exception${n === 1 ? '' : 's'}`);
+ui.step(true, `corpus is English — ${corpus.length} files, ${n} registered exception${n === 1 ? '' : 's'}`);

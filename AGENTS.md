@@ -24,16 +24,23 @@ not a situation), it needs a rewrite the moment that agent is renamed, and it in
 dependency so the reusable thing depends on the specific one. The arrow points one way —
 **an orchestrator names the skills it calls; a skill never names its orchestrator.**
 
-**`src/` is English only.** `verify-no-cjk` rejects a single CJK character, comments included.
-Exceptions must be registered in `src/cjk-exceptions.json` with a reason; there are two today, both
-skill descriptions carrying Chinese trigger phrases — **the description is the routing surface**, so
-a Chinese request reaches an English description only if the phrasing it would arrive in is present
-in it. `evals/` is exempt as a directory, because trigger fixtures are Chinese on purpose and never
-ship. **A stale exception fails too**, so delete the entry when the Chinese goes away.
+**Everything a model reads is English, and `verify-no-cjk` enforces it.** That is all of `src/`
+plus the three agent-facing files at the root — `AGENTS.md`, `CLAUDE.md`, `CONTEXT.md`. A single CJK
+character fails the gate, comments included. Human-facing docs are the other kind and stay out of
+scope: `README.md` is English with `README.zh-CN.md` beside it, and the Chinese one is Chinese by
+design.
 
-**Agent-facing files are English; human-facing files come in two.** `AGENTS.md`, `CLAUDE.md` and
-`CONTEXT.md` are English. `README.md` is English with `README.zh-CN.md` alongside it. Nothing
-mechanical enforces this outside `src/` — it is a convention you keep.
+The root is listed file by file in `scripts/verify-no-cjk.ts` (`AGENT_FACING`), because both kinds of
+document live there and no directory rule separates them. **A fourth agent-facing root file has to be
+added to that list by hand** — deliberate friction, and cheaper than an exclusion list that grows
+with every new doc.
+
+Exceptions are registered in `src/cjk-exceptions.json`, keyed by path **relative to the repository
+root**, with a reason. There are two today, both skill descriptions carrying Chinese trigger
+phrases — **the description is the routing surface**, so a Chinese request reaches an English
+description only if the phrasing it would arrive in is present in it. `evals/` is exempt as a
+directory, because trigger fixtures are Chinese on purpose and never ship. **A stale exception fails
+too**, so delete the entry when the Chinese goes away.
 
 **There is exactly one way to change a version:**
 `make bump PLUGIN=<name> LEVEL=<major|minor|patch|x.y.z>`. Editing `version` in `plugin.json` by

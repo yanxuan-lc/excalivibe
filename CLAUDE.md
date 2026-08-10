@@ -23,7 +23,7 @@ make typecheck        # tsc --noEmit over src/ and scripts/
 make verify-json      # every JSON in src/ parses; graph skeletons reference only their own nodes
 make verify-skills    # emitted frontmatter is valid; each rendered SKILL.md is within 500 lines
 make verify-variants  # no variant block boundary is mis-nested
-make verify-no-cjk    # src/ stays English
+make verify-no-cjk    # src/ and the agent-facing root docs stay English
 ```
 
 **There is no test suite and no test runner.** `package.json` has exactly two scripts — `build` and

@@ -61,7 +61,7 @@ verify-variants: ## no variant block ate one end's whole section (the compile ca
 verify-json: ## every JSON in src/ parses; graph skeletons refer only to nodes they declare
 	@$(NODE) scripts/verify-json.ts
 
-verify-no-cjk: ## src/ stays English; Chinese lives in src/cjk-exceptions.json with a reason
+verify-no-cjk: ## src/ and the agent-facing root docs stay English; exceptions are registered with a reason
 	@$(NODE) scripts/verify-no-cjk.ts
 
 # ────────────────────────────── evals ──────────────────────────────

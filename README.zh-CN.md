@@ -59,7 +59,7 @@ make help            # 全部 target
 - **`verify-json`** —— `src/` 里每份 JSON 能否解析，以及图骨架只引用它自己声明过的节点。
 - **`verify-skills`** —— 两件事：产出的 SKILL.md / agent frontmatter 是合法 YAML 子集，以及每份渲染后的 SKILL.md 不超过 500 行的上下文预算。都跑产物而非源码，因为分端描述可能只在**一个端**上把 frontmatter 弄坏，而源码文件同时装着三端的正文、行数根本不代表实际入上下文的量。
 - **`verify-variants`** —— variant 块边界是否嵌错。这是编译器**看不见**的一类失败：边界错位会让某个端整段丢失，而产物依然是源码逐字生成的、round-trip 依然字节一致、所有测试依然绿。它的办法是渲染每个端，找**没有对应物的孤儿标题**；确属有意的单端章节，逐条登记进 `src/variant-exceptions.json` 并写明理由。
-- **`verify-no-cjk`** —— `src/` 保持英文，连注释也算。要例外必须登记进 `src/cjk-exceptions.json` 并写明理由。根目录的 `README.md` / `AGENTS.md` / `CONTEXT.md` 不在它的范围里。
+- **`verify-no-cjk`** —— 凡是模型要读的都保持英文，连注释也算:整个 `src/`，外加根目录三份面向 agent 的文件(`AGENTS.md` / `CLAUDE.md` / `CONTEXT.md`，在脚本里逐个列名)。要例外必须登记进 `src/cjk-exceptions.json` 并写明理由，键是相对仓库根的路径；`evals/` 按目录豁免，因为触发 fixture 故意是中文、且从不随产物发出。面向人的 `README.md` / `README.zh-CN.md` 按设计不在范围内。
 
 另外两道防线在编译器内部，不在门禁里：`lintVariants` 拒绝输出任何残留 marker 的文件（端名拼错、漏了 `@end` 都是这个signature），`emit` 拒绝两个源码编到同一路径（common 端没有插件目录，skill 名在那里是仓库全局的）。
 
