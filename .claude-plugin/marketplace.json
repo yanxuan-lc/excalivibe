@@ -18,9 +18,9 @@
       "source": "./claude/plugins/dev-toolkit"
     },
     {
-      "name": "dev-workflow",
-      "description": "Development pipeline roles and the flow that wires them — subagents each with a single responsibility, plus the step definitions an external graph engine schedules them from. The engine is a separate package; what ships here is the flow, not the runtime.",
-      "source": "./claude/plugins/dev-workflow"
+      "name": "genai-dev-flow",
+      "description": "A development flow that separates what is wanted from how it gets built — requirements accumulate in a sibling directory outside the code repository, a batch of them becomes one release, and each step is gated on something measurable rather than on a report that says it went fine.",
+      "source": "./claude/plugins/genai-dev-flow"
     }
   ]
 }

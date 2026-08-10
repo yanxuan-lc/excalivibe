@@ -1,0 +1,136 @@
+id: genai.spec
+kind: produce
+
+executor:
+  protocol: subagent
+  params:
+    name: genai-spec-writer
+
+# Its input is the brief files in the sibling _genai directory, not an upstream node's
+# artifact, so no inputs are declared. `inputs` expresses dependencies between nodes only.
+outputs:
+  - name: changes
+    kind: glob
+    locator: openspec/changes/*/proposal.md
+    signature: checksum
+  - name: specs
+    kind: glob
+    locator: openspec/changes/*/specs/**/*.md
+    signature: checksum
+
+# One entry rule, deliberately. Two mutually exclusive ones deadlock: neither can be satisfied
+# without breaking the other, and there is no recovery path.
+ready:
+  - rule_id: has-ready-backlog
+    checker:
+      type: command
+      command: node .flow/genai/check.mjs backlog-status --status ready
+      label_from: result
+      values: [present, absent, unreadable]
+    on_result:
+      present: { ready: true }
+      absent:
+        ready: false
+        reason: "No backlog item is in ready state, so there is nothing to design this round"
+      unreadable:
+        ready: false
+        reason: "The requirements directory could not be read — confirm the sibling <project>_genai directory exists"
+      failed:
+        ready: false
+        reason: "The check itself exited non-zero. That is a bug in the installed step definitions"
+      unexecutable:
+        ready: false
+        reason: "The check could not run at all. Re-install with genai-init, and confirm node is on PATH"
+
+# Rules run in declaration order and the first non-pass concludes, so the cheap prerequisites
+# come first and the expensive ones last.
+gates:
+  - rule_id: outputs
+    checker: { type: outputs_present }
+    on_result:
+      satisfied: { verdict: pass }
+      missing:
+        verdict: reject
+        message: "No change directory or spec delta landed. Every change needs at least proposal.md and a delta under specs/"
+
+  - rule_id: no-spin
+    checker: { type: signature_changed }
+    on_result:
+      satisfied: { verdict: pass }
+      stalled:
+        verdict: reject
+        message: "This attempt is byte-identical to the last one. Nothing moved"
+
+  - rule_id: outcome
+    checker: { type: report, field: outcome }
+    on_result:
+      completed: { verdict: pass }
+      partial:
+        verdict: reject
+        message: "A backlog item is still uncovered. Either cover it, or push it back to draft and say what is missing"
+      failed:
+        verdict: reject
+        message: "Say where this got stuck"
+      blocked:
+        verdict: reject
+        message: "Record what blocked it under deferred, with the reason"
+
+  # openspec validate exits 0 even when items fail, so its exit code cannot be trusted on its
+  # own — read the totals line instead. A gate that always passes is worse than no gate: it
+  # reads as evidence.
+  - rule_id: openspec-valid
+    checker:
+      type: command
+      command: node .flow/genai/check.mjs openspec-valid --scope changes
+      timeout_ms: 120000
+      label_from: result
+      values:
+        - satisfied
+        - validation_failed
+        - totals_unreadable
+        - openspec_unavailable
+    on_result:
+      satisfied: { verdict: pass }
+      validation_failed:
+        verdict: reject
+        message: "openspec validation failed. The count and the tail of its output are in the gate facts — fix each reported problem"
+      totals_unreadable:
+        verdict: reject
+        message: "openspec printed no totals line, so nothing was actually validated. Do not read that as a pass"
+      openspec_unavailable:
+        verdict: reject
+        message: "The openspec command could not run. A gate-environment problem, not a problem with the artifact"
+      failed:
+        verdict: reject
+        message: "The gate evaluator exited non-zero. That is a bug in the installed step definitions"
+      unexecutable:
+        verdict: reject
+        message: "The gate evaluator could not run at all. Re-install with genai-init, and confirm node is on PATH"
+
+  # Claiming and producing must agree, in both directions. The first half — at least one item is
+  # active — is what makes the whole round countable: the set of active items IS this round's
+  # roster, so a round that claims nothing gives the closing steps nothing to check, and their
+  # end-state gates would pass on an empty set.
+  - rule_id: claimed
+    checker:
+      type: command
+      command: node .flow/genai/check.mjs backlog-claimed
+      label_from: result
+      values: [agreed, unclaimed, none_active, unreadable]
+    on_result:
+      agreed: { verdict: pass }
+      unclaimed:
+        verdict: reject
+        message: "A backlog item was moved to active but no change references it. The gate facts name which ones — claiming and producing must agree"
+      none_active:
+        verdict: reject
+        message: "No backlog item is active, so this round claimed nothing. The set of active items is the round's roster, and the closing steps have nothing to approve without it"
+      unreadable:
+        verdict: reject
+        message: "The requirements directory or openspec/changes/ could not be read. A setup problem, not a problem with the artifact"
+      failed:
+        verdict: reject
+        message: "The check exited non-zero. That is a bug in the installed step definitions"
+      unexecutable:
+        verdict: reject
+        message: "The check could not run at all. Re-install with genai-init, and confirm node is on PATH"

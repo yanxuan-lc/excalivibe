@@ -29,10 +29,10 @@
       "category": "Developer Tools"
     },
     {
-      "name": "dev-workflow",
+      "name": "genai-dev-flow",
       "source": {
         "source": "local",
-        "path": "./codex/plugins/dev-workflow"
+        "path": "./codex/plugins/genai-dev-flow"
       },
       "policy": {
         "installation": "AVAILABLE",

@@ -1,0 +1,34 @@
+{
+  "name": "genai-dev-flow",
+  "version": "3.0.0",
+  "description": "A development flow that separates what is wanted from how it gets built — requirements accumulate in a sibling directory outside the code repository, a batch of them becomes one release, and each step is gated on something measurable rather than on a report that says it went fine.",
+  "author": {
+    "name": "ExcaliVibe Contributors"
+  },
+  "license": "MIT",
+  "keywords": [
+    "excalivibe",
+    "genai-dev-flow",
+    "backlog",
+    "requirements",
+    "planning",
+    "release",
+    "sprint",
+    "openspec"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "GenAI Dev Flow",
+    "shortDescription": "Requirements in, one release out",
+    "longDescription": "Keeps requirements out of the code repository entirely — they live in a sibling directory, one file per item, with the state written in the file itself rather than in a shared list that two sessions can clobber. A batch of them becomes one release with one version bump, which is the unit that a per-change flow keeps getting wrong. Every step is gated on something that can be re-run and measured, because a step that only reports its own success is a step with no gate at all.",
+    "developerName": "ExcaliVibe Contributors",
+    "category": "Developer Tools",
+    "capabilities": [
+      "Interactive"
+    ],
+    "defaultPrompt": [
+      "Write down what we just worked out as a backlog item",
+      "What is worth picking up next?"
+    ]
+  }
+}

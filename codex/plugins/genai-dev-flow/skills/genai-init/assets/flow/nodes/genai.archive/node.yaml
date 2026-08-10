@@ -1,0 +1,114 @@
+id: genai.archive
+kind: produce
+
+executor:
+  protocol: main
+
+inputs:
+  - name: merged
+    from: genai.merge
+    required: true
+
+outputs:
+  - name: specs
+    kind: glob
+    locator: openspec/specs/**/*.md
+    signature: checksum
+
+# No entry rule, and it is not an oversight — an entry rule may only assert something the step
+# does not change, because a step that destroys its own precondition forbids its own rework. Both
+# candidates here fail that test:
+#
+#   "there is an open change to fold"  — emptied by the archive itself
+#   "the working tree is clean"        — dirtied by the fold, and a rejection can land in the
+#                                       window between folding and committing
+#
+# So this step's preconditions are asserted upstream instead: the pass edge, and its required
+# input from the merge.
+
+gates:
+  - rule_id: outputs
+    checker: { type: outputs_present }
+    on_result:
+      satisfied:
+        verdict: pass
+      missing:
+        verdict: reject
+        message: "No main spec landed under openspec/specs/. The deltas were never folded in"
+
+  # No signature_changed rule here, deliberately. The gates below assert an absolute end state —
+  # nothing open under openspec/changes/, and main specs that validate — which doing nothing
+  # cannot satisfy, so there is no laziness left for a delta check to catch. And it would make
+  # rework fragile: when the fold has already happened and a later rule refuses, the retry has
+  # nothing to change, so `stalled` would drain the whole patience budget in one go.
+
+  - rule_id: outcome
+    checker: { type: report, field: outcome }
+    on_result:
+      completed:
+        verdict: pass
+      partial:
+        verdict: reject
+        message: "Some changes were not archived. Name them"
+      failed:
+        verdict: reject
+        message: "Say what failed. A conflict between two changes folding into one capability is the usual cause"
+      blocked:
+        verdict: reject
+        message: "Say what blocked it"
+
+  # Nothing may be left behind: an unarchived change means its requirements never reached the
+  # main spec, and the round would ship with the two out of step.
+  - rule_id: no-open-changes
+    checker:
+      type: command
+      command: node .flow/genai/check.mjs open-changes
+      label_from: result
+      values: [present, absent, unreadable]
+    on_result:
+      absent:
+        verdict: pass
+      present:
+        verdict: reject
+        message: "A change is still open under openspec/changes/, named in the gate facts. Archive every change of this round"
+      unreadable:
+        verdict: reject
+        message: "openspec/changes/ could not be read. A setup problem, not a problem with the artifact"
+      failed:
+        verdict: reject
+        message: "The check exited non-zero. That is a bug in the installed step definitions"
+      unexecutable:
+        verdict: reject
+        message: "The check could not run at all. Re-install with genai-init, and confirm node is on PATH"
+
+  # Same tool as the change validation upstream, one argument apart: openspec exits 0 even when
+  # items fail, so the verdict comes from the totals line rather than the exit code.
+  - rule_id: specs-valid
+    checker:
+      type: command
+      command: node .flow/genai/check.mjs openspec-valid --scope specs
+      timeout_ms: 120000
+      label_from: result
+      values:
+        - satisfied
+        - validation_failed
+        - totals_unreadable
+        - openspec_unavailable
+    on_result:
+      satisfied:
+        verdict: pass
+      validation_failed:
+        verdict: reject
+        message: "The folded main specs do not validate. Fix them in place, then re-run the archive"
+      totals_unreadable:
+        verdict: reject
+        message: "openspec printed no totals line, so the main specs were never actually validated. Do not read that as a pass"
+      openspec_unavailable:
+        verdict: reject
+        message: "The openspec command could not run. A gate-environment problem"
+      failed:
+        verdict: reject
+        message: "The gate evaluator exited non-zero. That is a bug in the installed step definitions"
+      unexecutable:
+        verdict: reject
+        message: "The gate evaluator could not run at all. Re-install with genai-init, and confirm node is on PATH"

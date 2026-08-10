@@ -1,0 +1,70 @@
+id: genai.release
+kind: effect
+
+executor:
+  protocol: main
+
+inputs:
+  - name: archived
+    from: genai.accept
+    required: true
+
+# The tag is deliberately not a declared artifact: it would collide with genai.merge on HEAD,
+# and a presence check another step's write can satisfy is no check at all. The tag goes in the
+# report's effects, which is where an effect records its external identifiers.
+outputs:
+  - name: changelog
+    kind: file
+    locator: CHANGELOG.md
+    signature: checksum
+
+# A tag is the one thing in this flow that cannot be taken back, so its precondition is asserted
+# here as well as upstream: no requirement of this round may still be open. The acceptance step
+# gates on the same fact, and repeating it is worth the redundancy for an irreversible act.
+#
+# Safe as an entry rule because releasing does not reopen requirements — nothing this step does
+# can make its own precondition false.
+ready:
+  - rule_id: nothing-active
+    checker:
+      type: command
+      command: node .flow/genai/check.mjs backlog-status --status active
+      label_from: result
+      values: [present, absent, unreadable]
+    on_result:
+      absent: { ready: true }
+      present:
+        ready: false
+        reason: "A requirement of this round is still active, so this round is not finished. Nothing gets tagged while something is unaccounted for"
+      unreadable:
+        ready: false
+        reason: "The requirements directory could not be read — confirm the sibling <project>_genai directory exists"
+      failed:
+        ready: false
+        reason: "The check itself exited non-zero. That is a bug in the installed step definitions"
+      unexecutable:
+        ready: false
+        reason: "The check could not run at all. Re-install with genai-init, and confirm node is on PATH"
+
+gates:
+  - rule_id: outputs
+    checker: { type: outputs_present }
+    on_result:
+      satisfied: { verdict: pass }
+      missing:
+        verdict: reject
+        message: "The changelog was not written or not committed"
+
+  - rule_id: outcome
+    checker: { type: report, field: outcome }
+    on_result:
+      completed: { verdict: pass }
+      partial:
+        verdict: reject
+        message: "The release did not finish"
+      failed:
+        verdict: reject
+        message: "Say what failed"
+      blocked:
+        verdict: reject
+        message: "Say what blocked it"

@@ -1,0 +1,103 @@
+id: genai.accept
+kind: judge
+
+executor:
+  protocol: subagent
+  params:
+    name: genai-requirement-checker
+
+inputs:
+  - name: specs
+    from: genai.archive
+    required: true
+
+# The backlog lives outside the project, and a locator may not contain `..` — the framework
+# refuses to vouch for artifacts landing outside the tree. So this is an observed artifact with
+# a custom signature: the command may read anywhere, and its output hash still detects whether
+# anything was archived this round.
+outputs:
+  - name: archived
+    kind: observed
+    signature:
+      scheme: custom
+      name: archived_items
+      command: node .flow/genai/check.mjs signature-archive
+
+# The one thing this step must not run before, asserted by the step itself rather than trusted to
+# the graph's wiring: the fold into the main specs has already happened. Checking requirements
+# against the deltas would miss exactly the loss this step exists to catch.
+#
+# It is safe as an entry rule because this step does not touch openspec/ at all — nothing it does
+# can make its own precondition false, so a rejection can always be retried. The mirror rule
+# ("some requirement is still active") would not be: this step's whole job is to empty that set,
+# so it would forbid its own rework.
+ready:
+  - rule_id: fold-happened
+    checker:
+      type: command
+      command: node .flow/genai/check.mjs open-changes
+      label_from: result
+      values: [present, absent, unreadable]
+    on_result:
+      absent: { ready: true }
+      present:
+        ready: false
+        reason: "A change is still open under openspec/changes/, so the deltas are not folded into the main specs yet. Archive them first — checking requirements before the fold misses what this step is for"
+      unreadable:
+        ready: false
+        reason: "openspec/changes/ could not be read — confirm openspec/ exists in this repository"
+      failed:
+        ready: false
+        reason: "The check itself exited non-zero. That is a bug in the installed step definitions"
+      unexecutable:
+        ready: false
+        reason: "The check could not run at all. Re-install with genai-init, and confirm node is on PATH"
+
+gates:
+  - rule_id: outputs
+    checker: { type: outputs_present }
+    on_result:
+      satisfied: { verdict: pass }
+      missing:
+        verdict: reject
+        message: "No backlog item was archived"
+
+  # No signature_changed rule here, deliberately. `nothing-active` below is an absolute end state
+  # that doing nothing cannot satisfy: if this round claimed anything, it is still claimed until
+  # this step closes it out. A delta check would add nothing and would make rework fragile — after
+  # an attempt that archived items and was still refused, the retry has nothing left to change,
+  # and `stalled` drains the whole patience budget in one go.
+
+  - rule_id: verdict
+    checker: { type: report, field: verdict }
+    on_result:
+      approve: { verdict: pass }
+      conditional:
+        verdict: reject
+        message: "Something is left over. Either finish it, or return that item to ready for a later round, then re-check"
+      reject:
+        verdict: reject
+        message: "A requirement was not implemented. See the unmet criteria"
+
+  # Mechanical close-out. The set of active backlog items IS this round's roster, which is why
+  # no separate roster file exists.
+  - rule_id: nothing-active
+    checker:
+      type: command
+      command: node .flow/genai/check.mjs backlog-status --status active
+      label_from: result
+      values: [present, absent, unreadable]
+    on_result:
+      absent: { verdict: pass }
+      present:
+        verdict: reject
+        message: "A backlog item is still active, named in the gate facts. It is either unfinished, or it belongs back in ready"
+      unreadable:
+        verdict: reject
+        message: "The requirements directory could not be read. A setup problem, not a problem with the artifact"
+      failed:
+        verdict: reject
+        message: "The check exited non-zero. That is a bug in the installed step definitions"
+      unexecutable:
+        verdict: reject
+        message: "The check could not run at all. Re-install with genai-init, and confirm node is on PATH"

@@ -1,0 +1,134 @@
+id: genai.implement
+kind: produce
+
+executor:
+  protocol: subagent
+  params:
+    name: genai-developer
+
+inputs:
+  - name: changes
+    from: genai.spec
+    required: true
+
+outputs:
+  - name: commits
+    kind: git_commit
+    locator: "{{vars.branch}}"
+    signature: commit_sha
+
+# One entry rule, and it asserts something this step does not touch. A clean-worktree rule would
+# deadlock against the very artifact that makes the tree dirty, and upstream_premise needs a
+# judge's conclusion plus the thing it judged — neither exists this early in the graph.
+ready:
+  - rule_id: has-spec-deltas
+    checker:
+      type: command
+      command: node .flow/genai/check.mjs spec-deltas
+      label_from: result
+      values: [present, absent, unreadable]
+    on_result:
+      present: { ready: true }
+      absent:
+        ready: false
+        reason: "There is no spec delta under openspec/changes/ to build from. The design step either did not run or its output is gone"
+      unreadable:
+        ready: false
+        reason: "openspec/changes/ could not be read — confirm openspec/ exists in this repository"
+      failed:
+        ready: false
+        reason: "The check itself exited non-zero. That is a bug in the installed step definitions"
+      unexecutable:
+        ready: false
+        reason: "The check could not run at all. Re-install with genai-init, and confirm node is on PATH"
+
+gates:
+  - rule_id: outputs
+    checker: { type: outputs_present }
+    on_result:
+      satisfied: { verdict: pass }
+      missing:
+        verdict: reject
+        message: "Nothing is committed on the branch. Uncommitted work cannot be measured"
+
+  - rule_id: no-spin
+    checker: { type: signature_changed }
+    on_result:
+      satisfied: { verdict: pass }
+      stalled:
+        verdict: reject
+        message: "The branch tip has not moved. There is no new commit this round"
+
+  - rule_id: outcome
+    checker: { type: report, field: outcome }
+    on_result:
+      completed: { verdict: pass }
+      partial:
+        verdict: reject
+        message: "Some changes are unfinished. Say which"
+      failed:
+        verdict: reject
+        message: "Say what failed"
+      blocked:
+        verdict: reject
+        message: "Say what blocked it"
+
+  # The project reports; this gate judges. `make genai-metrics` prints the numbers its own suite
+  # produced — it never says pass or fail, because a project that decides its own verdict has no
+  # gate. The judgement ships with these definitions, so a round cannot loosen what it is
+  # measured by. Only the coverage floors belong to the project, in a file the round may not edit
+  # either. See .flow/genai/lib/metrics.mjs for the protocol in full.
+  #
+  # Every label lands in the event log together with the numbers behind it, so a rejection here
+  # is reconstructible months later.
+  - rule_id: checks
+    checker:
+      type: command
+      command: node .flow/genai/check.mjs metrics
+      timeout_ms: 600000
+      label_from: result
+      values:
+        - satisfied
+        - tests_failing
+        - no_tests
+        - too_many_skipped
+        - coverage_below_floor
+        - metrics_missing
+        - metrics_unreadable
+        - thresholds_missing
+    on_result:
+      satisfied: { verdict: pass }
+
+      # Four ways the code is not good enough yet. These are the round's to fix.
+      tests_failing:
+        verdict: reject
+        message: "Tests are failing. The counts are in the gate facts — fix the code, and do not delete or skip a test to get past this"
+      no_tests:
+        verdict: reject
+        message: "The suite reported no tests at all. Work that adds behaviour adds a test that would fail without it"
+      too_many_skipped:
+        verdict: reject
+        message: "More than a tenth of the suite is skipped. A skipped test is not a passing test — unskip them or stop counting them"
+      coverage_below_floor:
+        verdict: reject
+        message: "Coverage is below the floor this project declared. Cover what this round changed; which dimensions fell short, and by how much, is in the gate facts"
+
+      # Three ways the setup is broken. The round is allowed to fix none of them, so retrying
+      # cannot help — say so plainly and let the suspension hand it to a person.
+      metrics_missing:
+        verdict: reject
+        message: "`make genai-metrics` produced no `genai-metrics:` line, so no numbers reached the gate. Either the target does not exist or it never printed. Setup problem — stop and hand it to a person"
+      metrics_unreadable:
+        verdict: reject
+        message: "The metrics line came through but does not satisfy the protocol; the gate facts say which field and what was found. Setup problem"
+      thresholds_missing:
+        verdict: reject
+        message: "tools/genai/thresholds.json is missing or unreadable, so the gate has no floors to judge against. Setup problem"
+
+      # The evaluator itself, which ships with these definitions.
+      failed:
+        verdict: reject
+        message: "The gate evaluator exited non-zero. That is a bug in the installed step definitions, not in the code under test"
+      unexecutable:
+        verdict: reject
+        message: "The gate evaluator could not run at all. Re-install with genai-init, and confirm node is on PATH"

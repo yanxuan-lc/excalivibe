@@ -1,7 +1,4 @@
 {
   "plugins/computer-use/skills/install-computer-use/SKILL.md": "Chinese trigger phrases in the description. The description is the routing surface — a Chinese request reaches an English description only if the phrasing it would arrive in is present in it.",
-  "plugins/computer-use/skills/notify-user/SKILL.md": "Chinese trigger phrases in the description, same reason.",
-  "plugins/dev-workflow/skills/backlog/SKILL.md": "Chinese trigger phrases in the description, same reason.",
-  "plugins/dev-workflow/skills/genai-flow/SKILL.md": "Chinese trigger phrases in the description, plus one in the body: the worked example of a request that reads like new work while a graph is already running only makes its point in the words somebody would actually type.",
-  "plugins/dev-workflow/skills/review-doc/SKILL.md": "One Chinese term inside a glossary-entry format example. The format is `中文词（term，gloss）` — written in English it would not show the fullwidth punctuation the rule is about."
+  "plugins/computer-use/skills/notify-user/SKILL.md": "Chinese trigger phrases in the description, same reason."
 }
