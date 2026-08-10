@@ -1,20 +1,10 @@
 {
   "_note": "Registry for verify-variants. An orphan section is one that exists on one end with no counterpart on another. The default reading is that a variant block was mis-nested — a real failure mode, and one the compile cannot see, because the artifact really was generated verbatim from the source. Keeping an orphan therefore requires saying here why it should exist on only that end. Stale entries are reported too: a 'deliberate difference' claim that no longer matches anything is as misleading as a missing one. Keys are paths relative to src/.",
-
   "plugins/computer-use/skills/notify-user/SKILL.md": {
     "claude": [
       {
         "heading": "Automatic notification at the end of a turn",
         "reason": "The section documents hooks/hooks.json, and hooks/** compiles to Claude only. Codex's plugin validator exits 1 on a hooks field and the vendor-neutral layout has no hook concept, so on those two ends the skill is invoked rather than triggered — there is no counterpart section to pair this with, by construction."
-      }
-    ]
-  },
-
-  "plugins/example/skills/hello-ends/SKILL.md": {
-    "claude": [
-      {
-        "heading": "Guardrail hook",
-        "reason": "hooks/** compiles to Claude only. A hooks field in .codex-plugin/plugin.json makes Codex's validator exit 1, and the vendor-neutral layout has no hook concept — so there is no counterpart section to pair with, on either other end."
       }
     ]
   }
