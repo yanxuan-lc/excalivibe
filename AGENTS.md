@@ -1,112 +1,150 @@
 # AGENTS.md — ExcaliVibe
 
-面向所有在本仓库里干活的 Agent（Claude Code / Codex / Cursor / opencode 等）的事实与规范。
-架构全貌看 [README.md](./README.md)，这里只写**动手之前必须知道、且改错了会静默出错**的那几条。
+Facts and conventions for every agent working in this repository (Claude Code, Codex, Cursor,
+opencode, …). The architecture is in [README.md](./README.md); this file carries only what you have
+to know **before touching anything, and would get silently wrong otherwise**.
 
-## 一句话事实
+## The one-sentence fact
 
-一份源码编译出三端产物。能力只写一次，落在 `src/plugins/<name>/`，`make build` 同时生成 Claude 插件、
-Codex 插件和厂商中立的 `common/` 布局。三端分别是 `claude` / `codex` / `common`。
+One source tree compiles to three ends. A capability is written once under
+`src/plugins/<name>/`, and `make build` emits a Claude plugin, a Codex plugin and the
+vendor-neutral `common/` layout together. The ends are `claude` / `codex` / `common`.
 
-## 硬规则
+## Hard rules
 
-**`claude/`、`codex/`、`common/` 以及两份 marketplace 清单全部是构建产物，一个手写文件都没有。**
-改动一律走 `src/`，然后 `make build`。产物提交进 git 是因为 Claude marketplace 直接从仓库安装。
-手改产物会被 `make check` 的第一道门禁抓出来。
+**`claude/`, `codex/`, `common/` and both marketplace manifests are build artifacts — not one
+hand-written file among them.** Change `src/`, then `make build`. They are committed because the
+Claude marketplace installs straight from the repository, so a clone has to contain a finished
+`claude/plugins/<name>/`. Hand-editing an artifact is caught by the first gate in `make check`.
 
-**skill 不写调用者。** description 只回答「什么情况下该用我」，绝不回答「谁会调我」。写着
-`invoked by name from the developer agent` 的 skill 有三重问题 —— 人直接提出同样需求时它不触发
-（描述的是派发而非情境）、那个 agent 一改名它就得重写、可复用的东西反过来依赖了具体的东西。
-箭头只能单向：**编排者点名它调用的 skill，skill 永不点名编排者。**
+**A skill never names its caller.** A description answers *when should this be used* and never
+*who will use it*. A skill saying `invoked by name from the developer agent` fails three ways at
+once: it does not trigger when a person asks for the same thing directly (it describes a dispatch,
+not a situation), it needs a rewrite the moment that agent is renamed, and it inverts the
+dependency so the reusable thing depends on the specific one. The arrow points one way —
+**an orchestrator names the skills it calls; a skill never names its orchestrator.**
 
-提交前跑 `make check`（四道门禁：`verify-build` / `typecheck` / `verify-skills` / `verify-variants`）。
-运行时零依赖，Node ≥22.18 加载时擦类型，`node scripts/build.ts` 直接可跑。
+**`src/` is English only.** `verify-no-cjk` rejects a single CJK character, comments included.
+Exceptions must be registered in `src/cjk-exceptions.json` with a reason; there are two today, both
+skill descriptions carrying Chinese trigger phrases — **the description is the routing surface**, so
+a Chinese request reaches an English description only if the phrasing it would arrive in is present
+in it. `evals/` is exempt as a directory, because trigger fixtures are Chinese on purpose and never
+ship. **A stale exception fails too**, so delete the entry when the Chinese goes away.
 
-## description 三槽制
+**Agent-facing files are English; human-facing files come in two.** `AGENTS.md`, `CLAUDE.md` and
+`CONTEXT.md` are English. `README.md` is English with `README.zh-CN.md` alongside it. Nothing
+mechanical enforces this outside `src/` — it is a convention you keep.
 
-description 是**触发面** —— 宿主靠它决定要不要把这个能力召回进上下文。不同模型的召回模型不同，
-同一段措辞在一个模型上稳定触发，在另一个模型上可能完全不触发。所以这是唯一一个**预期要分端调优**
-的字段，frontmatter 为此开三个槽：
+**There is exactly one way to change a version:**
+`make bump PLUGIN=<name> LEVEL=<major|minor|patch|x.y.z>`. Editing `version` in `plugin.json` by
+hand misses the places it has to stay in step with.
 
-| 槽位 | 谁用 | 说明 |
+Run `make check` before committing — six gates (`verify-build`, `typecheck`, `verify-json`,
+`verify-skills`, `verify-variants`, `verify-no-cjk`), each runnable on its own. There is no runtime
+dependency: Node ≥22.18 strips types at load, so `node scripts/build.ts` runs as it is.
+
+## The three description slots
+
+A description is the **routing surface** — the host reads it to decide whether to pull the
+capability into context at all. Recall differs between models, and wording that triggers reliably
+on one may not trigger at all on another. So this is the one field **expected to be tuned per
+end**, and the frontmatter opens three slots for it:
+
+| Slot | Used by | Purpose |
 |---|---|---|
-| `description:` | **common**，同时是全局兜底 | 中立措辞，不为任何单一宿主调优 |
-| `description-claude:` | claude | 直接覆盖，专为 Claude 的召回调优 |
-| `description-codex:` | codex | 直接覆盖，专为 Codex 的召回调优 |
+| `description:` | **common**, and the global fallback | neutral wording, tuned for no single host |
+| `description-claude:` | claude | overrides outright, tuned for Claude's recall |
+| `description-codex:` | codex | overrides outright, tuned for Codex's recall |
 
-解析规则在 `src/common.ts` 的 `descriptionFor()`：`description-<end>` 存在就用它，否则回落到
-`description`。**没有 `description-common:` 这个槽** —— common 是厂商中立端，未调优的兜底本身
-就是它的描述。写 `description-common:` 虽然也能解析（查找是通用的），但那意味着兜底已经不中立了，
-正确做法是调优两个具名端、让 `description` 保持它们分岔出去的那个原点。
+The resolution lives in `descriptionFor()` in `src/common.ts`: use `description-<end>` if present,
+otherwise fall back to `description`. **There is no `description-common:` slot** — common is the
+vendor-neutral end, so the untuned fallback *is* its description. Writing one would still resolve
+(the lookup is generic), but it would mean the fallback has stopped being neutral; tune the two
+named ends and leave `description` as the thing they diverge from.
 
-三个槽当前内容一致，是刻意的起点：先把槽位铺好，再逐端实测调优。**分端调优必须基于实测**，
-不要凭感觉改一个端的措辞就当它更好了 —— 见下面「怎么写 description」。
+Of the 27 skills today, 23 carry all three slots with identical content — a deliberate starting
+point: lay the slots down first, tune per end later. The other four (`genai-dev-flow`'s) carry only
+`description:` and take the fallback. **Per-end tuning must be measured**, not felt — see the next
+section.
 
-写的时候注意两处：
+Two things to get right while writing one:
 
-- **agent 的 description 里 `\n` 要写成 `\\n`。** 双引号 YAML 标量里 `\n` 会被解析成真换行，
-  而 Claude 的 agent frontmatter 约定是让字面量 `\n` 原样留在值里。现有 agent 的 `Examples:`
-  块全部是这个写法，照抄即可。
-- **Codex 端产物是 TOML，值由 `JSON.stringify` 生成。** 所以 `descriptionValueFor()` 读的是
-  **解析后**的 map 而不是 raw —— 喂 raw 会把已带引号的字符串再包一层，产出
-  `description = "\"Dispatch this agent…\""`。这个坑踩过一次，别改回去。
+- **In an agent description, write `\n` as `\\n`.** Inside a double-quoted YAML scalar `\n` parses
+  as a real newline, while Claude's agent frontmatter convention wants the literal `\n` to survive
+  in the value. Every existing agent's `Examples:` block is written this way; copy it.
+- **The Codex artifact is TOML, and its values are produced by `JSON.stringify`.** That is why
+  `descriptionValueFor()` reads the **parsed** map rather than the raw text — feeding it raw wraps
+  an already-quoted string a second time and ships
+  `description = "\"Dispatch this agent…\""`. The comment on `descriptionValueFor()` in
+  `src/common.ts` spells the distinction out; do not swap the two functions.
 
-## 怎么写 description
+## How to write a description
 
-以下三条在本仓库实测过（Codex 端，20 条 query × 5 次，前后同条件对照），不是审美偏好：
+Every description in the repository follows the three rules below. Match their shape.
 
-**开头写「这是哪一类判断」，不要写主题名词。** 以名词开场的描述会同时双向失效：任何蹭到这个名词
-但不需要判断的请求都会误触发（`跑一下 linter`、`撤销我上一个 commit`），而这个 skill 真正存在的
-理由 —— 那些绕开了名词的问题（`这两个该拆成两个模块还是一个`、`这算 minor 还是 major`）—— 反而
-一次都不触发。改成以「决定某件事在这里该怎么做」开场、把主题名词降级成后文的召回词汇之后：
-`vcs-workflow` 15/20 → 20/20，`middleware-guideline` 16/20 → 19/20，`coding-guideline` 11/20 → 16/20。
+**Open with the kind of judgment it makes, not with the subject noun.** Every description here
+starts with a verb — `Decide how to branch…` (`vcs-workflow`), `Answer "how should this be written
+here"…` (`coding-guideline`), `Sweep a codebase…` (`smell-scan`). A noun-led opening fails in both
+directions: any request that merely brushes past the noun without needing the judgment triggers it,
+while the questions that genuinely need it often do not contain the noun at all ("should these be
+two modules or one"). Demote the subject noun to recall vocabulary further down.
 
-代价要说清楚：判断式开场会把相邻的**概念性**提问也拉进来（`讲讲服务发现是怎么回事` 从 0.0 涨到 0.8）。
-净收益为正，但这是一笔交易而非白拿。
+The cost, stated: a judgment-led opening also pulls in neighbouring **conceptual** questions. It is
+a trade, not a free win.
 
-**边界写成「它是什么」，不要写成排除项清单。** 实测过一条具体的排除项 ——「不适用于实现一个已经
-议定的 spec」—— 加上之后，`实现我们昨天议定的 auth spec` 这条 query 反而 5/5 全部触发。点名一个
-场景不能可靠地阻止在该场景触发，反而可能让它更显眼。所以边界要写进身份里：
-`It supplies the judgment about how code ought to look; carrying out a change whose shape is already decided is separate work.`
-枚举「我覆盖什么」是安全的，枚举「我不覆盖什么」不是。
+**Write the boundary as what it is, not as a list of exclusions.** Look at how
+`coding-guideline` ends: `It supplies the judgment about how code ought to look; carrying out a
+change whose shape is already decided is separate work.` The boundary is folded into the identity
+rather than listed as "not for X". **Enumerating what you cover is safe; enumerating what you do not
+is not** — naming a scenario does not reliably stop it from triggering there, and may make it more
+salient instead.
 
-**分端调优前先确认量具。** 触发率测量内部没有 ground truth：「没触发」和「测量装置没看见它触发」
-输出完全一样，所以坏掉的尺子读起来永远像好消息。本仓历史上找到的十来个缺陷几乎全在测量装置里
-（被丢弃的 stderr、落在正常延迟区间内的超时截断、`--num-workers 10`、长得和「从未触发」一模一样的
-配额错误）。跑批之前先单跑一条、把完整事件流打出来读一遍；**报错却零成本的那一次运行，根本没执行过**
-（`is_error and not total_cost_usd`），按运行逐条审计，不要只看汇总行。
+**Check the instrument before tuning against it.** Trigger measurement has no internal ground
+truth: "did not trigger" and "the harness did not see it trigger" produce identical output, so
+**a broken ruler always reads like good news**. The harness is `scripts/eval-triggers.ts` and the
+fixtures live in seven skills' `evals/` directories (`make eval` spends a real model call). Before
+a batch, run one case and read its full event stream; audit run by run rather than trusting the
+summary line.
 
-## 目录
+## Layout
 
 ```
 src/
-  common.ts              端定义、TIER 表、variant 渲染、frontmatter 解析、description 分端解析
-  marketplace.json       两份 marketplace 清单的共同来源
-  variant-exceptions.json 已登记的有意单端差异
+  common.ts              end definitions, TIER table, variant rendering, frontmatter and
+                         per-end description resolution
+  marketplace.json       the shared source of both marketplace manifests
+  variant-exceptions.json  registered deliberate single-end differences
+  cjk-exceptions.json    registered src files allowed to contain Chinese
   plugins/<name>/
-    plugin.json          一份 manifest，编译成各端各自的形状
-    skills/<name>/SKILL.md   触发面 + 主干
-    agents/<name>.md         一份正文，三种序列化
-    hooks/**                 Claude 独有
+    plugin.json          one manifest, compiled into each end's own shape
+    skills/<name>/SKILL.md   routing surface + trunk
+    agents/<name>.md         one body, three serializations
+    hooks/**                 Claude only
 scripts/
-  build.ts / check-skills.ts / verify-variants.ts
-  ui.ts                  终端输出的统一视觉语言，Makefile 也走它
+  build.ts               the compiler
+  check-skills.ts / verify-variants.ts / verify-json.ts / verify-no-cjk.ts   the four gate scripts
+  bump.ts                the only entry point for versions
+  eval-triggers.ts       building and scoring the trigger eval
+  ui.ts                  the single visual language for terminal output; the Makefile uses it too
 ```
 
-## 终端输出
+## Terminal output
 
-所有 build / verify 脚本和 Makefile recipe 的输出都走 `scripts/ui.ts`，只有三种角色、三种形状，
-不要混：
+Every build and verify script, and every Makefile recipe, writes through `scripts/ui.ts`. There
+are three roles and three shapes. Do not mix them:
 
 ```
-  ~ claude/…/SKILL.md          detail —— 缩进 2、暗色、带字形，是证据，可跳读可截断
-                                         + 新增 · ~ 变更 · − 删除 · ? 无法解释
-✓ compiled — 56 change(s)      result —— 顶格、带色，是结论，只有一行，上面留空行
-→ `make build` 恢复它们        next   —— 顶格、暗色，是「接下来该做什么」，永远在最后
+  ~ claude/…/SKILL.md          detail — indent 2, dim, glyph-marked. Evidence: skimmable, truncatable
+                                        + added · ~ changed · − removed · ? unexplained
+✓ compiled — 56 change(s)      result — flush left, coloured. The conclusion: one line, blank line above
+→ `make build` restores them   next   — flush left, dim. What to do now; always last
 ```
 
-**`✓` / `✗` 只属于结论行。** 证据行曾经也用 `✗` 开头，和总结它的那行同缩进、同颜色、同字形 ——
-结果最该先读的那一行反而最难挑出来。证据用「这是什么类型的东西」的字形，不用对错字形。
+**`✓` and `✗` belong to the conclusion line only.** An evidence line starting with `✗` would share
+its indent, colour and glyph with the line that summarizes it, which makes the one line you should
+read first the hardest to pick out. Evidence uses a glyph for *what kind of thing this is*, not for
+right or wrong.
 
-颜色自动降级：管道输出、CI 日志会自动去色，并遵守 `NO_COLOR`。**不要在这个模块之外写转义码**
-（`make help` 是唯一的例外，它用 awk 排版一张表，自带布局）。
+Colour degrades on its own: piped output and CI logs lose it, and `NO_COLOR` is honoured. **Do not
+write escape codes outside that module** — `make help` is the sole exception, since it lays out a
+table in awk and owns its own formatting.

@@ -1,90 +1,99 @@
 # ExcaliVibe
 
-一份源码，编译出三端产物。能力只写一次，落在 `src/plugins/<name>/`，`make build` 同时生成 Claude 插件、Codex 插件和厂商中立的 `common/` 布局。
+> 中文版: [README.zh-CN.md](./README.zh-CN.md)
 
-## 三个插件
+One source tree, compiled to three ends. A capability is written once under `src/plugins/<name>/`, and `make build` emits a Claude plugin, a Codex plugin and the vendor-neutral `common/` layout together.
 
-| 插件 | 定位 | 内容 |
+## Three plugins
+
+| Plugin | What it is | Contents |
 |---|---|---|
-| `computer-use` | 如何使用电脑 —— 让 agent 越过自身文本输出、作用于真实机器的能力 | `graceful-browser`、`mdx-artifact`、`notify-user`、`install-computer-use`（Claude 端另带一份出厂静默的 turn-end hook） |
-| `dev-toolkit` | 原子开发能力 —— 每个独立成立、按自身主题触发、不假设谁来调 | 18 个（规约 6 / 方法 4 / 流程约定 1 / 检查器 4 / 实地调研 3） |
-| `dev-workflow` | 流程编排 —— 把原子能力串成带门禁与角色的管线 | 12 个 agent + 2 个 skill + 14 份节点定义；引擎是外部包 `fsx` |
+| `computer-use` | How to operate a computer — the capabilities that let an agent reach past its own text output and act on a real machine | `graceful-browser`, `mdx-artifact`, `notify-user`, `install-computer-use` (plus one turn-end hook, silent out of the box, on the Claude end) |
+| `dev-toolkit` | Atomic development capabilities — each stands alone, triggers on its own subject, and assumes nothing about who invoked it | 19 (conventions 6 / methods 4 / process 1 / checks 5 / grounded research 3) |
+| `genai-dev-flow` | A whole flow — requirements in, one release out, every step gated on something re-runnable | 4 skills (manual / install / requirements / driving) + 4 subagents + 7 fsx step definitions |
 
-**一条贯穿全仓的规则：skill 不写调用者。** description 只回答「什么情况下该用我」，绝不回答「谁会调我」。写着 `invoked by name from the developer agent` 的 skill 有三重问题 —— 人直接提出同样需求时它不触发（描述的是派发而非情境）、那个 agent 一改名它就得重写、以及可复用的东西反过来依赖了具体的东西。箭头只能单向：**编排者点名它调用的 skill，skill 永不点名编排者。**
+**One rule runs through the repository: a skill never names its caller.** A description answers *when should this be used* and never *who will use it*. A skill saying `invoked by name from the developer agent` has three problems at once — it fails to trigger when a person asks for the same thing directly (it describes a dispatch rather than a situation), it breaks the moment that agent is renamed, and it inverts the dependency so the reusable thing depends on the specific one. The arrow points one way: **an orchestrator names the skills it calls; a skill never names its orchestrator.**
 
-## 三端
+## Three ends
 
-| 端 | 产物 | 安装方式 | 平台约束 |
+| End | Artifacts | Installation | Platform constraints |
 |---|---|---|---|
-| claude | `claude/plugins/<name>/` | marketplace（`.claude-plugin/marketplace.json`） | 独有 `commands/`、`hooks/`，agent 可随插件打包 |
-| codex | `codex/plugins/<name>/` + `codex/agents/*.toml` | Codex 插件市场（`.agents/plugins/marketplace.json`） | 无 commands 概念；插件**不能**打包 agent，需手工 `cp` 到 `~/.codex/agents/`；manifest 里写 `hooks` 字段会让校验器 exit 1 |
-| common | `common/` | 手工拷进目标项目的 `.agents/` | 无插件、无 manifest、无 hook；opencode 等宿主原生识别 `.agents/skills/<name>/SKILL.md` |
+| claude | `claude/plugins/<name>/` | marketplace (`.claude-plugin/marketplace.json`) | the only end with `commands/` and `hooks/`; agents ship inside the plugin |
+| codex | `codex/plugins/<name>/` + `codex/agents/*.toml` | Codex plugin marketplace (`.agents/plugins/marketplace.json`) | no commands concept; a plugin **cannot** bundle agents, so they are copied to `~/.codex/agents/` by hand; a `hooks` field in the manifest makes the validator exit 1 |
+| common | `common/` | copied into a target project's `.agents/` by hand | no plugins, no manifest, no hooks; hosts such as opencode read `.agents/skills/<name>/SKILL.md` natively |
 
-`claude/`、`codex/`、`common/` 以及两份 marketplace 清单**全部是构建产物**，一个手写文件都没有。改动一律走 `src/`，然后 `make build`。产物提交进 git 是因为 Claude marketplace 直接从仓库安装——用户 clone 到的必须是现成的 `claude/plugins/<name>/`，不能是「构建后才存在」的东西。
+`claude/`, `codex/`, `common/` and both marketplace manifests are **build artifacts** — not one hand-written file among them. Change `src/`, then `make build`. They are committed because the Claude marketplace installs straight from the repository: what a user clones has to contain a finished `claude/plugins/<name>/`, not something that exists only after a build.
 
-## 上手
+## Getting started
 
 ```bash
-npm install          # 只装 typescript / @types/node，供类型检查用
+npm install          # typescript / @types/node only, for type checking
 make build           # src/ → claude/ + codex/ + common/
-make check           # 提交前的完整门禁
-make help            # 全部 target
+make check           # the full pre-commit gate
+make help            # every target
 ```
 
-运行时**零依赖**：Node ≥22.18 在加载时擦除类型，所以 `node scripts/build.ts` 直接可跑。`typescript` 只服务于 `make typecheck`——这也是 `tsconfig.json` 打开 `erasableSyntaxOnly` 的原因：它禁掉 `enum`、`namespace` 这类 Node 擦不掉的语法，避免出现「类型检查通过但跑不起来」。
+**No runtime dependency**: Node ≥22.18 strips types at load, so `node scripts/build.ts` runs as it is. `typescript` serves `make typecheck` and nothing else — which is also why `tsconfig.json` turns on `erasableSyntaxOnly`. That flag bans `enum`, `namespace` and the rest of the syntax Node cannot strip, so "type-checks but will not run" cannot happen.
 
-## 单端差异怎么表达
+## How a single-end difference is expressed
 
-共享是默认，差异必须显式声明。八种机制：
+Sharing is the default; a difference has to be declared. Eight mechanisms:
 
-| 机制 | 声明位置 | 编译器行为 |
+| Mechanism | Declared in | What the compiler does |
 |---|---|---|
-| variant 块 | 任意 `.md` 里的 `@claude` … `@end` 注释对 | 保留指名端的片段，其余丢弃；未被指名的端什么都拿不到 |
-| 分端描述 | frontmatter 的 `description-claude:` / `description-codex:` | 覆盖该端；`description` 是兜底，也正是 common 取到的值（详见 [AGENTS.md](./AGENTS.md#description-三槽制)） |
-| 分端文件名 | `probe.claude.sh` | 只有该端拿到，并重命名为 `probe.sh` |
-| 分端数据 | `realization.json`，每端一个 key | 每端只拿自己那半 |
-| 根路径 | 正文里的 `${PLUGIN_ROOT}` | 替换为各端真实的根变量 |
-| 模型档位 | agent frontmatter 的 `tier: top\|standard\|light` | 查 `src/common.ts` 的 `TIER` 表 —— top/standard/light 对应 opus/sonnet/haiku 与 sol/terra/luna |
-| 单端目录树 | `hooks/**` | 天然只编到 Claude |
-| 命令包装 | skill frontmatter 的 `command: true` | Claude 额外得到一个薄的 `commands/<name>.md` |
+| variant block | a `<!--@claude-->` … `<!--@end-->` comment pair in any `.md` | keeps the named end's slice and drops the rest; an end the block does not name gets nothing |
+| per-end description | `description-claude:` / `description-codex:` in the frontmatter | overrides that end; `description` is the fallback, and is exactly what common takes (see [AGENTS.md](./AGENTS.md#the-three-description-slots)) |
+| per-end filename | `probe.claude.sh` | only that end gets it, renamed to `probe.sh`. **No source file uses this today** |
+| per-end data | `realization.json`, one key per end | each end takes only its own half. **No source file uses this today** |
+| root path | `${PLUGIN_ROOT}` in prose | substituted with each end's real root variable |
+| model tier | `tier: top\|standard\|light` in agent frontmatter, optionally overridden per end with `tier-<end>:` | resolved against the `TIER` table in `src/common.ts` — in order, opus / sonnet / haiku and gpt-5.6-sol / gpt-5.6-terra / gpt-5.6-luna; the common end carries no model field at all |
+| single-end directory tree | `hooks/**` | compiles to Claude by construction |
+| command wrapper | `command: true` in skill frontmatter | Claude additionally gets a thin `commands/<name>.md` |
 
-## 四道门禁，各自防什么
+## Six gates, and what each one prevents
 
-`make check` 由四步组成，每步都可单独跑：
+`make check` runs six steps, each runnable on its own:
 
-- **`verify-build`** —— 产物与源码是否一致。抓「忘了编译」「手改了产物」「产物里有源码不产生的孤儿文件」三类。
-- **`typecheck`** —— `tsc --noEmit` 扫 `src/` 和 `scripts/`。
-- **`verify-skills`** —— 两件事：产出的 SKILL.md / agent frontmatter 是合法 YAML 子集，以及每份渲染后的 SKILL.md 不超过 500 行的上下文预算。都跑产物而非源码，因为分端描述可能只在**一个端**上把 frontmatter 弄坏，而源码文件同时装着三端的正文、行数根本不代表实际入上下文的量。
-- **`verify-variants`** —— variant 块边界是否嵌错。这是编译器**看不见**的一类失败：边界错位会让某个端整段丢失，而产物依然是源码逐字生成的、round-trip 依然字节一致、所有测试依然绿。它的办法是渲染每个端，找**没有对应物的孤儿标题**；确属有意的单端章节，逐条登记进 `src/variant-exceptions.json` 并写明理由。
+- **`verify-build`** — do the artifacts match the source? Catches "forgot to compile", "hand-edited an artifact", and "an orphan in the artifacts that no source produces".
+- **`typecheck`** — `tsc --noEmit` over `src/` and `scripts/`.
+- **`verify-json`** — every JSON under `src/` parses, and a graph skeleton references only the nodes it declares itself.
+- **`verify-skills`** — two things: the emitted SKILL.md and agent frontmatter are a valid YAML subset, and every rendered SKILL.md stays inside its 500-line context budget. Both run over the artifacts rather than the source, because a per-end description can break the frontmatter on **one end only**, and a source file holds all three ends' prose at once so its line count says nothing about what actually enters context.
+- **`verify-variants`** — is a variant block boundary mis-nested? This is a failure the compiler **cannot see**: a misplaced boundary drops a whole section on some end while the artifact is still generated verbatim from the source, the round-trip is still byte-identical, and every check still passes. Its method is to render each end and look for **orphan headings with no counterpart**. A genuinely single-end section is registered in `src/variant-exceptions.json` with its reason.
+- **`verify-no-cjk`** — `src/` stays English, comments included. Exceptions are registered in `src/cjk-exceptions.json` with a reason; `evals/` is exempt as a directory, because trigger fixtures are Chinese on purpose and never ship. The root `README.md` / `AGENTS.md` / `CONTEXT.md` are outside its scope.
 
-另外两道防线在编译器内部，不在门禁里：`lintVariants` 拒绝输出任何残留 marker 的文件（端名拼错、漏了 `@end` 都是这个signature），`emit` 拒绝两个源码编到同一路径（common 端没有插件目录，skill 名在那里是仓库全局的）。
+Two more defences live inside the compiler rather than in the gate: `lintVariants` refuses to emit any file with a surviving marker (a misspelled end name and a missing `<!--@end-->` share that signature), and `emit` refuses to compile two sources to one path (the common end has no plugin directory, so a skill name is repository-global there).
 
-## 目录
+## Layout
 
 ```
 src/
-  common.ts              端定义、TIER 表、variant 渲染、frontmatter 解析
-  marketplace.json       两份 marketplace 清单的共同来源
-  variant-exceptions.json 已登记的有意单端差异
+  common.ts              end definitions, TIER table, variant rendering, frontmatter parsing
+  marketplace.json       the shared source of both marketplace manifests
+  variant-exceptions.json  registered deliberate single-end differences
+  cjk-exceptions.json    registered src files allowed to contain Chinese
   plugins/<name>/
-    plugin.json          一份 manifest,编译成各端各自的形状
+    plugin.json          one manifest, compiled into each end's own shape
     README.md
     skills/<name>/
-      SKILL.md           触发面 + 主干,进上下文的部分
-      references/**      按需加载的深度内容
-      scripts/**         可执行件,权限位随源码保留
-      assets/**          随 skill 发出去、由它的脚本消费的数据
-      evals/**           触发率 fixture,留在 src 不发给用户
-    agents/<name>.md     一份正文,三种序列化
-    hooks/**             Claude 独有
+      SKILL.md           routing surface + trunk — the part that enters context
+      references/**      depth, loaded on demand
+      scripts/**         executables; permission bits are preserved from the source
+      assets/**          data that ships with the skill and is consumed by its scripts
+      evals/**           trigger fixtures; they stay in src and are never shipped
+    agents/<name>.md     one body, three serializations
+    hooks/**             Claude only
 scripts/
-  build.ts               编译器
-  check-skills.ts        frontmatter 合法性 + SKILL.md 行数预算
-  verify-variants.ts     variant 块边界完整性
+  build.ts               the compiler
+  check-skills.ts        frontmatter validity + the SKILL.md line budget
+  verify-variants.ts     variant block boundary integrity
+  verify-json.ts         JSON parseability + graph skeleton reference integrity
+  verify-no-cjk.ts       the English constraint on src/
+  bump.ts                the only entry point for versions
+  eval-triggers.ts       building and scoring the trigger eval
+  ui.ts                  the single visual language for terminal output; the Makefile uses it too
 ```
 
-## 已知的粗糙处
+## Known rough edges
 
-- `.agents/` 在本仓库里放的是 **Codex 的 marketplace 清单**，而 `common/` 才是给消费者拷进**他们自己**的 `.agents/skills/` 的东西。同一个名字两种角色，容易看岔。编译器因此只拥有 `.agents/plugins`——它一度拥有整个 `.agents/`，于是每次 `make build` 都把别的工具装在 `.agents/skills/` 下的东西当孤儿扫掉。
-- common 端的 `${PLUGIN_ROOT}` 解析成项目相对的 `.agents`，因此**用户级安装**（`~/.agents/`）下这个变量不成立。需要在 common 端工作的正文，优先用相对 skill 自身目录的路径。
-- 没有 LICENSE：清空仓库时一并删了，等真实设计定下来再补。
+- `.agents/` in this repository holds **Codex's marketplace manifest**, while `common/` is what a consumer copies into **their own** `.agents/skills/`. One name, two roles, and easy to misread. The compiler therefore owns **only `.agents/plugins`** — widening it to the whole of `.agents/` would make `make build` sweep away whatever other tools have installed under `.agents/skills/` as orphans.
+- The common end's `${PLUGIN_ROOT}` resolves to the project-relative `.agents`, so the variable does not hold under a **user-level** install (`~/.agents/`). Prose that has to work on the common end should prefer paths relative to the skill's own directory.

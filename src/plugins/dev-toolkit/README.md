@@ -1,6 +1,6 @@
 # dev-toolkit
 
-Atomic development skills. Eighteen of them, in four kinds, and the thing they have in common
+Atomic development skills. Nineteen of them, in five kinds, and the thing they have in common
 matters more than the taxonomy: **none of them knows who invoked it.**
 
 | kind | skills |
@@ -8,7 +8,7 @@ matters more than the taxonomy: **none of them knows who invoked it.**
 | conventions — how the artifact should look | `coding-guideline` `dba-guideline` `devops-guideline` `docs-guideline` `middleware-guideline` `spec-guideline` |
 | methods — how to run a working loop | `grill` `tdd` `debug` `e2e-test` |
 | conventions of process | `vcs-workflow` |
-| checks — take an artifact, return a verdict | `a11y-check` `perf-budget` `security-scan` `smell-scan` |
+| checks — take an artifact, return a verdict | `a11y-check` `glossary-conformance` `perf-budget` `security-scan` `smell-scan` |
 | grounded research — go look instead of recalling | `research-api` `research-data-source` `research-source-code` |
 
 ## No skill names its caller
@@ -32,8 +32,8 @@ The four check skills produce a verdict and stop. They do not decide whether tha
 anything, because the threshold belongs to whoever is doing the blocking — and a check that decides
 its own consequences cannot be reused at a different bar.
 
-There is a real distinction underneath this, and it is the same test that decides what belongs in
-`dev-workflow` instead: producing a **report** is self-contained, producing a **contract that
+There is a real distinction underneath this, and it is the same test that decides what belongs in an
+orchestration plugin instead: producing a **report** is self-contained, producing a **contract that
 another role builds against** is not. `smell-scan` emits a ranked report nobody has to consume in a
 particular way, so it lives here. A step that emits a brief the next role writes its design against
 does not.
