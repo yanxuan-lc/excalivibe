@@ -29,5 +29,3 @@ An item is done only when **every** change it mapped to is done.
 Return the verdict `conditional` and say what is missing. An item that will not be finished
 this round goes back to `ready` — leaving it `active` blocks the release, which is the
 intended behaviour.
-
-{{rejection}}

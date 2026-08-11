@@ -51,5 +51,3 @@ does not make the tree dirty for the checks downstream.
 
 `approve`, `conditional` or `reject`. Note that `conditional` sends the work back; use it when
 the conditions are real work rather than as a softer approval.
-
-{{rejection}}

@@ -16,5 +16,3 @@ Update every version-bearing file the project declares, write the changelog from
 commits, commit, and tag.
 
 Record the tag and the release in `effects`, with `reversible: false`.
-
-{{rejection}}

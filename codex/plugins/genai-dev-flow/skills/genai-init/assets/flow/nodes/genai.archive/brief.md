@@ -60,5 +60,3 @@ Commit the archive move and the updated main specs together. A round that ships 
 its specs folded leaves the repository describing a version that no longer exists.
 
 Report `partial` and name the leftovers if any change could not be archived.
-
-{{rejection}}

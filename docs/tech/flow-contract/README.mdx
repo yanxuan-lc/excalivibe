@@ -149,8 +149,11 @@ at creation.
 
 Both are third-party, and in both cases the flow depends on a behaviour that is easy to get wrong:
 
-**fsx.** Entry rules consume nothing when they fail — no verdict, no patience, no attempt — which is
-what makes them safe to add. Gate commands receive **no** variables: not graph variables, not the
+**fsx.** A `brief.md` may interpolate exactly two slots, `{{report}}` and `{{state}}`, and neither of
+these definitions uses either: the upstream artifacts, the artifact requirements and the rejection
+message are printed unconditionally by the framework's own contract block, and no slot can name them.
+A retired slot in a brief is a `fsx check` error, not a silent duplicate. Entry rules consume nothing
+when they fail — no verdict, no patience, no attempt — which is what makes them safe to add. Gate commands receive **no** variables: not graph variables, not the
 instance suffix, no injected environment. Every check therefore derives its context from `$PWD` or from
 git, and that single fact explains both the fixed `.flow/genai/check.mjs` path and the load-bearing name
 of the sibling directory.

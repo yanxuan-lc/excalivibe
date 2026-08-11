@@ -73,5 +73,3 @@ rows verified, and the classification of anything that failed. Not how you ran t
 of the spec, not a summary of your own summary — bury the facts and you have not reported them.
 
 If something could not be reached, report it as what it is. Never infer a pass.
-
-{{rejection}}

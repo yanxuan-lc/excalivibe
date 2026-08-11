@@ -116,15 +116,18 @@ fsx dispatch '<node>#1' -g <round>      # the instruction (quote it — # starts
 fsx gate '<node>#1' -g <round>          # re-runs the checks and returns a verdict
 ```
 
-**Save the `prompt` that `dispatch` returns, the moment it returns.** It is the only copy: the
-event log keeps a `prompt_hash` and not the text, so an instruction not captured at dispatch is
-gone. Write it to a file next to the round's records before handing it over.
+**The instruction is kept for you.** Every dispatch writes the rendered text under the run
+directory and returns `instruction_path` beside `draft_path`; read that file rather than saving the
+`prompt` field by hand. It is never re-rendered, so it is what that attempt was actually told, and it
+survives the working tree moving on. It disappears only if `.flow/runs/` is cleaned, which costs a
+record and no state — the event log is the scheduling truth.
 
-**`fsx preview` is not a way to get it back.** Preview renders the instruction for the **next**
-attempt, so after `genai.spec#1` has been dispatched once it renders attempt 2 — and its
-`draft_path` points into attempt 2's directory. Relay that and the executor writes its report where
-nothing will look for it; `fsx report submit` then says `report_missing` about attempt 1, and the
-error names a path that gives no hint the fault was in the relaying.
+**`fsx preview` is still not a way to read a dispatched instruction.** Preview renders the **next**
+attempt, so after `genai.spec#1` has been dispatched once it renders attempt 2 — and its `draft_path`
+points into attempt 2's directory. Relay that and the executor writes its report where nothing will
+look for it; `fsx report submit` then says `report_missing` about attempt 1, and the error names a path
+that gives no hint the fault was in the relaying. Preview answers "what would this attempt be told if
+dispatched now"; `instruction_path` answers "what was it told".
 
 **Every command names its graph.** There is no current graph and no default, so a command
 without `-g` fails with `graph_ref_required` rather than acting on the wrong round. Take the
@@ -150,11 +153,11 @@ stops asking for a `ready` backlog item once it has claimed them all, `genai.arc
 for an unfolded change once it has folded them. Read that as "not asked this time", never as
 "satisfied": the fact it tests may well be false, and on this dispatch that is the intended answer.
 
-**Only `dispatch` tells you which rules were skipped.** It returns `ready_skipped` with each rule and
-the `when` that excluded it. `next --check-ready` reports a skip list **only for a node it refuses** —
-a node it says can start carries no such list, so at that point the number of rules that were not asked
-is not observable. Do not read a clean `--check-ready` as "every precondition held"; it means "nothing
-refused it".
+**Both commands tell you which rules were skipped, and they agree.** `fsx dispatch` returns
+`ready_skipped`, and `fsx next --check-ready` carries the same list on each node in `next[]` — rule id
+plus the `when` that excluded it. So a node reported as able to start still says how much of its entry
+condition was not asked, which is what makes `--check-ready` usable as "can this round move at all".
+(Inside `not_ready[]` the field is named `skipped`; the two names never appear on one object.)
 
 Deliver the work yourself: spawn the subagent, or do it in this context when the node says
 `main`. The engine states who should do it and verifies what comes back; it never delivers.

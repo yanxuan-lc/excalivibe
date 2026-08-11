@@ -54,5 +54,3 @@ The design review's conditions are in `openspec/changes/*/spec-review.md`. **Rea
 the message you were handed states a verdict, not what was wrong with the design, and nothing else in
 this instruction carries the review's own words. Address the points it names; do not rewrite what it
 approved.
-
-{{rejection}}

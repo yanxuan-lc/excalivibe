@@ -51,5 +51,3 @@ Two steps can return work here, and each writes down what it found:
 
 **Read whichever applies before starting.** The message you were handed names a verdict; the file names
 the work.
-
-{{rejection}}

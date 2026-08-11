@@ -44,5 +44,3 @@ rewrites what they are judging has reviewed their own work by the time the gate 
 `approve`, `conditional` or `reject`. `conditional` sends the whole batch back to the design step,
 and it should: a condition attached to a design is a change to that design, and the one place it
 is cheap to make is here. Do not reach for it as a gentler approval.
-
-{{rejection}}

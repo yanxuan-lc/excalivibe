@@ -90,5 +90,3 @@ classifications the failure landed in.
 That report is also the one legitimate way this step learns anything about the running application. It
 records behaviour, not implementation, so reading it does not cost you the independence the rest of this
 brief is about. Fix the tests it names, and nothing else.
-
-{{rejection}}
