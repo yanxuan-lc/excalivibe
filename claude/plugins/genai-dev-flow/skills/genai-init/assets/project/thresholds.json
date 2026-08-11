@@ -1,0 +1,11 @@
+{
+  "coverage": {
+    "lines": 0.9,
+    "branches": 0.9,
+    "functions": 1.0
+  },
+  "e2e": {
+    "max_non_scripted": 5,
+    "max_non_scripted_ratio": 0.2
+  }
+}

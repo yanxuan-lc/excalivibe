@@ -88,8 +88,8 @@ vendor-neutral end, so the untuned fallback *is* its description. Writing one wo
 (the lookup is generic), but it would mean the fallback has stopped being neutral; tune the two
 named ends and leave `description` as the thing they diverge from.
 
-Of the 27 skills today, 23 carry all three slots with identical content — a deliberate starting
-point: lay the slots down first, tune per end later. The other four (`genai-dev-flow`'s) carry only
+Of the 28 skills today, 23 carry all three slots with identical content — a deliberate starting
+point: lay the slots down first, tune per end later. The other five (`genai-dev-flow`'s) carry only
 `description:` and take the fallback. **Per-end tuning must be measured**, not felt — see the next
 section.
 

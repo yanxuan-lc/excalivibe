@@ -8,6 +8,9 @@ inputs:
   - name: reviews
     from: genai.code-review
     required: true
+  - name: e2e-report
+    from: genai.e2e
+    required: true
   - name: commits
     from: genai.implement
     required: true
@@ -35,6 +38,26 @@ ready:
       unknown:
         ready: false
         reason: "The reviewed commits cannot be measured — confirm the sprint branch still exists"
+
+  # The same rule for the acceptance run, and the leak it closes is the one this flow would otherwise
+  # have twice: e2e green on commit X, a review fix lands as Y, Y merges on X's evidence. Note what
+  # is NOT here — no commit written into the report and compared by hand. The framework already
+  # measures both sides, so asking an executor to stamp its own artifact would only add a field it
+  # could get wrong.
+  - rule_id: e2e-still-valid
+    checker:
+      type: upstream_premise
+      of: [e2e-report]
+      against: commits
+    on_result:
+      fresh:
+        ready: true
+      stale:
+        ready: false
+        reason: "The branch moved after the acceptance run. A pass describes the commit it ran against and no other — run the e2e pass again on the current tip"
+      unknown:
+        ready: false
+        reason: "The commits the acceptance run covered cannot be measured — confirm the sprint branch still exists"
 
   - rule_id: clean-tree
     checker:

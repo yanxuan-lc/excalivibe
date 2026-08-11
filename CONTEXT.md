@@ -27,6 +27,35 @@ specs, so checking before the fold would miss the one failure the step exists fo
 destroys is a precondition that forbids its own rework. `nodes/genai.archive/node.yaml` therefore has
 no entry rule at all, and its comment names the two candidates that were rejected.
 
+**The e2e suite is built in parallel with the code, from the spec.** `nodes/genai.e2e-author/node.yaml`
+declares its input as `from: genai.spec` and never the commits, so the instruction it receives has no
+path to the implementation in it — independence by wiring rather than by instruction. Two phases were
+rejected in favour of this plus the `delegate` return edge: selectors that can only be settled against
+a real DOM come back when there is a real failure to settle them against.
+
+**The acceptance run happens once, before the merge.** `make genai-metrics` runs twice — on the branch
+and on the merged tree — because the second run catches the merge itself. The e2e pass does not, and the
+cost is stated rather than hidden: **the merged tree's e2e behaviour is not verified**, only its unit
+suite and coverage. Running it twice would mean a second app boot and a second full pass for the one
+failure mode the metrics gate mostly already covers. A post-merge instance can be added later without a
+new definition.
+
+**A record a gate parses carries one fenced json block.** `e2e-manifest.md` and `e2e-report.md` are
+markdown for the person who reads them later, with a single machine-readable block inside — the same
+split `make genai-metrics` uses for its marked line. A markdown table reads better and would put a
+round at the mercy of column alignment.
+
+**There is no per-scenario waiver ledger.** The author proposes a waiver with a reason and the gate
+enforces a **ceiling** on how much of a round may go unscripted; crossing it stops the round for a
+person. Modelling per-scenario human approval would need somewhere for the approval to live, and a gate
+command receives no variables — so it would become another file, checked by another rule, to record a
+decision the ceiling already forces someone to make.
+
+**The e2e ceiling's default is the opposite of the coverage floors'.** An omitted coverage dimension
+opts out; an omitted `e2e` block in `thresholds.json` does not — the shipped 5 and 0.2 apply
+(`lib/e2e.mjs`). A floor left out is a statement about tooling; a ceiling left out would be a round
+quietly allowed to waive everything.
+
 **Gates assert an end state, not a delta.** `signature_changed` survives only on `genai.spec` and
 `genai.implement`, where the end state cannot be expressed mechanically. Wherever it can be — nothing
 open under `changes/`, no requirement still active — the delta check is dropped, with the reasoning in
@@ -43,12 +72,32 @@ output and distrusts its exit code, and `nodes/genai.archive/brief.md` sends the
 `warnings[]` that `openspec archive` prints for itself. Reimplementing one of its rules would drift
 silently the day it changes that rule.
 
-**The five subagents cannot be collapsed into fewer.** Each has to run in a context that did not
+**The seven subagents cannot be collapsed into fewer.** Each has to run in a context that did not
 produce what it is judging — that is the entire reason `agents/genai-code-reviewer.md` exists, and
 that file also records that a green gate proves only that the tests which exist pass, never that they
-cover the requirements.
+cover the requirements. The last two make that a triangle: `genai-e2e-author` writes the suite without
+reading the implementation, and `genai-e2e-runner` executes it while allowed to edit neither side. Any
+two of those three roles in one context and a green result stops being evidence.
 
 ## Known gaps
+
+**The `delegate` loop is bounded only by the graph budget.** `genai.e2e → genai.e2e-author` costs no
+patience by design — the acceptance run worked; what it found was a broken test — so a test that keeps
+coming back red cannot exhaust patience the way a rejection would. `signature_changed` on the author
+stops a rework that changes nothing, and `graph_budget` stops the rest. Whether that is the right place
+for the floor is untested against a real round.
+
+**openspec cannot be asked for scenario ids.** Its `show --json` gives a scenario's `rawText` and drops
+the header, so the ids are read from the markdown by `lib/e2e.mjs` — a second reader of a format
+openspec owns, which is the thing this repository otherwise refuses to build. What keeps it honest is
+asking openspec for the scenario **count** and reporting a disagreement as `count_mismatch`
+(`lib/openspec.mjs`), so drift is loud rather than a silently missing scenario. It is not free of that
+risk, only aware of it.
+
+**A change with no scenarios opts out of the e2e branch silently.** `spec-scenarios` reports it as a
+fact (`without_scenarios`) rather than refusing it, because a documentation-only change legitimately has
+nothing to drive, and nothing mechanical separates that from a spec that dodged the work. The design
+review is the only thing standing there.
 
 **This repository cannot satisfy its own flow.** No tests, no test runner, and no `genai-metrics`
 target in the `Makefile`, so the `genai.implement` and `genai.merge` gates would both return `metrics_missing` here. Either

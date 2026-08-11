@@ -23,8 +23,26 @@ export function specDeltas() {
   const open = openChanges();
   if (open === null) return null;
   const out = [];
-  for (const id of open) walk(join(CHANGES, id, "specs"), out);
+  for (const id of open) out.push(...specDeltasOf(id));
   return out;
+}
+
+/**
+ * Spec delta files under one open change.
+ *
+ * The per-change version exists because the e2e contract is per change: a change's scenario ids,
+ * its manifest and its report all have to line up with each other, and an id set flattened across
+ * the round cannot say which change an unaccounted id belongs to.
+ */
+export function specDeltasOf(change) {
+  const out = [];
+  walk(join(CHANGES, change, "specs"), out);
+  return out;
+}
+
+/** Where this change's e2e records live. Both are written by a step, neither is committed by one. */
+export function genaiDir(change) {
+  return join(CHANGES, change, "genai");
 }
 
 /** Every file under the open changes — what a cross-reference search reads. */

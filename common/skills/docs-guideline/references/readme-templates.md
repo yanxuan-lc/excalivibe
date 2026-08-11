@@ -152,7 +152,7 @@ For shared, code-coupled artifacts (`protocol/v1.0/`, `database/`). The header m
 
 ## research report index
 
-You generally don't *write* these (the `researcher` agent does), but you add the STALE banner on top when the design ships. Shape for reference:
+You generally don't *write* these — they come out of a research pass — but you add the STALE banner on top when the design ships. Shape for reference:
 
 ```markdown
 # «topic» Research

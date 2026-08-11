@@ -9,6 +9,12 @@ wasted round.
 Commit the review records along with the merge. The review step deliberately leaves them
 uncommitted — committing during a review invalidates the verdict that review is producing.
 
+**The e2e suite and its two records are in the same position**, and for the same reason: a commit
+while an acceptance run or a review is in flight moves the tip their conclusion was recorded against.
+So the test files, `genai/e2e-manifest.md` and `genai/e2e-report.md` are all still untracked when you
+arrive — commit them here, with the merge. Read the report before you do: a merge is not the place to
+discover that the acceptance run recorded a failure.
+
 Record the merge in the report's `effects`, including whether it is reversible.
 
 ## The suite runs again here, on the merged tree

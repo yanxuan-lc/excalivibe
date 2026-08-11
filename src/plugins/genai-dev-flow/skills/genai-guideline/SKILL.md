@@ -1,6 +1,6 @@
 ---
 name: genai-guideline
-description: Explain how the genai development flow works and what a project has to supply for it — the eight steps and what each one is gated on, the make target and coverage floors a project supplies itself, and the traps that cost a whole round. Use when a step's verdict needs explaining, when deciding whether a gate is strong enough or where a new gate belongs, when the project-supplied metrics target or its floors have to be written, widened or replaced, and when someone needs to understand the flow before installing or running it.
+description: Explain how the genai development flow works and what a project has to supply for it — the ten steps and what each one is gated on, the make target, coverage floors and app probe a project supplies itself, and the traps that cost a whole round. Use when a step's verdict needs explaining, when deciding whether a gate is strong enough or where a new gate belongs, when the project-supplied metrics target or its floors have to be written, widened or replaced, and when someone needs to understand the flow before installing or running it.
 ---
 
 # The genai flow
@@ -9,22 +9,23 @@ Requirements in, one release out. This is the manual: what the flow guarantees, 
 not, and what it needs from the project it runs in.
 
 To install it, use `genai-init`. To run a round, use `genai-flow`. To write requirements, use
-`genai-backlog`.
+`genai-backlog`. For how a spec, a delta or a scenario has to be written — including the scenario id
+convention three steps depend on — use `genai-openspec`.
 
 ## First: is this project set up at all?
 
 ```bash
-fsx nodes -w genai-sprint      # the judgement: all eight steps listed
+fsx nodes -w genai-sprint      # the judgement: all ten steps listed
 fsx check                      # read problems[], not the counts
 ```
 
-All eight listed and nothing at `severity: error` means yes. Anything else — a missing `.flow/`,
-fewer than eight in the listing, `unexecutable` on every command gate — means the project has not
+All ten listed and nothing at `severity: error` means yes. Anything else — a missing `.flow/`,
+fewer than ten in the listing, `unexecutable` on every command gate — means the project has not
 been installed, and **nothing in this flow will work until it is**.
 
 **`fsx check`'s counts are not the test.** It counts every definition on disk, and `fsx init`
 scaffolds a template node (`nodes/task/`) and a `workflows/default.yaml` that installing does not
-remove, so a correct install reports nine nodes and two workflows. Scoping the question to the
+remove, so a correct install reports eleven nodes and two workflows. Scoping the question to the
 workflow is what `-w genai-sprint` is for.
 
 That state is normal rather than broken, and a fresh clone is always in it. `.flow/` is not
@@ -51,7 +52,7 @@ inside one change's context that change *is* everything, so finishing it looks l
 round and the version gets bumped again. Only the last step may bump it, and no earlier step
 mentions versions at all.
 
-## The eight steps
+## The ten steps
 
 Gates run in declaration order and the first non-pass concludes, so each row below is
 "every condition, cheapest first". Patience is 5 for all of them, shared across the whole batch.
@@ -61,14 +62,27 @@ Gates run in declaration order and the first non-pass concludes, so each row bel
 | `genai.spec` | `genai-spec-writer` | this round's changes and spec deltas | change and delta files exist · not byte-identical to the last attempt · `outcome: completed` · openspec strict validation reports 0 failed · every active requirement is referenced by some change |
 | `genai.spec-review` | `genai-spec-reviewer` | one design review per change | a record landed for each change · `verdict: approve` |
 | `genai.implement` | `genai-developer` | committed code on the sprint branch | *entry:* a spec delta exists to build from. *gate:* the branch has commits · the tip moved · `outcome: completed` · no test failed, at least one ran, at most a tenth skipped, and coverage is at or above the project's floors |
+| `genai.e2e-author` | `genai-e2e-author` | the e2e suite, plus one `e2e-manifest.md` per change | the manifest landed · the manifest or a test file moved since the last attempt · `outcome: completed` · every scenario in exactly one bucket and the non-scripted share under the project's ceiling · every mapped scenario's id greppable in the test file it names |
 | `genai.code-review` | `genai-code-reviewer` | one review record per change | *entry:* the tree is clean. *gate:* a record landed for each change · `verdict: approve` |
-| `genai.merge` | main | the merge commit | *entry:* the branch has not moved since the review approved it · the tree is clean. *gate:* a merge commit exists · `outcome: completed` · the merged tree still satisfies the same test-and-coverage check the branch did |
+| `genai.e2e` | `genai-e2e-runner` | one `e2e-report.md` per change | *entry:* the app answers and is the right app · the tree is clean. *gate:* a report landed · `outcome: completed` · every non-waived scenario executed, every pass carrying database evidence, and no failure left unclassified |
+| `genai.merge` | main | the merge commit | *entry:* the branch has not moved since the review approved it, nor since the acceptance run · the tree is clean. *gate:* a merge commit exists · `outcome: completed` · the merged tree still satisfies the same test-and-coverage check the branch did |
 | `genai.archive` | main | the folded main specs | *entry:* there is a change to fold · the tree is clean. *gate:* main specs exist · `outcome: completed` · nothing left open under `openspec/changes/` · the main specs pass strict validation |
 | `genai.accept` | `genai-requirement-checker` | the archived requirement records | *entry:* nothing left open under `openspec/changes/`, so the fold has happened. *gate:* the archive is non-empty · `verdict: approve` · no requirement is still `active` |
 | `genai.release` | main | the changelog, plus the version and tag in the report's effects | *entry:* no requirement is still `active`. *gate:* the changelog is written and committed · `outcome: completed` |
 
-Three asymmetries are deliberate:
+Five asymmetries are deliberate:
 
+- **The suite is built in parallel with the code, from the spec.** `genai.e2e-author` takes its input
+  from `genai.spec`, not from the commits, so nothing in its instruction points at the implementation.
+  A suite derived from the code passes by construction and proves only that the code agrees with
+  itself. The cost is that UI selectors cannot be finalised against a DOM that does not exist yet —
+  which is what the `delegate` edge is for: a test that turns out to be wrong comes back once there is
+  a real failure to fix it against, rather than on a schedule.
+- **A failed acceptance run routes by classification, and there are exactly two destinations.** A
+  product failure is a `reject` to `genai.implement`; a test failure is a `delegate` to
+  `genai.e2e-author`, which spends no patience because the acceptance run did not fail — it worked, and
+  what it found was a broken test. Edges route on the verdict alone, so those two buckets are all the
+  graph can act on; everything else the run gets wrong is its own to fix.
 - **Only `genai.spec` and `genai.implement` have the byte-identical check.** Elsewhere the gates
   assert an absolute end state that doing nothing cannot satisfy, so a delta check adds nothing —
   and it makes rework fragile, because a stalled signature drains the whole patience budget at once.
@@ -96,8 +110,49 @@ project satisfies it:
 
 ```
 make genai-metrics             runs the suite, prints the numbers
-tools/genai/thresholds.json    the floors those numbers are judged against
+tools/genai/thresholds.json    the floors those numbers are judged against, and the e2e ceiling
+tools/genai/e2e.json           how to recognise this project's own app when it is running
 ```
+
+All three ship as templates under `genai-init`'s `assets/project/`, so a project starts from a copy
+rather than from a transcription — the shapes live there and are not repeated here.
+
+`e2e.json` exists because "is the app up" is not a question a port can answer. On a developer's
+machine several projects' services are usually listening at once, so a TCP connect — or even a 200 —
+only proves *something* answered. So the project declares a URL and a marker its own app returns.
+`status` may be added when the health endpoint does not return 200. Both other fields are required:
+without a marker there is nothing to tell this app from anything else on that port, and port 8080
+replying with someone else's console is a failed precondition, not a reachable app. `genai.e2e`
+refuses to **start** on it rather than failing afterwards, so nothing is consumed — no verdict, no
+patience, no attempt.
+
+**This one is due before the first acceptance run, not at install time.** It is the only
+project-supplied piece whose content a fresh project cannot know: a greenfield repository has no port,
+no health endpoint and nothing in a response worth matching on, and inventing a URL for an app nobody
+has written yet produces a file that validates and describes nothing. So installing may legitimately
+leave it absent, and the state that follows is the intended one — `genai.e2e` reports `config_missing`
+as an entry refusal, which spends nothing and names what is needed.
+
+Two consequences of that timing, and the second is the one to hold on to:
+
+- **Nothing earlier in the round needs it.** A round can be designed, implemented, reviewed and have
+  its suite written with the file still missing. It is worth confirming at the top of a round anyway —
+  discovering it an hour in costs the same conversation, later.
+- **A round may not write it.** Whoever supplies it, it is not the work being measured: `contains: "e"`
+  matches nearly any response, and a marker that loose is the whole check removed. Same rule as the
+  coverage floors, for the same reason. When it turns out to be missing mid-round, that is a person's
+  one-line answer — not something for a step to guess its way around.
+
+A marker earns its place by being **specific to this service**: the service name from a health payload,
+a version string, the title a known route renders. `ok`, `healthy` and `200` are not markers; every
+other process on the machine says those too.
+
+The e2e ceiling rides in `thresholds.json` alongside the coverage floors, under an `e2e` key holding
+`max_non_scripted` and `max_non_scripted_ratio`, and **its default is the opposite of the floors'**.
+An omitted coverage dimension opts out — a project saying it does not measure that. An omitted e2e
+ceiling does **not** opt out; the shipped 5 and 0.2 apply. A floor left out is a statement about
+tooling, while a ceiling left out would be a round quietly allowed to hand-drive or waive everything,
+so raising this one has to be visible in the project's own file.
 
 Which test framework, which coverage tool, how the target is wired — none of that is this flow's
 subject. Choosing and running a test setup is what `tdd` is for; this flow only states what has

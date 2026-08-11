@@ -28,39 +28,16 @@ content, and two sessions claiming different items never touch the same file.
 
 ## brief.md
 
-```markdown
----
-title: Unit alias resolution
-status: ready
-created: 2026-08-08
-origin: human
-priority: P2
----
+**Copy the template; do not retype it.** Both files ship in this skill's own directory:
 
-## Goal
-
-Let `kg`, `kilogram` and `kilo` all resolve to the same unit.
-
-## Why
-
-Exact matching only today, so one wrong character means "unknown unit", and the error
-offers no candidates.
-
-## Settled
-
-- Cross-family ambiguity (`t` is both tonne and a scene unit) errors out and lists both
-  candidates rather than guessing.
-- The alias table ships built in; no user-defined aliases.
-
-## Out of scope
-
-- No fuzzy matching or edit distance.
-- Conversion logic itself is untouched.
-
-## Open questions
-
-- Case sensitivity — should `KG` resolve?
+```bash
+mkdir -p "../$(basename "$PWD")_genai/backlogs/<item-id>"
+cp <skill-dir>/assets/item/brief.md <skill-dir>/assets/item/log.md \
+   "../$(basename "$PWD")_genai/backlogs/<item-id>/"
 ```
+
+The template carries the sections and the placeholders. The rules that decide what goes in the
+frontmatter are here:
 
 | Field | Rule |
 |---|---|
@@ -83,18 +60,7 @@ hold anything, but the state lives in exactly one place.
 
 ## log.md
 
-```markdown
-- **2026-08-08** · `draft` — raised by genai-code-reviewer while reviewing unit-alias
-- **2026-08-09** · `ready` — case sensitivity settled: `KG` resolves
-- **2026-08-09** · `active`
-- **2026-08-11** · `draft` — review found the alias table's source was never decided
-- **2026-08-12** · `ready`
-- **2026-08-15** · `done` · `add-unit-alias`, `unit-alias-cli`
-```
-
-```
-- **<date>** · `<state>`[ · `<change ids>`][ — <one line>]
-```
+The line shape and the append-only rule are in the template. What matters about it:
 
 - **Date only, no time.** Order comes from line position; the file is append-only, so a later
   line is a later event.

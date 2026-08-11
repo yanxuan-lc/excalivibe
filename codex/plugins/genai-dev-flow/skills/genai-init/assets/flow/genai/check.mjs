@@ -22,12 +22,23 @@
 //   metrics                      satisfied | tests_failing | no_tests | too_many_skipped
 //                                | coverage_below_floor | metrics_missing | metrics_unreadable
 //                                | thresholds_missing
+//   spec-scenarios               unique | unnumbered | duplicated | count_mismatch | unreadable
+//   e2e-manifest                 accounted | unaccounted | over_ceiling | manifest_missing
+//                                | manifest_malformed | unreadable
+//   e2e-mapping                  matched | title_missing | file_missing | unreadable
+//   e2e-report                   green | product_failure | test_failure | infra_failure
+//                                | coverage_short | db_evidence_missing | report_missing
+//                                | report_malformed | unreadable
+//   app-identity                 identified | wrong_service | unreachable | config_missing
+//                                | config_malformed
 //   signature-archive            (not a check: prints the archive's signature)
+//   signature-e2e-suite          (not a check: prints the e2e suite's signature)
 
 import { execFileSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import { archived, backlogRoot, items } from "./lib/backlog.mjs";
 import { changeFiles, openChanges, specDeltas } from "./lib/changes.mjs";
+import { judgeManifest, judgeMapping, judgeReport, judgeScenarios, probeApp, suiteSignature } from "./lib/e2e.mjs";
 import { judge } from "./lib/metrics.mjs";
 import { validate } from "./lib/openspec.mjs";
 import { emit, flags, say } from "./lib/say.mjs";
@@ -44,7 +55,13 @@ const atoms = {
   worktree,
   "openspec-valid": openspecValid,
   metrics: metricsAtom,
+  "spec-scenarios": specScenarios,
+  "e2e-manifest": e2eManifest,
+  "e2e-mapping": e2eMapping,
+  "e2e-report": e2eReport,
+  "app-identity": appIdentity,
   "signature-archive": signatureArchive,
+  "signature-e2e-suite": signatureE2eSuite,
 };
 
 if (!Object.hasOwn(atoms, atom ?? "")) {
@@ -52,7 +69,8 @@ if (!Object.hasOwn(atoms, atom ?? "")) {
   // label puts it in the event log next to the rule that named it.
   say("unreadable", { reason: "unknown check", found: atom ?? null, known: Object.keys(atoms) });
 }
-atoms[atom]();
+// Awaited because one atom reaches the network. `say` exits the process, so nothing here returns.
+await atoms[atom]();
 
 function backlogStatus() {
   const wanted = options.status;
@@ -116,9 +134,41 @@ function metricsAtom() {
   say(label, facts);
 }
 
+function specScenarios() {
+  const { label, facts } = judgeScenarios();
+  say(label, facts);
+}
+
+function e2eManifest() {
+  const { label, facts } = judgeManifest();
+  say(label, facts);
+}
+
+function e2eMapping() {
+  const { label, facts } = judgeMapping();
+  say(label, facts);
+}
+
+function e2eReport() {
+  const { label, facts } = judgeReport();
+  say(label, facts);
+}
+
+async function appIdentity() {
+  const { label, facts } = await probeApp();
+  say(label, facts);
+}
+
 // Not a check. The acceptance step's artifact lives outside the repository, where a locator may not
 // reach, so its signature is measured by command instead.
 function signatureArchive() {
   const names = archived();
   emit(createHash("sha256").update((names ?? []).join("\n")).digest("hex"));
+}
+
+// Not a check either, and for the mirror reason: the e2e suite goes wherever the project already
+// keeps its tests, so there is no locator that finds it. The manifest names the files; this hashes
+// what they contain.
+function signatureE2eSuite() {
+  emit(suiteSignature());
 }

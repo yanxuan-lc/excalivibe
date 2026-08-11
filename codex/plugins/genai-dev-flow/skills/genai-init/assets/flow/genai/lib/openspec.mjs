@@ -48,6 +48,45 @@ export function validate(scope) {
     : { label: "satisfied", facts: { scope, failed: 0 } };
 }
 
+/**
+ * How many scenarios openspec itself sees in each of these changes, or null when it cannot say.
+ *
+ * Asked for because openspec's count is the authority and ours is not: it masks fenced blocks and
+ * treats every level-4 header inside a requirement as a scenario, and both of those are easy to get
+ * a line apart from. What it will **not** hand over is the scenario headers — a scenario object in
+ * `--json` carries `rawText` and no name — so the ids still have to be read out of the markdown.
+ * Comparing the two counts is what keeps that local reader honest: a disagreement is reported
+ * instead of silently costing a scenario.
+ *
+ * `null` rather than a label, because a missing openspec is already reported by the validation rule
+ * on the same step. Here it means the cross-check does not apply, not that the spec is wrong.
+ */
+export function scenarioCounts(changes) {
+  const out = {};
+  for (const change of changes) {
+    let output;
+    try {
+      output = execFileSync("openspec", ["show", change, "--json", "--type", "change", "--deltas-only", "--no-interactive"], {
+        encoding: "utf8",
+        stdio: ["ignore", "pipe", "ignore"],
+        maxBuffer: 16 * 1024 * 1024,
+      });
+    } catch {
+      return null;
+    }
+    try {
+      const parsed = JSON.parse(output);
+      out[change] = (parsed?.deltas ?? []).reduce(
+        (total, delta) => total + (delta?.requirements ?? []).reduce((n, requirement) => n + (requirement?.scenarios?.length ?? 0), 0),
+        0,
+      );
+    } catch {
+      return null;
+    }
+  }
+  return out;
+}
+
 function tail(text, n = 400) {
   return String(text).slice(-n);
 }

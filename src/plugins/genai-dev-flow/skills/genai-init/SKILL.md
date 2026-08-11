@@ -18,10 +18,12 @@ step 6; this skill installs against that protocol rather than restating it.
   .flow/
     config.yaml                       engine defaults
     workflows/genai-sprint.yaml       the step whitelist
-    nodes/genai.*/                    eight step definitions (fsx's own nodes/task/ stays alongside)
+    nodes/genai.*/                    ten step definitions (fsx's own nodes/task/ stays alongside)
     genai/*.mjs                       the gate evaluators these definitions call
+    genai/templates/                  the records the e2e steps copy and fill in
   Makefile                            must have a `genai-metrics` target (the project writes it)
-  tools/genai/thresholds.json         the coverage floors (the project sets these)
+  tools/genai/thresholds.json         the coverage floors and the e2e ceiling (the project sets these)
+  tools/genai/e2e.json                how to recognise the running app (the project sets this)
 
 <project>_genai/                      a SIBLING of the repository, not inside it
   backlogs/
@@ -78,8 +80,8 @@ Ignoring the whole directory also removes three problems at once, all of them re
   because a passed step cannot be re-run.
 - **Merging would conflict on the whitelist** whenever two branches installed different versions.
 
-What the project does own stays tracked: the `Makefile`, `tools/genai/thresholds.json`, and
-everything under `openspec/`.
+What the project does own stays tracked: the `Makefile`, `tools/genai/thresholds.json`,
+`tools/genai/e2e.json`, and everything under `openspec/`.
 
 **3. Copy the step definitions and the workflow.** They ship in this skill's own directory
 under `assets/flow/`. Resolve that path from where this SKILL.md was loaded from.
@@ -90,12 +92,15 @@ cp -R <skill-dir>/assets/flow/genai/. .flow/genai/
 cp <skill-dir>/assets/flow/workflows/genai-sprint.yaml .flow/workflows/
 ```
 
-`.flow/genai/` holds the gate evaluators the definitions call by path. **Copy it whenever the
-definitions are copied** — a definition without its evaluator gates every attempt to
-`unexecutable`. Nothing under `.flow/nodes/` may be a directory without a `node.yaml`, which is
+`.flow/genai/` holds the gate evaluators the definitions call by path, and the record templates the
+e2e steps copy from. **Copy it whenever the definitions are copied** — a definition without its
+evaluator gates every attempt to `unexecutable`, and a step without its template starts transcribing
+a format from memory. Nothing under `.flow/nodes/` may be a directory without a `node.yaml`, which is
 why the shared tools sit beside it rather than inside it.
 
-**4. Set the engine defaults** in `.flow/config.yaml`:
+**4. Set the engine defaults** in `.flow/config.yaml`. This one is an **edit, not a copy** — `fsx init`
+wrote that file with its own explanatory comments and it may gain keys in a later version, so
+overwriting it with a template of ours would quietly delete both. Change three values in place:
 
 ```yaml
 defaults:
@@ -125,36 +130,27 @@ Decide with the user whether that directory should be its own git repository. It
 the code repository, so it has no history and no backup unless it is given one. This is a
 deliberate trade, not an oversight — but it is the user's call, so raise it once here.
 
-**6. Give the project a `genai-metrics` make target, and its thresholds.**
+**6. Give the project a `genai-metrics` make target, and its thresholds.** Both ship as templates
+in this skill's `assets/project/`; copy, then edit. `genai-guideline` carries the protocol in full —
+follow it there rather than from memory.
 
-These are the only project-specific pieces. `genai-guideline` carries the protocol in full —
-follow it there rather than from memory. What this step has to produce:
-
-```makefile
-.PHONY: genai-metrics
-genai-metrics:                 ## the numbers the genai.implement gate judges
-	@<run the suite with coverage>
-	@<print one line: genai-metrics: {"tests":{...},"coverage":{...}}>
+```bash
+cat <skill-dir>/assets/project/genai-metrics.mk >> Makefile      # create the Makefile if there is none
+mkdir -p tools/genai && cp <skill-dir>/assets/project/thresholds.json tools/genai/
 ```
 
-Create the `Makefile` if the project has none. **Add only this target** — do not convert the
-project's build to make. Whether the suite runs through npm, cargo, pytest or gradle is the
-project's business, and choosing or wiring a test framework is `tdd`'s subject, not this one's.
+The target's template carries the protocol as comments and two placeholder recipe lines. **Replace
+those two lines and nothing else** — in particular do not convert the project's build to make.
+Whether the suite runs through npm, cargo, pytest or gradle is the project's business, and choosing
+or wiring a test framework is `tdd`'s subject, not this one's.
 
-Exit code and other output do not matter: the gate reads the marked line and ignores the rest, so
-nothing here needs `|| true` to look successful.
-
-`tools/genai/thresholds.json` holds the coverage floors. **These defaults are for a project
-starting from nothing:**
-
-```json
-{ "coverage": { "lines": 0.90, "branches": 0.90, "functions": 1.00 } }
-```
-
-For a project that already has code, **agree the numbers with the user against what it actually
-measures today.** The round may not edit this file, so a floor above where the project stands
-rejects every round with nothing able to fix it. A floor of `null` opts that dimension out — the
-only way out, and visible in the file.
+`thresholds.json` arrives with the floors a project starting from nothing should have. For a project
+that already has code, **agree the numbers with the user against what it actually measures today.**
+The round may not edit this file, so a floor above where the project stands rejects every round with
+nothing able to fix it. A floor of `null` opts that dimension out — the only way out, and visible in
+the file. Its `e2e` block is the ceiling on how much of a round may go unscripted; leave it at the
+shipped values unless the user has a reason, and note that **omitting it does not opt out** the way
+an omitted floor does.
 
 Then prove both halves work, here, before moving on:
 
@@ -182,19 +178,62 @@ reporter, say so to the user now and re-run both commands after the first real s
 A `satisfied` reached with fabricated numbers is the one failure no command here can catch, so read
 what the target actually runs.
 
-**7. Verify — with both commands, not just the first.**
+**7. Tell the flow how to recognise the running app — if the project can say yet.**
+
+`tools/genai/e2e.json` is how `genai.e2e` tells this project's app from everything else listening on a
+developer's machine. An open port proves nothing about *which* app answered, so the project declares a
+marker only its own response carries. The template is in `assets/project/` beside the other two:
+
+```bash
+cp <skill-dir>/assets/project/e2e.json tools/genai/
+```
+
+Then replace both values. `url` is an endpoint of this project's app; `contains` is something specific
+to **this service** — the name in a health payload, a version string, the title a known route renders.
+`ok`, `healthy` and `200` are not markers: every other process on the machine says those too. Add
+`status` when the endpoint does not answer 200.
+
+The shipped `contains` is a placeholder that deliberately cannot match anything, so a copy left unedited
+reports `wrong_service` rather than passing on a coincidence.
+
+**Write it only if the project can answer honestly today.** This is the one piece a fresh repository
+often cannot: no port, no health endpoint, nothing in a response worth matching on. **Do not invent a
+URL for an app nobody has written yet** — a file that validates and describes nothing is worse than an
+absent one, because the absent one says so.
+
+So there are two correct outcomes here:
+
+- **The app exists.** Write the file and prove it, with the app running:
+
+  ```bash
+  node .flow/genai/check.mjs app-identity     # identified — anything else names what to fix
+  ```
+
+  `unreachable` means the app is not up, which is fine at install time. `wrong_service` is not: the
+  marker does not appear, so the URL points at something else. Fix that here.
+
+- **The app does not exist yet.** Leave the file out, and **tell the user in one sentence** what will be
+  needed before the round's acceptance step can start: a URL and a marker only this app returns. Nothing
+  earlier in a round touches it — design, implementation, review and the e2e suite all proceed without
+  it — and `genai.e2e` then refuses to start with `config_missing`, which spends no verdict, no patience
+  and no attempt.
+
+Either way it is a file **the project owns and a round may not write**, for the reason the coverage
+floors are: `contains: "e"` matches nearly any response, and a marker that loose is the check removed.
+
+**8. Verify — with both commands, not just the first.**
 
 ```bash
 fsx check
 fsx nodes -w genai-sprint
 ```
 
-**`fsx nodes -w genai-sprint` must list all eight, and that listing is the judgement.** A missing
+**`fsx nodes -w genai-sprint` must list all ten, and that listing is the judgement.** A missing
 one is a broken install, not something to work around.
 
 **Do not judge by `fsx check`'s counts.** It counts every definition on disk, and `fsx init` in
 step 2 scaffolded a template node of its own (`.flow/nodes/task/`) plus `workflows/default.yaml`
-— neither of which step 3 removes. So it reports **nine** nodes and **two** workflows on a correct
+— neither of which step 3 removes. So it reports **eleven** nodes and **two** workflows on a correct
 install. That is normal. What `fsx check` is for here is `problems[]`.
 
 **`ok` and the exit code answer only for errors.** Problems come in two severities, and a

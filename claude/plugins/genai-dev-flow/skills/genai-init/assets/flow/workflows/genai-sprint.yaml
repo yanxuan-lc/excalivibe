@@ -4,15 +4,21 @@ nodes:
   - genai.spec
   - genai.spec-review
   - genai.implement
+  - genai.e2e-author
   - genai.code-review
+  - genai.e2e
   - genai.merge
   - genai.archive
   - genai.accept
   - genai.release
 
 defaults:
-  # Eight nodes, one value — so it is declared once here rather than eight times in the definitions.
+  # Ten nodes, one value — so it is declared once here rather than ten times in the definitions.
   # This is a starting number to tune against real runs, not a derived one. Patience is shared
   # across the whole batch now that implement and review are not split per change, so a round
   # that reworks three changes once each spends three of it.
+  #
+  # One rework path deliberately spends none of it: a test bug found by genai.e2e is handed to
+  # genai.e2e-author as a `delegate`, because the acceptance run did not fail — it worked, and what it
+  # found was a broken test. What bounds that loop is the graph budget, not patience.
   patience: 5

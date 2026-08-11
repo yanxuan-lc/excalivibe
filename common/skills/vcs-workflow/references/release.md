@@ -55,7 +55,7 @@ git push -u origin release/<component>-<version>
 # open MR: release/<component>-<version> → main
 ```
 
-The release branch freezes exactly what ships while `dev` keeps moving. Name it after the component and version (e.g. `release/gen-ai-development-1.2.0`) so history reads itself.
+The release branch freezes exactly what ships while `dev` keeps moving. Name it after the component and version (e.g. `release/genai-dev-flow-1.2.0`) so history reads itself.
 
 ### Form B — dev → main directly
 

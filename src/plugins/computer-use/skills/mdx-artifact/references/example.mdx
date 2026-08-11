@@ -27,21 +27,21 @@ The same capability solves the same problem and follows the same main flow on th
 
 <Section number="02" eyebrow="Capability matrix" title="Three plugins" />
 
-<Card tone="primary" title="gen-ai-development" badge="3.0" badgeTone="success">
+<Card tone="primary" title="genai-dev-flow" badge="3.1" badgeTone="success">
 
-The generative-AI development workflow suite. At its core is the **FLOW engine**: nodes are data, state is detected from disk, and every gate is a machine-checkable predicate. Paradigm = SDD + TDD, landing on a three-layer architecture.
+The generative-AI development workflow suite. Step definitions are data, the state a gate reads is measured off disk, and orchestration is delegated to the **fsx** engine rather than reimplemented. Paradigm = spec-driven plus test-driven, with the acceptance evidence produced by an agent that wrote neither the tests nor the code.
 
 </Card>
 
-<Card title="plugin-infra" badge="v0.3.0" badgeTone="success">
+<Card title="computer-use" badge="v3.0.0" badgeTone="success">
 
 Shared infrastructure: browser automation (Chrome DevTools / Playwright MCP, with a graceful-browser decision layer on the Claude side) plus **mdx-artifact rich document artifacts** (this very page is written to its conventions).
 
 </Card>
 
-<Card title="opc-workflow" badge="no skills yet" badgeTone="warning">
+<Card title="dev-toolkit" badge="skills only" badgeTone="warning">
 
-One-Person-Company workflow: a capability slot for non-engineering work such as content and operations.
+Nineteen atomic development skills — guidelines, research, scans, TDD and e2e execution. The odd one out of the three: no agents and no hooks, so it is the whole suite's answer to "what does a capability look like with nothing bundled around it".
 
 </Card>
 
@@ -59,14 +59,14 @@ One-Person-Company workflow: a capability slot for non-engineering work such as 
 
 ```bash
 claude plugin marketplace add yanxuan-lc/excalivibe
-claude plugin install gen-ai-development@excalivibe
+claude plugin install genai-dev-flow@excalivibe
 ```
 
 **Codex** (CLI v0.117.0+):
 
 ```bash
 codex plugin marketplace add yanxuan-lc/excalivibe
-codex plugin add gen-ai-development@excalivibe
+codex plugin add genai-dev-flow@excalivibe
 ```
 
 <Section number="05" eyebrow="Metrics" title="Capacity model" />
@@ -104,13 +104,13 @@ digraph { rankdir=LR
 <Section number="07" eyebrow="Appendix" title="Capability index" />
 
 <Grid filterable facets="infra:infrastructure,dev:engineering,ops:operations">
-<Item tags="dev">gen-ai-development</Item>
-<Item tags="infra">plugin-infra</Item>
-<Item tags="ops">opc-workflow</Item>
+<Item tags="dev">genai-dev-flow</Item>
+<Item tags="infra">computer-use</Item>
+<Item tags="ops">dev-toolkit</Item>
 </Grid>
 
 <Footer>
 
-This page is written to plugin-infra's **mdx-artifact** conventions (eating our own dog food) and previewed with `mdxv` — the colophon below is appended by the renderer from the frontmatter.
+This page is written to computer-use's **mdx-artifact** conventions (eating our own dog food) and previewed with `mdxv` — the colophon below is appended by the renderer from the frontmatter.
 
 </Footer>

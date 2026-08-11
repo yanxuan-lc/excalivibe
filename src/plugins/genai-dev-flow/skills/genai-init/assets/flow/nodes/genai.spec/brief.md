@@ -21,6 +21,20 @@ For each change produce `openspec/changes/<change-id>/proposal.md` and the spec 
 `specs/`. **Record in the change which backlog items it came from** — that direction is
 authoritative; the briefs do not maintain a reverse pointer.
 
+## Number every scenario, and say what lands in the database
+
+**Follow the `genai-openspec` skill for the scenario id convention and the header shape**, and read
+it before writing the first delta rather than after a gate refuses one. It is the only description of
+those conventions; nothing repeats them, here or anywhere else.
+
+Two things about them are worth knowing before you start, because they are what a later step cannot
+work around. The ids are what the e2e suite, its manifest and its acceptance report all key on, so a
+scenario without one is a scenario nothing downstream can address — a gate here checks that every
+one carries an id, and that no id repeats inside a change. And a scenario that writes has to say
+**which table and column, and what value**: that expectation is verified against the real database
+later, independently of what the screen showed, and "the data is saved" gives that check nothing to
+compare against.
+
 ## Claim what you took
 
 Set `status: active` in the frontmatter of every selected brief and append a line to its

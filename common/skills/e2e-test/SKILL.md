@@ -14,7 +14,11 @@ An end-to-end test is only trustworthy if you check *both* halves of the result:
 
 A green UI assertion with no row in the table is a false pass. Always verify the write.
 
-> Long-running suites: subagents follow the **Execution model** hard rules in their own
+> Long-running suites: run them in the FOREGROUND with an explicit, generous timeout, and split
+> anything longer into batches. Background a command only to overlap it with other useful work, and
+> then read its **recorded exit code** (`cmd > log 2>&1; echo EXIT=$? >> log`) rather than a
+> `tail`/`grep` pipe, which swallows it. Never stop and wait for a notification, and never call a
+> slow suite hung from a process-table glance — compiler and browser gaps look identical to death.
 
 ## Three Test Modes
 
@@ -33,7 +37,7 @@ Database verification applies to **all** modes — see [references/db-verificati
 For scenarios no suite covers (no e2e infrastructure yet, or gaps declared in a QA
 manifest), execute the scenario live:
 
-1. **Pick the framework via the `graceful-browser` skill** (from the `plugin-infra`
+1. **Pick the framework via the `graceful-browser` skill**:
 2. Execute the scenario's WHEN steps one by one against the running app; assert each
    THEN observation (page state, visible text, navigation) as you go.
 3. Verify the DB writes exactly as in the scripted modes.
@@ -48,9 +52,8 @@ sleep — fixed sleeps are the main reason an agent-driven pass feels slow. When
 mode is being invoked under the flow and a *large fraction* of scenarios
 would need it (the threshold: non-scripted `> 5` or `≥ 20%`), that is a
 signal to **escalate to the user** rather than grind through — this `> 5` / `≥ 20%`
-threshold is the `e2e-author` agent's non-scripted-ratio flag, surfaced via its
-`e2e-manifest.md`; the `flow` skill (Step 7) governs verification
-intensity more broadly.
+threshold is the ceiling a scripted-suite author is held to, and it is a decision for a person
+rather than something to grind through.
 
 ## Platform Routing (GUI mode)
 
@@ -94,7 +97,7 @@ Before executing, verify (and report clearly if any fails — do not silently pr
 ### 4. Run the suite
 Execute via the platform/API reference. Capture full output (and machine-readable reporter output where available — JSON reporters, JUnit XML). Scope to the requested feature when the runner supports filtering (`-g`/`--grep`, a test path, a tag) rather than always running everything.
 
-**Fix rounds are scoped — in the fixing loop.** While iterating on a fix, re-run only the previously-failed specs (`--last-failed`, a title/tag filter, the failing file) — not the whole suite. One full confirmation run happens at the end, once, and is what the report records; when this skill is invoked as the acceptance pass (the e2e-runner dispatch), that full run IS the dispatch — run it once directly. In every case, reuse a build already produced at the current commit (by the developer role or a prior round) instead of rebuilding the binary under test.
+**Fix rounds are scoped — in the fixing loop.** While iterating on a fix, re-run only the previously-failed specs (`--last-failed`, a title/tag filter, the failing file) — not the whole suite. One full confirmation run happens at the end, once, and is what the report records; when this skill is invoked as the acceptance pass, that full run IS the pass — run it once directly. In every case, reuse a build already produced at the current commit (by the developer role or a prior round) instead of rebuilding the binary under test.
 
 ### 5. Verify database writes
 After the run (or after the specific action), follow [references/db-verification.md](references/db-verification.md): query the affected tables with the env connection, assert the rows/columns the feature should have written, and account for our conventions (e.g. logical delete via `is_deleted`, `created_time`/`updated_time`) — cross-check schema expectations against the `dba-guideline` skill. Allow for async writes (poll/wait rather than asserting instantly).
@@ -174,7 +177,7 @@ report into something the reader can act on in one step, rather than a refusal.
 ## Guardrails
 
 - **Read-only to test and source code.** Run and report; don't edit tests or product code to make them pass. If a test is wrong, flag it.
-- **No suite is a blocker, not a job.** If the project has no e2e setup at all, do not scaffold one to have something to run — writing the suite is `e2e-author`'s work, and a suite written by whoever is about to run it is not independent evidence. Report BLOCKED and hand back. (Agent-driven mode covers *scenarios the existing suite does not map*, not *a project with no suite*.)
+- **No suite is a blocker, not a job.** If the project has no e2e setup at all, do not scaffold one to have something to run — a suite written by whoever is about to run it is not independent evidence, so writing it is separate work. Report BLOCKED and hand back. (Agent-driven mode covers *scenarios the existing suite does not map*, not *a project with no suite*.)
 - **Never run destructive or unscoped DB statements.** Verification is `SELECT` with a `WHERE` scoped to the test's data. No `UPDATE`/`DELETE` without an explicit, scoped reason and confirmation. Never touch production.
 - **Don't fabricate results.** If you couldn't reach the app, the device, or the DB, report the blocker — do not infer a pass.
 - **Don't boot the app or seed prod data on your own** unless the user asks; this skill validates a running system.

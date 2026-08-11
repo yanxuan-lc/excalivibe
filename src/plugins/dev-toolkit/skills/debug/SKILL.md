@@ -145,8 +145,9 @@ Use when a non-zero exit code, failing test, or build error is the signal.
      permanent, in the least visible way available.
 
    Skipping this step has a specific failure mode: it makes "satisfy the assertion" the goal, and
-   a correct implementation gets bent to fit a test that was wrong. The other roles have this
-   split explicitly (`e2e-runner` classifies test bug vs product bug); Loop B needs it too.
+   a correct implementation gets bent to fit a test that was wrong. An acceptance pass makes this
+   split explicitly — it classifies a failure as a test bug or a product bug before anyone fixes
+   anything — and Loop B needs the same distinction even without the ceremony.
 
 5. **Apply a minimal fix.** Change only what is needed to satisfy the failing assertion or resolve the error.
 

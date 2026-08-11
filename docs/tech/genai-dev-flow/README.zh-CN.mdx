@@ -8,8 +8,8 @@ toc: true
 English: [README.mdx](./README.mdx)
 
 > 一整套开发流程：需求进来，一个版本出去，每一步都被某个可重跑的东西门控住。
-> **权威来源：`src/plugins/genai-dev-flow/`** —— 4 个 skill、5 个 agent、8 份步骤定义。
-> 版本 3.0.0。引擎侧的契约在 [`../flow-contract/`](../flow-contract/README.zh-CN.mdx)；本文是那 4 个 skill 的手册，
+> **权威来源：`src/plugins/genai-dev-flow/`** —— 5 个 skill、7 个 agent、10 份步骤定义。
+> 版本 3.1.0。引擎侧的契约在 [`../flow-contract/`](../flow-contract/README.zh-CN.mdx)；本文是那 5 个 skill 的手册，
 > 以及一轮到底怎么跑起来。
 
 ## 你得到什么
@@ -25,7 +25,7 @@ English: [README.mdx](./README.mdx)
 修好这件事的办法不是反复强调"不要 bump 版本" —— 在本仓库里，一条明确排除了某场景的 description 仍然 5 次中 5 次在
 该场景上触发 —— 而是**在上游根本不提这个话题**，并把唯一**被允许** bump 的那一步放在最后。
 
-## 四个 skill，你要的是哪个
+## 五个 skill，你要的是哪个
 
 前三个之间的划分是**学 / 装 / 跑**，这是刻意的：一份顺手也能开跑的手册，会在没人想读的时候被读；一个顺手也教学的
 驱动器，会让每一轮都为那段解释付费。
@@ -36,6 +36,7 @@ English: [README.mdx](./README.mdx)
 | `genai-init` | `/genai-dev-flow:genai-init` | 一个项目要接线，一次。**只在被点名时才触发** |
 | `genai-flow` | `/genai-dev-flow:genai-flow` | 一轮该开始了、已经在跑、或者某一步过不去 |
 | `genai-backlog` | — | 有人描述了他想要建的东西，或者问题是"接下来该拾起哪个" |
+| `genai-openspec` | — | 正在写 spec、增量或场景，或者 openspec 报回来的东西读起来像在挑格式 |
 
 ### genai-backlog
 
@@ -46,13 +47,25 @@ English: [README.mdx](./README.mdx)
 **最佳实践。** 让一个需求在 draft 里待着，直到它的待解问题有了答案。`ready` 是 `genai.spec` 的进入条件在找的东西，
 所以把一个含糊的东西提上去并不会让一轮开始得更快 —— 它会让一轮在后面某道门上被打回，而耐心已经花掉了。
 
+### genai-openspec
+
+**判断一份 spec 要怎么写，才能既被 openspec 接受、又能被这些门量出来。** 架在 openspec 之上的约定只住在这里：
+场景编号的形式、数据库期望写在哪、以及 openspec 自己的哪些输出可以信。
+
+编号约定是 `S` 加十进制数字 —— `S1`、`S2` —— 在一个 change 内编号。承重的规则是**永不重编、永不复用**：后面有三个
+环节以这些编号为键 —— manifest、测试用例自己的标题、以及验收报告。
+
+**最佳实践。** 在写第一份增量**之前**读它，而不是等某道门把它打回之后。一份 spec 可以通过
+`openspec validate --strict` 却在这里没法用，因为 openspec 检查的是"某条需求**有**场景"，而后面三个环节需要的是
+"处理**某一个特定**场景"。
+
 ### genai-init
 
 **把流程装进一个项目，一次。** 它的召回刻意收得很窄 —— 只有点名才触发 —— 因为它会往仓库里写东西，而这种事不该由
 一句顺带提及来触发。
 
-它把什么装到哪里、每一块归谁，在 [`../flow-contract/`](../flow-contract/README.zh-CN.mdx)。归**项目**的那两块是一个
-`genai-metrics` make 目标和 `tools/genai/thresholds.json`。
+它把什么装到哪里、每一块归谁，在 [`../flow-contract/`](../flow-contract/README.zh-CN.mdx)。归**项目**的那三块是一个
+`genai-metrics` make 目标、`tools/genai/thresholds.json` 和 `tools/genai/e2e.json`。
 
 **最佳实践。** 让它来创建那两样；**不要手写步骤定义**。而且要老实回答它唯一一个真问题 —— 覆盖率下限。
 `90 / 90 / 100` 对一个从零开始的项目是对的；对一个已经有代码的项目，要**按它今天实际测出来的数**和人商定，因为
@@ -62,22 +75,32 @@ English: [README.mdx](./README.mdx)
 
 **驱动一轮**：建图、派发每一步、给结果判决、路由返工。它**先检测再询问** —— 项目已经装好了的话，它直接开跑。
 
-图是一条直线加两条回边：
+图在设计通过之后分岔，到合并处再合流：
 
 ```
-spec ─▶ spec-review ─▶ implement ─▶ code-review ─▶ merge ─▶ archive ─▶ accept ─▶ release
-  ▲          │                 ▲            │
-  └─ reject ─┘                 └── reject ──┘
+                    ┌─▶ implement ────┬─▶ code-review ─┐
+spec ─▶ spec-review ┤                 │                ├─▶ merge ─▶ archive ─▶ accept ─▶ release
+                    └─▶ e2e-author ───┴─▶ e2e ─────────┘
 ```
 
-两条回边分列代码两侧：前一条在改动还只是改一次 spec 的时候把设计打回，后一条在那次改动已经变成重写之后
-把代码打回。这个不对称正是设计要被评审的理由。
+测试和代码**从同一份已确认的 spec 平行建出来**，而 `e2e-author` 的输入接的是 `spec` 而不是 commits ——
+于是它收到的指令里根本没有通往实现的路。从代码推导出来的测试套件是必然通过的，也就什么都没证明。
+随后两份互相独立的判断 —— 一次评审和一次验收 —— 在合并处汇合。
 
-耐心是 5，**整批共享**，所以返工三个变更各一次就花掉三点。
+跨节点的返工走四条边：`spec-review → spec` 和 `code-review → implement` 走 `reject`，另外
+`e2e → implement` 走 `reject`（产品错了），`e2e → e2e-author` 走 `delegate`（**测试**错了）。
+前两条的不对称正是设计要被评审的理由：改动还只是改一次 spec 的时候把设计打回，那次改动已经变成重写之后才把代码打回。
+后两条是验证三角变成了可路由的东西：开发者永不修测试、作者永不碰产品代码，所以一次失败必须先被分类才能被路由。
 
-**最佳实践 —— 四条路由规则，破一条就是一轮的代价：**
+耐心是 5，**整批共享**，所以返工三个变更各一次就花掉三点。`delegate` 那条边刻意一点都不花 —— 验收跑并没有失败，
+它跑成了，而且发现了一个坏测试 —— 所以约束那个回路的是图预算，不是耐心。
 
-- **绝不在 `delegate` 上路由。** 一个没有匹配边的 `delegate` 判决会把图硬锁死。
+**最佳实践 —— 那几条路由规则，破一条就是一轮的代价：**
+
+- **`delegate` 那条边不是可选的。** 有一道门会产出这个判决，而一个没有匹配边的 `delegate` 会把图硬锁死：
+  去掉 `e2e → e2e-author`，本轮第一个测试 bug 就是本轮的终点。
+- **一个判决只能有一个去处，所以一个节点最多两个。** 边只按判决路由 —— 不看报告字段，也不看门的标签。
+  想要第三个去处，需要的是第三种判决，而不是一条更聪明的消息。
 - **绝不把 `pass` 边往回画。** pass 边是依赖；往回指一条就把图变成了环。
 - **`reject` 的自返工不需要边。** 多余的自环无害；缺一条**跨节点**的 reject 边则不然 ——
   `genai.code-review → genai.implement` 就是那条要紧的。
@@ -90,10 +113,10 @@ spec ─▶ spec-review ─▶ implement ─▶ code-review ─▶ merge ─▶ 
 
 ### genai-guideline
 
-**手册本身。** 它回答八步各自被什么门控住以及为什么、项目要提供什么、度量协议的全文，以及那些坑。给项目接线之前读它，
+**手册本身。** 它回答十步各自被什么门控住以及为什么、项目要提供什么、度量协议的全文，以及那些坑。给项目接线之前读它，
 某个判决需要解释时读它。
 
-## 五个 agent
+## 七个 agent
 
 每个要产出或要判断的步骤都会派发给一个子代理，而**它们之间的划分不是组织架构上的 —— 每一个都必须运行在一个"没有生产
 过它正在评判的东西"的上下文里。** 一个 spec 作者去验收自己写的需求，是在检查他早已说服过自己的活。这份独立性是这个
@@ -105,6 +128,8 @@ spec ─▶ spec-review ─▶ implement ─▶ code-review ─▶ merge ─▶ 
 | `genai-spec-reviewer` | top | 在还没有代码的时候评判设计 —— 数据模型、契约兼容性、模块边界，以及每条需求能不能被判失败 |
 | `genai-developer` | standard | 照 spec 实现并提交；由项目的门来决定什么时候算完 |
 | `genai-code-reviewer` | standard | 正确性、可维护性，以及**改动有没有越出这个变更本来的范围** |
+| `genai-e2e-author` | standard | 把 spec 里编了号的场景变成驱动真实应用的测试，并声明哪些是谁都盖不住的 |
+| `genai-e2e-runner` | standard | 拿那份 manifest 对着运行中的应用执行、核验数据库落库，并把每次失败判给产品、测试或环境 |
 | `genai-requirement-checker` | top | 读**当初要的**而不是后来规定的，判断有没有东西被落下 |
 
 在 Codex 端，插件不能捆绑 agent，所以要手工装到 `~/.codex/agents/` —— 见 `make install-codex`。
@@ -124,18 +149,25 @@ spec ─▶ spec-review ─▶ implement ─▶ code-review ─▶ merge ─▶ 
   产物的第二副本，还会让切分支改变引擎的契约、让改定义弄脏工作区、让合并在白名单上冲突。
 - **在图运行期间改定义会让这次运行失效。** 哪怕只改一个步骤 brief 里的注释也算。先把这一轮跑完或中止。
 - **`fsx check` 的计数里含 fsx 自己的脚手架。** `fsx init` 会写一个 `nodes/task/` 模板和一份 `workflows/default.yaml`，
-  安装过程不会删它们，所以一次正确的安装报的是九个节点、两个工作流。装机判据是 `fsx nodes -w genai-sprint` 列出全部八个；
+  安装过程不会删它们，所以一次正确的安装报的是十一个节点、两个工作流。装机判据是 `fsx nodes -w genai-sprint` 列出全部十个；
   `fsx check` 是用来读 `problems[]` 的。
 - **规约要到合并那一步才进 git。** `genai.spec` 的产出按磁盘校验和量，不提交；实现那步不许碰 `openspec/**`，评审那步
   完全不许提交。于是有三个环节的时间里，需求在工作区里而不在历史里 —— revert 掉一个实现提交，不会 revert 掉它依据的规约。
+- **一个开着的端口不等于应用在跑。** 开发机上通常同时有好几个项目的服务在监听，所以 `genai.e2e` 量的是**身份** ——
+  项目在 `tools/genai/e2e.json` 里声明的那个标记必须出现在响应里。8080 端口应答的是别人的控制台，那是前置条件不满足，
+  不是应用可达，而且这一步会**拒绝开工**而不是去测它。
+- **openspec 的 JSON 把场景标题丢了。** 一个 scenario 对象只有 `rawText`、没有名字，所以编号是从 markdown 里读的 ——
+  这是本流程唯一一处去解析 openspec 自己拥有的格式。让它保持诚实的办法是向 openspec 要场景**总数**，两边不一致就以
+  `count_mismatch` 拒绝。
 - **项目侧那个报数目标如果解析人类可读输出，它会因内容而坏。** 覆盖率汇总会把文件名那一列补齐到最长路径的宽度，所以
   装机自检（跑在空项目上）能过，而第一个真实源文件一进来正则就失配 —— 各维度全 `null`，门于是拒掉一轮真实覆盖率 100% 的工作。
 
 ## 这套流程不做什么
 
-它不替你选测试框架、不替你决定版本号（`genai.release` 读 commit 自己决定并记录理由）、也不在没被装进去的项目里工作。
-另外它**在这里跑不起来**：本仓库没有测试、没有 runner、没有 `genai-metrics` 目标，所以 `genai.implement` 会返回
-`metrics_missing`。
+它不替你选测试框架、不替你决定版本号（`genai.release` 读 commit 自己决定并记录理由）、不替你启动被测应用、也不在
+没被装进去的项目里工作。它同样**不**对**合并后**的树做端到端验证：度量那道门跑两次（分支上和合并后），而验收跑只在
+待合并的候选上跑一次。另外它**在这里跑不起来**：本仓库没有测试、没有 runner、没有 `genai-metrics` 目标，所以
+`genai.implement` 会返回 `metrics_missing`。
 
 ---
 > 引擎侧的契约 —— 原子、标签、项目必须提供什么：

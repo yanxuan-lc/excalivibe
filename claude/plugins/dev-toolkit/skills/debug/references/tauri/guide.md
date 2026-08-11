@@ -53,7 +53,7 @@ See `../rust/guide.md` for full `rust-lldb` commands and `../common/cleanup.md` 
 
 ## 3. Webview Side Debugging
 
-For webview / front-end symptoms, invoke the `graceful-browser` skill. The skill routes to the appropriate browser tool (`plugin-infra` chrome-devtools MCP or equivalent) to inspect the DOM, network, and console.
+For webview / front-end symptoms, invoke the `graceful-browser` skill. The skill routes to the appropriate browser tool (the chrome-devtools MCP or equivalent) to inspect the DOM, network, and console.
 
 For probe injection in the JavaScript / TypeScript webview layer, follow **`../react/guide.md`** (or the guide for whichever framework the webview uses) for:
 

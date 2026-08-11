@@ -74,4 +74,4 @@ Open `chrome://inspect` in Chrome (or use VS Code's "Attach to Node Process" lau
 
 ## 5. Front-End / Browser Handoff
 
-For symptoms visible in the browser (rendering glitch, network request, layout issue, console error in the live app), invoke the `graceful-browser` skill. The skill will route to the appropriate browser tool (`plugin-infra` chrome-devtools MCP or equivalent) to inspect the DOM, network, and console without duplicating the logic here.
+For symptoms visible in the browser (rendering glitch, network request, layout issue, console error in the live app), invoke the `graceful-browser` skill. The skill will route to the appropriate browser tool (the chrome-devtools MCP or equivalent) to inspect the DOM, network, and console without duplicating the logic here.

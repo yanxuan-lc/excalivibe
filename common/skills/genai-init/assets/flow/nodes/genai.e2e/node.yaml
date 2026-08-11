@@ -1,0 +1,177 @@
+id: genai.e2e
+kind: verify
+
+executor:
+  protocol: subagent
+  params:
+    name: genai-e2e-runner
+
+# Two inputs, and the pair is what independence means here: the manifest says what was promised, the
+# commits are what gets exercised, and this step wrote neither. It is read-only toward both the test
+# code and the product code — running suites and driving the app is its whole licence.
+inputs:
+  - name: e2e-manifest
+    from: genai.e2e-author
+    required: true
+  - name: commits
+    from: genai.implement
+    required: true
+
+outputs:
+  - name: e2e-report
+    kind: glob
+    locator: openspec/changes/*/genai/e2e-report.md
+    signature: checksum
+
+ready:
+  # An open port is not the check. On a developer's machine several projects' services are usually up
+  # at once, so a TCP connect — or even a 200 — only proves something answered. The project declares
+  # a marker its own app returns, and identity is what gets measured.
+  #
+  # Safe on the default `always`: this step does not start, stop or deploy the app, so nothing it does
+  # can make the rule false. A refusal here consumes nothing at all — no verdict, no patience, no
+  # attempt — which is exactly the right shape for "the app is not up yet": start it and dispatch
+  # again.
+  - rule_id: app-identified
+    checker:
+      type: command
+      command: node .flow/genai/check.mjs app-identity
+      timeout_ms: 30000
+      label_from: result
+      values: [identified, wrong_service, unreachable, config_missing, config_malformed]
+    on_result:
+      identified: { ready: true }
+      wrong_service:
+        ready: false
+        reason: "Something is answering at that URL and it is not this project's app — the marker the project declared is not in the response. Point the config at the right port, or start the right service"
+      unreachable:
+        ready: false
+        reason: "The app under test is not reachable. Start it with the project's own command; this step validates a running system and never boots one"
+      config_missing:
+        ready: false
+        reason: "tools/genai/e2e.json is not there, so there is no way to tell this app from anything else listening. A project often cannot write it until the app exists, which is why nothing earlier in the round asked for it — get the URL and a marker only this app returns from a person, rather than guessing either. genai-init has the shape"
+      config_malformed:
+        ready: false
+        reason: "tools/genai/e2e.json does not satisfy its contract; the reason names the field. Both `url` and `contains` are required — without a marker there is nothing to identify the app by"
+      failed:
+        ready: false
+        reason: "The check itself exited non-zero. That is a bug in the installed step definitions"
+      unexecutable:
+        ready: false
+        reason: "The check could not run at all. Re-install with genai-init, and confirm node is on PATH"
+
+  # The report is evidence about a commit, and the framework compares it against the branch tip — so
+  # anything uncommitted is exercised by the run and invisible to that comparison. This rule is what
+  # closes that gap; `upstream_premise` at genai.merge closes the other half, after the fact.
+  #
+  # Safe on `always` for the same reason it is at genai.code-review: this step writes only untracked
+  # files, and the `worktree` atom ignores untracked files.
+  - rule_id: clean-tree
+    checker:
+      type: command
+      command: node .flow/genai/check.mjs worktree
+      label_from: result
+      values: [clean, dirty, unreadable]
+    on_result:
+      clean: { ready: true }
+      dirty:
+        ready: false
+        reason: "The working tree has uncommitted changes to tracked files. An acceptance run is recorded against a commit, so everything it exercises has to be committed first"
+      unreadable:
+        ready: false
+        reason: "git could not run — confirm this is a repository"
+      failed:
+        ready: false
+        reason: "The check itself exited non-zero. That is a bug in the installed step definitions"
+      unexecutable:
+        ready: false
+        reason: "The check could not run at all. Re-install with genai-init, and confirm node is on PATH"
+
+gates:
+  - rule_id: outputs
+    checker: { type: outputs_present }
+    on_result:
+      satisfied: { verdict: pass }
+      missing:
+        verdict: reject
+        message: "No report landed. Write one e2e-report.md under each change's genai/ directory — a run that produced no record is a run nothing can be decided from"
+
+  - rule_id: outcome
+    checker: { type: report, field: outcome }
+    on_result:
+      completed: { verdict: pass }
+      partial:
+        verdict: reject
+        message: "Part of the pass did not happen. Say which scenarios were left, and why"
+      failed:
+        verdict: reject
+        message: "Say what failed. A failing scenario is not a failed run — that goes in the report as a classified failure"
+      blocked:
+        verdict: reject
+        message: "Say what blocked it"
+
+  # No `signature_changed` rule. This gate asserts an absolute end state that doing nothing cannot
+  # satisfy, so a delta check would add nothing and would make rework fragile: a stalled signature
+  # drains the whole patience budget on one attempt.
+  #
+  # The two non-pass verdicts below are how the classification routes, and they are the only two
+  # destinations one node can have. `delegate` sends a broken test to the author, costs no patience,
+  # and leaves this step `delegated` rather than `rejected` — the work moved, the graph is not
+  # stalled. Everything else is a `reject`, which re-activates this step and, through the graph's
+  # reject edge, genai.implement as well. That coupling is the one genai.code-review already lives
+  # with; the message says which of the two has work to do.
+  - rule_id: acceptance
+    checker:
+      type: command
+      command: node .flow/genai/check.mjs e2e-report
+      timeout_ms: 120000
+      label_from: result
+      values:
+        - green
+        - product_failure
+        - test_failure
+        - infra_failure
+        - coverage_short
+        - db_evidence_missing
+        - report_missing
+        - report_malformed
+        - unreadable
+    on_result:
+      green: { verdict: pass }
+
+      # The product is wrong. This is the one verdict that belongs to whoever wrote the code.
+      product_failure:
+        verdict: reject
+        message: "A scenario failed against the product. The classification and the failing ids are in the gate facts — this is the developer's to fix, not the suite's, and the red test stays red until it is"
+
+      # The test is wrong. Nothing about the product is being asserted, so it costs no patience.
+      test_failure:
+        verdict: delegate
+        message: "Every failure this round is a test bug — a stale selector, a wrong assertion, a fixture that no longer applies. It goes back to whoever wrote the suite; nothing here says the product is broken"
+
+      infra_failure:
+        verdict: reject
+        message: "The environment failed, not the product and not the suite: a device lost, a service down mid-run, the database unreachable. Nobody in the round can fix that — hand it to a person"
+
+      # Three ways the pass itself is not yet evidence. All of them are this step's own to fix.
+      coverage_short:
+        verdict: reject
+        message: "A scenario the manifest promised was never executed. The gate facts name them — a scenario nobody ran is not a scenario that passed, and a waiver is the only way one is allowed to go unrun"
+      db_evidence_missing:
+        verdict: reject
+        message: "A scenario is recorded as passing with no database evidence behind it. That is the failure this whole step exists to catch: name the rows and columns checked, or record why there was no write to check"
+      report_missing:
+        verdict: reject
+        message: "A change has a manifest and no report. The gate facts name the path it looked at"
+      report_malformed:
+        verdict: reject
+        message: "The report does not satisfy its contract; the gate facts say which field and what was found. One fenced json block per file, and the gate reads that block only"
+      unreadable:
+        verdict: reject
+        message: "openspec/changes/ or the manifest could not be read. A setup problem, not a problem with the artifact"
+      failed:
+        verdict: reject
+        message: "The gate evaluator exited non-zero. That is a bug in the installed step definitions, not in the code under test"
+      unexecutable:
+        verdict: reject
+        message: "The gate evaluator could not run at all. Re-install with genai-init, and confirm node is on PATH"

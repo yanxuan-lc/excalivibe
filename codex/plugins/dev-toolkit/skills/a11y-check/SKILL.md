@@ -58,7 +58,7 @@ Things in class 2 that must always be raised for any non-trivial UI:
 ## Procedure
 
 1. **Get the surface running and reachable.** The app/page must already be served. Drive
-   the browser through the `graceful-browser` skill (from the `plugin-infra` plugin); it
+   the browser through the `graceful-browser` skill (it ships in `computer-use`); it
    picks the best available driver in priority order — Codex's native browser
    (`@Chrome` / `@Browser`) first, then the chrome-devtools MCP, then the Playwright MCP.
    If that skill isn't present, probe those tool families directly in the same priority

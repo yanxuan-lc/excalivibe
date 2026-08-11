@@ -83,6 +83,40 @@ gates:
         verdict: reject
         message: "Record what blocked it under deferred, with the reason"
 
+  # The scenario ids, which nothing downstream can invent for itself: the e2e suite, its manifest
+  # and its acceptance report all key on them, so a scenario without one is a scenario no later step
+  # can address. openspec does not care — it checks that a requirement HAS scenarios, never that one
+  # can be named — which is exactly why this rule is here and not left to `openspec-valid` below.
+  #
+  # Ahead of that rule because it only reads files, while validation spawns a process.
+  - rule_id: scenarios
+    checker:
+      type: command
+      command: node .flow/genai/check.mjs spec-scenarios
+      timeout_ms: 120000
+      label_from: result
+      values: [unique, unnumbered, duplicated, count_mismatch, unreadable]
+    on_result:
+      unique: { verdict: pass }
+      unnumbered:
+        verdict: reject
+        message: "A scenario carries no id. The gate facts name the headers — every scenario needs one, in the form the genai-openspec skill defines, because the e2e suite and its report have no other way to refer to it"
+      duplicated:
+        verdict: reject
+        message: "An id appears twice inside one change. Ids are never reused: two assertions sharing one id read as the same assertion in the manifest, the test title and the report"
+      count_mismatch:
+        verdict: reject
+        message: "openspec counts a different number of scenarios than this check found. That is a bug in the installed step definitions, not in the spec — the two readers have drifted apart and the facts show both numbers"
+      unreadable:
+        verdict: reject
+        message: "openspec/changes/ could not be read. A setup problem, not a problem with the artifact"
+      failed:
+        verdict: reject
+        message: "The check exited non-zero. That is a bug in the installed step definitions"
+      unexecutable:
+        verdict: reject
+        message: "The check could not run at all. Re-install with genai-init, and confirm node is on PATH"
+
   # openspec validate exits 0 even when items fail, so its exit code cannot be trusted on its
   # own — read the totals line instead. A gate that always passes is worse than no gate: it
   # reads as evidence.

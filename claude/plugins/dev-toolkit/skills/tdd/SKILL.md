@@ -100,7 +100,7 @@ REFACTOR: Check candidates (see references/common/design.md) → run tests → a
   toolchain guide gives the filter syntax) — not just the new test, and not the whole
   project. Coverage runs once at the Coverage Gate, over the modules this task touched. The
   **whole-project** suite is not yours to run at all: it is paid once per iteration, on the
-  integrated tree, by the pipeline's `full-check` step. Running it here just pays it N times.
+  integrated tree, by whatever gate the project runs there. Running it here just pays it N times.
 
 ### Verification Discipline (every loop step)
 
@@ -140,8 +140,7 @@ Run the suite with coverage enabled (see your language's toolchain guide for the
 "Add tests to this module" / "get coverage up on code that already works" is a different job
 from the loop above, and running the loop's rules against it produces nonsense — every
 characterization test is green on the first run, and the loop reads that as proof of nothing.
-This is the same work the `developer` agent calls **safety-net mode** and `smell-scan` calls
-**behaviour pinning**; use this section for all three.
+It is the same work `smell-scan` calls **behaviour pinning**; use this section for both.
 
 **It is not TDD, and saying so matters.** TDD's guarantee comes from the test having failed for
 a reason you watched. A test written against working code has no such guarantee — it inherits

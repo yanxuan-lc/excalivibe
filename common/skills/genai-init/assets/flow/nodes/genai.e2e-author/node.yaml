@@ -1,0 +1,142 @@
+id: genai.e2e-author
+kind: produce
+
+executor:
+  protocol: subagent
+  params:
+    name: genai-e2e-author
+
+# `from: genai.spec` and nothing else, and that is the whole independence mechanism. This step is
+# dispatched in parallel with genai.implement, and it must derive its assertions from the contract
+# rather than from what was built — a suite that mirrors the implementation proves only that the code
+# agrees with itself. Wiring it to the spec instead of to the commits is what makes that structural:
+# the instruction it receives has no path to the code in it, so "do not read the implementation" is
+# not a rule anyone has to remember.
+inputs:
+  - name: changes
+    from: genai.spec
+    required: true
+
+outputs:
+  - name: e2e-manifest
+    kind: glob
+    locator: openspec/changes/*/genai/e2e-manifest.md
+    signature: checksum
+
+  # The test code has no fixed home — it goes wherever the project already keeps its e2e tests — so
+  # there is no locator that finds it and the framework has nothing to hash. The manifest names the
+  # files, and the signature is measured over what those files contain. Without this output the
+  # `no-spin` rule below could be satisfied by touching the manifest alone.
+  - name: e2e-suite
+    kind: observed
+    signature:
+      scheme: custom
+      name: e2e_suite
+      command: node .flow/genai/check.mjs signature-e2e-suite
+
+# No entry rule. The required input already asserts the only precondition there is — that something
+# was designed — and the scenario ids this step keys on are gated where they are produced, at
+# genai.spec. A rule here would be a slower copy of both.
+#
+# In particular there is no `upstream_premise` against the commits, and adding one would be a
+# mistake worth naming: it would demand this step re-run every time the code moved, which is exactly
+# the dependency the input wiring above exists to refuse.
+
+gates:
+  - rule_id: outputs
+    checker: { type: outputs_present }
+    on_result:
+      satisfied: { verdict: pass }
+      missing:
+        verdict: reject
+        message: "No manifest landed. Write one e2e-manifest.md under each change's genai/ directory, even when every scenario in it turns out to be unmappable"
+
+  # This step is re-entered by delegation from genai.e2e when a mapped test is the thing that is
+  # broken, and a delegation costs no patience. That makes a rework which changes nothing the one
+  # loop with no floor under it, so the floor is here: the manifest or the suite has to move.
+  - rule_id: no-spin
+    checker: { type: signature_changed }
+    on_result:
+      satisfied: { verdict: pass }
+      stalled:
+        verdict: reject
+        message: "Neither the manifest nor any test file changed this round. If the test was right and the product is wrong, say so in the report instead of returning the same suite"
+
+  - rule_id: outcome
+    checker: { type: report, field: outcome }
+    on_result:
+      completed: { verdict: pass }
+      partial:
+        verdict: reject
+        message: "A scenario is unaccounted for. Every one goes in the manifest — mapped, agent-driven, or waived with a reason"
+      failed:
+        verdict: reject
+        message: "Say where this got stuck"
+      blocked:
+        verdict: reject
+        message: "Say what blocked it. A scenario too vague to script is a spec defect — name it rather than guessing an assertion"
+
+  # Coverage is closed arithmetic here: the ids come from the spec deltas, and every one of them has
+  # to appear in exactly one bucket. That is why this step can be gated at all without the app being
+  # up — what it promises is checkable, what it delivers is not yet.
+  - rule_id: manifest
+    checker:
+      type: command
+      command: node .flow/genai/check.mjs e2e-manifest
+      label_from: result
+      values:
+        - accounted
+        - unaccounted
+        - over_ceiling
+        - manifest_missing
+        - manifest_malformed
+        - unreadable
+    on_result:
+      accounted: { verdict: pass }
+      unaccounted:
+        verdict: reject
+        message: "A scenario is missing from the manifest, or the manifest names one the spec does not have. The gate facts list both directions — the ids come from the spec deltas and nowhere else"
+      over_ceiling:
+        verdict: reject
+        message: "Too much of this round would be hand-driven or waived, past the ceiling in the project's thresholds file. Do not grind through it: this is a decision for a person, so stop and hand it over with the reasons from the manifest"
+      manifest_missing:
+        verdict: reject
+        message: "No manifest at openspec/changes/<id>/genai/e2e-manifest.md. The gate facts name the path it looked at"
+      manifest_malformed:
+        verdict: reject
+        message: "The manifest does not satisfy its contract; the gate facts say which field and what was found. One fenced json block per file, and the gate reads that block only"
+      unreadable:
+        verdict: reject
+        message: "openspec/changes/ could not be read. A setup problem, not a problem with the artifact"
+      failed:
+        verdict: reject
+        message: "The gate evaluator exited non-zero. That is a bug in the installed step definitions"
+      unexecutable:
+        verdict: reject
+        message: "The gate evaluator could not run at all. Re-install with genai-init, and confirm node is on PATH"
+
+  # Last because it opens every mapped test file. It is also the rule that keeps the manifest honest:
+  # a row is a claim about a file, and a claim costs nothing to write.
+  - rule_id: mapping
+    checker:
+      type: command
+      command: node .flow/genai/check.mjs e2e-mapping
+      label_from: result
+      values: [matched, title_missing, file_missing, unreadable]
+    on_result:
+      matched: { verdict: pass }
+      title_missing:
+        verdict: reject
+        message: "A mapped scenario's id does not appear in the test file the manifest points at. Put the id in the test's own title — that is what makes the mapping greppable instead of a promise"
+      file_missing:
+        verdict: reject
+        message: "A mapped scenario names a test file that is not there, or a path reaching outside the project"
+      unreadable:
+        verdict: reject
+        message: "The manifest could not be read as a payload. A setup problem, not a problem with the artifact"
+      failed:
+        verdict: reject
+        message: "The gate evaluator exited non-zero. That is a bug in the installed step definitions"
+      unexecutable:
+        verdict: reject
+        message: "The gate evaluator could not run at all. Re-install with genai-init, and confirm node is on PATH"

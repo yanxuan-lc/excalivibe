@@ -16,9 +16,9 @@ Every check a step makes is one atom behind a single entry point:
 node .flow/genai/check.mjs <atom> [--flag value]
 ```
 
-There are sixteen `command:` lines across the eight `node.yaml` files under
+There are twenty-three `command:` lines across the ten `node.yaml` files under
 `skills/genai-init/assets/flow/nodes/`, and every one of them has that shape. **Do not add a
-seventeenth in shell.**
+twenty-fourth in shell.**
 
 A pipeline written into YAML is a line nobody can run on its own, review as code, or reuse. That is
 not hypothetical here: the six commands that used to live inline held four separate copies of "find
@@ -50,9 +50,11 @@ returns `absent`, and `genai.archive` reads it as `pass` while `genai.accept` re
 
 fsx resolves a rule's expected labels as `values + [failed, unexecutable]` and refuses the definition
 if `on_result` does not cover exactly that set. So adding one label to an atom means editing every
-node that names it. The `metrics` rule in `nodes/genai.implement/node.yaml` is the widest — eight
-values plus the two — and it groups them by who can fix what: four the round owns, three that are
-setup problems no retry can help, and the evaluator's own.
+node that names it. The `acceptance` rule in `nodes/genai.e2e/node.yaml` is the widest — nine values
+plus the two — and the `metrics` rule in `nodes/genai.implement/node.yaml` is next at eight. Both
+group their labels by who can fix what: the ones the round owns, the ones that are setup problems no
+retry can help, and the evaluator's own. `acceptance` adds a third axis on top of that, because two
+of its labels choose between two **destinations** rather than two messages.
 
 ## Where a rule is allowed to live
 
@@ -66,6 +68,13 @@ setup problems no retry can help, and the evaluator's own.
 file to change when that protocol changes — it is what a person reads before wiring a project up.
 
 ## Two habits specific to the step definitions
+
+**A record a gate parses is one fenced json block, and the contract lives in the brief.** Two records
+work this way — `e2e-manifest.md` and `e2e-report.md` — with prose around the block for whoever reads
+them later. The literal shape is written into `nodes/genai.e2e-author/brief.md` and
+`nodes/genai.e2e/brief.md`, next to the gate that parses it, and nowhere else; the agent files carry
+judgment, not formats. A markdown table would read better and would put a round at the mercy of column
+alignment.
 
 **An entry rule its own step invalidates must narrow its `when`.** The field defaults to `always`,
 and on `always` a precondition the step destroys forbids that step's own rework — permanently and

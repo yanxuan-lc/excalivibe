@@ -5,18 +5,32 @@ description: Start and drive one round of development from requirements to relea
 
 # Run one round
 
-One round is one release: several requirements, several changes, **one version bump**. Eight
+One round is one release: several requirements, several changes, **one version bump**. Ten
 steps, fixed at graph creation.
 
 ```
-genai.spec ──▶ genai.spec-review ──▶ genai.implement ──▶ genai.code-review ──▶ genai.merge ──▶ genai.archive ──▶ genai.accept ──▶ genai.release
-     ▲                │                     ▲                    │
-     └───── reject ───┘                     └────── reject ──────┘
+                              ┌──▶ genai.implement ──────┬──▶ genai.code-review ──┐
+genai.spec ──▶ genai.spec-review                         │                        ├──▶ genai.merge ──▶ genai.archive ──▶ genai.accept ──▶ genai.release
+                              └──▶ genai.e2e-author ─────┴──▶ genai.e2e ──────────┘
 ```
 
-The two reject edges are the two places rework crosses steps, and they sit on either side of the
-code. The first sends a design back while changing it is one edit; the second sends code back once
-that edit has become a rewrite. That asymmetry is the reason the design is reviewed at all.
+The fork is the design: **the tests and the code are built in parallel from the same confirmed
+spec**, and `genai.e2e-author` is wired to `genai.spec` rather than to the commits so that its
+instruction has no path to the implementation in it. A suite derived from the code passes by
+construction. Then two independent judgements — a review and an acceptance run — meet at the merge.
+
+Four rework edges, and they are where the routing lives:
+
+| From | On | To | Why there |
+|---|---|---|---|
+| `genai.spec-review` | reject | `genai.spec` | a design goes back while changing it is still one edit |
+| `genai.code-review` | reject | `genai.implement` | that edit has become a rewrite, and this is what it costs |
+| `genai.e2e` | reject | `genai.implement` | the product failed a scenario. Also every case where the acceptance run itself did not deliver |
+| `genai.e2e` | delegate | `genai.e2e-author` | a **test** failed, not the product. `delegate` spends no patience and leaves the step `delegated` rather than `rejected` — the work moved, the graph is not stalled |
+
+The asymmetry between the first two is the reason the design is reviewed at all. The asymmetry
+between the last two is the verification triangle: the developer never repairs a test and the author
+never touches product code, so a failure has to be classified before it can be routed.
 
 The order is not arbitrary and the gates are not negotiable — `genai-guideline` has what each
 step produces, what its gate requires, and why the last two sit in that order. This skill is
@@ -24,13 +38,20 @@ only the driving: create, dispatch, gate, route.
 
 ## Before starting
 
-- `fsx nodes -w genai-sprint` lists all eight steps, and `fsx check` raises nothing at
+- `fsx nodes -w genai-sprint` lists all ten steps, and `fsx check` raises nothing at
   `severity: error`. **When both hold, start the round — this is not a question to put to anyone.**
   Only when they do not is the project uninstalled, and then ask whether to run `/genai-init`; a
   fresh clone is always in that state, because `.flow/` is not tracked in git. Never hand-write the
   missing pieces. Read `fsx check`'s `problems[]`, never its counts: it counts every definition on
-  disk, including the `nodes/task/` template `fsx init` scaffolds, so **nine** nodes and **two**
+  disk, including the `nodes/task/` template `fsx init` scaffolds, so **eleven** nodes and **two**
   workflows is what a correct install reports.
+- The application under test can be started, and `tools/genai/e2e.json` says how to recognise it.
+  Nothing needs it until `genai.e2e`, and that step refuses to start rather than testing whatever
+  else happens to be listening — so this is worth confirming at the top of a round instead of an
+  hour into one. **If the file is missing, that is a question for the user** — a URL and a marker only
+  this app returns — and not something to fill in on their behalf: a round may not write the file it is
+  measured against. Ask now if the answer is not obvious; the round can proceed either way until that
+  step.
 - At least one requirement is in `ready`. Items still in `draft` are not ready to build, and
   the first step refuses to start without one.
 - No other round is running. **The set of `active` requirements is this round's roster** —
@@ -49,7 +70,9 @@ fsx graph create --name <round-label> --var branch=<branch-name> --inline '{
     { "id": "genai.spec#1",        "node": "genai.spec" },
     { "id": "genai.spec-review#1", "node": "genai.spec-review" },
     { "id": "genai.implement#1",   "node": "genai.implement" },
+    { "id": "genai.e2e-author#1",  "node": "genai.e2e-author" },
     { "id": "genai.code-review#1", "node": "genai.code-review" },
+    { "id": "genai.e2e#1",         "node": "genai.e2e" },
     { "id": "genai.merge#1",       "node": "genai.merge" },
     { "id": "genai.archive#1",     "node": "genai.archive" },
     { "id": "genai.accept#1",      "node": "genai.accept" },
@@ -58,10 +81,16 @@ fsx graph create --name <round-label> --var branch=<branch-name> --inline '{
   "edges": [
     { "from": "genai.spec#1",        "to": "genai.spec-review#1", "on": "pass" },
     { "from": "genai.spec-review#1", "to": "genai.implement#1",   "on": "pass" },
+    { "from": "genai.spec-review#1", "to": "genai.e2e-author#1",  "on": "pass" },
     { "from": "genai.spec-review#1", "to": "genai.spec#1",        "on": "reject" },
     { "from": "genai.implement#1",   "to": "genai.code-review#1", "on": "pass" },
+    { "from": "genai.implement#1",   "to": "genai.e2e#1",         "on": "pass" },
+    { "from": "genai.e2e-author#1",  "to": "genai.e2e#1",         "on": "pass" },
     { "from": "genai.code-review#1", "to": "genai.merge#1",       "on": "pass" },
     { "from": "genai.code-review#1", "to": "genai.implement#1",   "on": "reject" },
+    { "from": "genai.e2e#1",         "to": "genai.merge#1",       "on": "pass" },
+    { "from": "genai.e2e#1",         "to": "genai.implement#1",   "on": "reject" },
+    { "from": "genai.e2e#1",         "to": "genai.e2e-author#1",  "on": "delegate" },
     { "from": "genai.merge#1",       "to": "genai.archive#1",     "on": "pass" },
     { "from": "genai.archive#1",     "to": "genai.accept#1",      "on": "pass" },
     { "from": "genai.accept#1",      "to": "genai.release#1",     "on": "pass" }
@@ -134,9 +163,14 @@ it failed.
 
 ## When a step is rejected
 
-`reject` sends the work back to the same node; no edge is needed for that. The two that matter
-are `genai.spec-review → genai.spec` and `genai.code-review → genai.implement`, because that
-rework crosses nodes.
+`reject` sends the work back to the same node; no edge is needed for that. The ones that matter are
+the four in the table above, because that rework crosses nodes.
+
+**A cross-node reject activates both ends.** `genai.e2e` rejecting makes `genai.implement`
+dispatchable as well as itself, and for a product failure that is exactly right. For the cases where
+the acceptance run is the thing at fault — a missing report, a scenario nobody ran, no database
+evidence behind a pass — there is nothing for the developer to do, and the rejection message says so.
+Dispatch what the message names; `fsx next` answers a topology question, not an assignment.
 
 Rejection is normal. Patience is 5, shared across the whole batch — a round that reworks three
 changes once each has spent three of it. Read it from `patience.remaining`; when `fsx next`
@@ -170,9 +204,14 @@ a mess of it.
 The graph above is the whole design, but if it is ever edited, these are the ways to get a
 graph that **passes creation and deadlocks at run time**:
 
-- **Never route on `delegate`.** A `delegate` verdict with no matching edge hard-locks: the
-  gate errors, the verdict is not recorded, and the node sits forever at dispatched-but-ungated.
-  Nothing in this flow produces one.
+- **The `delegate` edge is not optional.** One gate here produces a `delegate` verdict, and a
+  `delegate` with no matching edge hard-locks: the gate errors, the verdict is not recorded, and the
+  node sits forever at dispatched-but-ungated. Drop `genai.e2e → genai.e2e-author` and the first test
+  bug of the round ends the round.
+- **One destination per verdict, so a node has at most two.** Edges route on the verdict and nothing
+  else — not on a report field, not on a gate label. That is why a failure has to be classified into
+  the two buckets the graph can act on before it can be routed anywhere, and why a third
+  destination would need a third verdict rather than a cleverer message.
 - **Never draw a `pass` edge backwards.** Pass edges are dependencies; one pointing back turns
   the downstream node into a root and inverts the graph.
 - **`reject` self-rework needs no edge.** A redundant self-edge is harmless; a missing
@@ -191,5 +230,6 @@ graph that **passes creation and deadlocks at run time**:
 - Does not write or clarify requirements — that is `genai-backlog`
 - Does not install step definitions — that is `genai-init`
 - Does not decide the version number; `genai.release` does, and records its reasoning
-- Does not touch `tools/genai/*-check.sh`. **A round may not widen the gate it is measured by** —
-  that is a requirement for a later round, and `genai-guideline` says how it gets made
+- Does not touch what the project supplies its own gates from — the `genai-metrics` target,
+  `tools/genai/thresholds.json`, `tools/genai/e2e.json`. **A round may not widen the gate it is
+  measured by**; that is a requirement for a later round, and `genai-guideline` says how it gets made

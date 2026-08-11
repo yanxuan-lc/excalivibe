@@ -58,8 +58,8 @@ The same dimension is measured differently per stack; measure where the cost act
 lives.
 
 - **Frontend / web surface** — bundle size from the build output; runtime latency and
-  page-load timings by **driving a browser (via the `graceful-browser` skill from the
-  `plugin-infra` plugin — Codex's native browser (`@Chrome` / `@Browser`) first, then the
+  page-load timings by **driving a browser (via the `graceful-browser` skill, which ships in
+  `computer-use` — Codex's native browser (`@Chrome` / `@Browser`) first, then the
   chrome-devtools MCP, then the Playwright MCP)** and reading the performance/load metrics
   it exposes (Lighthouse-style). Use the budgets in the project's Lighthouse/size-limit
   config if present.

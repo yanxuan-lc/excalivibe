@@ -1,0 +1,4 @@
+{
+  "url": "http://127.0.0.1:5173/healthz",
+  "contains": "REPLACE-WITH-A-MARKER-ONLY-THIS-APP-RETURNS"
+}

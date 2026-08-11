@@ -8,9 +8,9 @@ toc: true
 中文版: [README.zh-CN.mdx](./README.zh-CN.mdx)
 
 > A whole development flow: requirements in, one release out, every step gated on something re-runnable.
-> **Authoritative source: `src/plugins/genai-dev-flow/`** — 4 skills, 5 agents, 8 step definitions.
-> Version 3.0.0. The engine-side contract is [`../flow-contract/`](../flow-contract/README.mdx); this is
-> the manual for the four skills and how a round is actually run.
+> **Authoritative source: `src/plugins/genai-dev-flow/`** — 5 skills, 7 agents, 10 step definitions.
+> Version 3.1.0. The engine-side contract is [`../flow-contract/`](../flow-contract/README.mdx); this is
+> the manual for the five skills and how a round is actually run.
 
 ## What you get
 
@@ -29,7 +29,7 @@ round. What fixes it is not restating "do not bump the version" — in this repo
 explicitly excluded a scenario still triggered on it 5 times out of 5 — but never raising the subject
 upstream and putting the one step that *is* allowed to bump it at the end.
 
-## The four skills, and which one you want
+## The five skills, and which one you want
 
 The split between the first three is **learn / install / drive**, and it is deliberate: a manual that also
 drives gets read when nobody wanted to read, and a driver that also teaches makes every round pay for the
@@ -41,6 +41,7 @@ explanation.
 | `genai-init` | `/genai-dev-flow:genai-init` | a project needs wiring up, once. **Triggers only when asked for by name** |
 | `genai-flow` | `/genai-dev-flow:genai-flow` | a round should start, is already running, or has a step that will not pass |
 | `genai-backlog` | — | somebody described something they want built, or the question is what to pick up next |
+| `genai-openspec` | — | a spec, a delta or a scenario is being written, or something reads like a formatting complaint from openspec |
 
 ### genai-backlog
 
@@ -53,13 +54,28 @@ ready, order the candidates, archive it once it ships. One directory per item un
 `genai.spec`'s entry rule looks for, so promoting something vague does not start a round faster — it
 starts a round that gets rejected at a gate later, having spent patience.
 
+### genai-openspec
+
+**Decides how a spec has to be written so that openspec accepts it and the gates can measure it.** The
+conventions on top of openspec live here and only here: the scenario id form, where the database
+expectation goes, and which of openspec's own outputs can be believed.
+
+The id convention is `S` plus a decimal number — `S1`, `S2` — numbered within a change, and the rules that
+carry the weight are **never renumber and never reuse**. Three later steps key on those ids: the manifest,
+the test's own title, and the acceptance report.
+
+**Best practice.** Read it before writing the first delta rather than after a gate refuses one. A spec can
+pass `openspec validate --strict` and still be unusable here, because openspec checks that a requirement
+*has* scenarios while three later steps need to address **one scenario in particular**.
+
 ### genai-init
 
 **Installs the flow into a project, once.** Its recall is deliberately narrow — it fires only when you
 name it — because it writes into a repository and that is not something to trigger on a passing mention.
 
 What it puts where, and who owns each piece, is in [`../flow-contract/`](../flow-contract/README.mdx). The
-two pieces the **project** owns are a `genai-metrics` make target and `tools/genai/thresholds.json`.
+three pieces the **project** owns are a `genai-metrics` make target, `tools/genai/thresholds.json` and
+`tools/genai/e2e.json`.
 
 **Best practice.** Let it create those two; do not hand-write the step definitions. And answer its one
 real question honestly — the coverage floors. `90 / 90 / 100` is right for a project starting from
@@ -72,19 +88,34 @@ round with nothing able to fix it.
 **Drives one round**: builds the graph, dispatches each step, gates the result, routes the rework. It
 detects first and asks second — if the project is already set up, it just starts.
 
-The graph is a straight line with one return edge:
+The graph forks after the design is approved and joins again at the merge:
 
 ```
-spec ─▶ spec-review ─▶ implement ─▶ code-review ─▶ merge ─▶ archive ─▶ accept ─▶ release
-  ▲          │                 ▲            │
-  └─ reject ─┘                 └── reject ──┘
+                    ┌─▶ implement ────┬─▶ code-review ─┐
+spec ─▶ spec-review ┤                 │                ├─▶ merge ─▶ archive ─▶ accept ─▶ release
+                    └─▶ e2e-author ───┴─▶ e2e ─────────┘
 ```
 
-Patience is 5, shared across the whole batch, so reworking three changes once each spends three of it.
+The tests and the code are built **in parallel from the same confirmed spec**, and `e2e-author` is wired
+to `spec` rather than to the commits so its instruction has no path to the implementation in it. A suite
+derived from the code passes by construction. Then two independent judgements — a review and an acceptance
+run — meet at the merge.
 
-**Best practice — the four routing rules that cost a round when broken:**
+Rework crosses steps on four edges: `spec-review → spec` and `code-review → implement` on `reject`, plus
+`e2e → implement` on `reject` (the product failed) and `e2e → e2e-author` on `delegate` (a **test**
+failed). The second pair is the verification triangle made routable: the developer never repairs a test
+and the author never touches product code, so a failure has to be classified before it can go anywhere.
 
-- **Never route on `delegate`.** A `delegate` verdict with no matching edge hard-locks the graph.
+Patience is 5, shared across the whole batch, so reworking three changes once each spends three of it. The
+`delegate` edge deliberately spends none — the acceptance run did not fail, it worked and found a broken
+test — so what bounds that loop is the graph budget.
+
+**Best practice — the routing rules that cost a round when broken:**
+
+- **The `delegate` edge is not optional.** One gate produces that verdict, and a `delegate` with no
+  matching edge hard-locks the graph: drop `e2e → e2e-author` and the first test bug ends the round.
+- **One destination per verdict, so a node has at most two.** Edges route on the verdict alone — never on
+  a report field or a gate label. A third destination needs a third verdict, not a cleverer message.
 - **Never draw a `pass` edge backwards.** Pass edges are dependencies; one pointing back turns the graph
   into a cycle.
 - **`reject` self-rework needs no edge.** A redundant self-edge is harmless; a missing *cross-node* reject
@@ -99,11 +130,11 @@ passed. Put it in the backlog.
 
 ### genai-guideline
 
-**The manual.** It answers what each of the eight steps is gated on and why, what the project supplies,
+**The manual.** It answers what each of the ten steps is gated on and why, what the project supplies,
 the metrics protocol in full, and the traps. Read it before wiring a project up, and when a verdict needs
 explaining.
 
-## The five agents
+## The seven agents
 
 Each step that produces or judges is dispatched to a subagent, and **the split between them is not
 organisational — each one has to run in a context that did not produce what it is judging.** A spec author
@@ -116,6 +147,8 @@ independence is the only thing the separation buys, and it is why they cannot be
 | `genai-spec-reviewer` | top | judges the design before any code exists — data model, contract compatibility, boundaries, and whether each requirement can be failed |
 | `genai-developer` | standard | implements against the spec and commits; lets the project gate decide when it is done |
 | `genai-code-reviewer` | standard | correctness, maintainability, and **whether the edits stayed inside what the change was about** |
+| `genai-e2e-author` | standard | turns the spec's numbered scenarios into tests that drive the real application, and declares what nothing can cover |
+| `genai-e2e-runner` | standard | executes those scenarios against the running app, verifies the database writes, and classifies every failure as product, test or environment |
 | `genai-requirement-checker` | top | reads what was **asked for** rather than what was specified, and decides whether anything was left behind |
 
 On the Codex end a plugin cannot bundle agents, so they install to `~/.codex/agents/` by hand — see
@@ -140,13 +173,21 @@ These are not hypothetical; each one has happened.
 - **A definition edited under a running graph invalidates the run.** Even a comment-only change to a
   step's brief does it. Finish or abort the round first.
 - **`fsx check`'s counts include fsx's own scaffolding.** `fsx init` writes a `nodes/task/` template and
-  a `workflows/default.yaml` that installing does not remove, so a correct install reports nine nodes and
-  two workflows. The install judgement is `fsx nodes -w genai-sprint` listing all eight; `fsx check` is
+  a `workflows/default.yaml` that installing does not remove, so a correct install reports eleven nodes
+  and two workflows. The install judgement is `fsx nodes -w genai-sprint` listing all ten; `fsx check` is
   read for `problems[]`.
 - **The specs reach git only at the merge.** `genai.spec` measures its outputs as a checksum on disk and
   does not commit; implement may not touch `openspec/**` and the reviewer may not commit at all. So for
   three steps the requirement is in the working tree and not in the history — reverting an implementation
   commit does not revert its spec.
+- **An open port is not a running app.** Several projects' services are usually listening on a developer's
+  machine at once, so `genai.e2e` measures **identity** — a marker the project declares in
+  `tools/genai/e2e.json` has to appear in the response. Port 8080 answering with someone else's console is
+  a failed precondition, not a reachable app, and the step refuses to start rather than testing it.
+- **openspec's JSON drops the scenario header.** A scenario object carries `rawText` and no name, so the
+  ids are read from the markdown — the one place this flow does parse a format openspec owns. What keeps
+  it honest is asking openspec for the scenario **count** and rejecting a disagreement as
+  `count_mismatch`.
 - **A project-side metrics target that scrapes human-readable output breaks on content.** A coverage
   summary pads its filename column to the widest path, so the install-time check (run on an empty
   project) passes and the first real source file makes the regex miss — every dimension `null`, and the
@@ -155,7 +196,9 @@ These are not hypothetical; each one has happened.
 ## What this flow does not do
 
 It does not choose your test framework, decide your version number for you (`genai.release` reads the
-commits and records its reasoning), or work in a project it has not been installed into. And it cannot
+commits and records its reasoning), boot the application under test, or work in a project it has not been
+installed into. It also does not verify the **merged** tree end to end: the metrics gate runs twice, on
+the branch and on the merge, while the acceptance run happens once on the merge candidate. And it cannot
 run **here**: this repository has no tests, no runner and no `genai-metrics` target, so `genai.implement`
 would return `metrics_missing`.
 
