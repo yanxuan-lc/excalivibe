@@ -61,6 +61,4 @@ its specs folded leaves the repository describing a version that no longer exist
 
 Report `partial` and name the leftovers if any change could not be archived.
 
-{{inputs}}
-
 {{rejection}}

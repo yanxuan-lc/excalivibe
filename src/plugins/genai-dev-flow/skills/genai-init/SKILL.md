@@ -36,10 +36,12 @@ it as `../$(basename "$PWD")_genai`. A different name breaks two gates silently.
 
 ## Steps
 
-**1. Confirm the working directory is the repository root.**
+**1. Confirm the working directory is a repository root with a `HEAD`.** Two commands, because
+these are two different failures with two different fixes:
 
 ```bash
-git rev-parse --show-toplevel
+git rev-parse --show-toplevel     # is this a repository at all
+git rev-parse HEAD                # does it have any commit
 ```
 
 **A greenfield directory is not a repository, and this flow cannot run outside one** — `worktree`,
@@ -50,9 +52,21 @@ repository` is a fork, not a failure:
 git init -b main && git commit --allow-empty -m "chore: init"
 ```
 
+**Ask a repository with no commits for the second half only.** `git init` without a commit is a
+common way to arrive here, and it passes the first command while failing the second
+(`fatal: ambiguous argument 'HEAD'`):
+
+```bash
+git commit --allow-empty -m "chore: init"
+```
+
 The empty first commit is worth the one line: several gates compare against `HEAD`, and a
-repository with no commits has none. Ask before running it — creating a repository is the user's
-call — and if they would rather set one up themselves, stop here and come back.
+repository with no commits has none — `genai.merge` measures its output at `locator: HEAD`. **Nothing
+earlier catches this**: `check.mjs worktree` reports `clean` on a repository with no commits, because
+`git status --porcelain` is happy there, so a missing `HEAD` stays invisible until the merge.
+
+Ask before running either — creating a repository, or its first commit, is the user's call — and if
+they would rather set one up themselves, stop here and come back.
 
 **2. Scaffold `.flow/` if it is not there, and ignore all of it.**
 
@@ -221,7 +235,24 @@ So there are two correct outcomes here:
 Either way it is a file **the project owns and a round may not write**, for the reason the coverage
 floors are: `contains: "e"` matches nearly any response, and a marker that loose is the check removed.
 
-**8. Verify — with both commands, not just the first.**
+**8. Commit the project's baseline.** Everything the project now owns is untracked, and leaving it
+that way pushes a first commit of it into the middle of a round:
+
+```bash
+git add Makefile tools/genai openspec/config.yaml .gitignore   # whichever of these exist
+git commit -m "chore: genai flow baseline"
+```
+
+**Do this here, not later.** `genai.implement` is forbidden to commit anything under `openspec/**` —
+three steps of a round deliberately keep the specs and review records out of the history, because a
+commit during a review invalidates the verdict being recorded. But a developer facing a branch where
+`make genai-metrics` cannot run has a real reason to commit the baseline anyway, and then the gate
+files show up inside the diff a code review is scoped to. That review is right to flag it and the
+developer cannot fix it. Committing the baseline now removes the whole situation.
+
+Add paths explicitly. `git add -A` here sweeps in whatever else is lying around the working directory.
+
+**9. Verify — with both commands, not just the first.**
 
 ```bash
 fsx check

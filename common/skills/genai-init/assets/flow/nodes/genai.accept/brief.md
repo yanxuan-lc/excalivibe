@@ -30,6 +30,4 @@ Return the verdict `conditional` and say what is missing. An item that will not 
 this round goes back to `ready` — leaving it `active` blocks the release, which is the
 intended behaviour.
 
-{{inputs}}
-
 {{rejection}}

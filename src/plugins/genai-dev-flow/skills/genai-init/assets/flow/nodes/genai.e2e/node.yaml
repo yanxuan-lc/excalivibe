@@ -142,12 +142,12 @@ gates:
       # The product is wrong. This is the one verdict that belongs to whoever wrote the code.
       product_failure:
         verdict: reject
-        message: "A scenario failed against the product. The classification and the failing ids are in the gate facts — this is the developer's to fix, not the suite's, and the red test stays red until it is"
+        message: "A scenario failed against the product. Which ones, and what happened instead, are in openspec/changes/*/genai/e2e-report.md — read that rather than working from this line. It is the developer's to fix, not the suite's, and the red test stays red until it is"
 
       # The test is wrong. Nothing about the product is being asserted, so it costs no patience.
       test_failure:
         verdict: delegate
-        message: "Every failure this round is a test bug — a stale selector, a wrong assertion, a fixture that no longer applies. It goes back to whoever wrote the suite; nothing here says the product is broken"
+        message: "Every failure this round is a test bug — a stale selector, a wrong assertion, a fixture that no longer applies. Which tests, and what they did instead, are in openspec/changes/*/genai/e2e-report.md. It goes back to whoever wrote the suite; nothing here says the product is broken"
 
       infra_failure:
         verdict: reject

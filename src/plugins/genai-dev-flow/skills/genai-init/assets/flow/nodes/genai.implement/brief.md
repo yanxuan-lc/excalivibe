@@ -29,6 +29,27 @@ it should also cover and let the report carry it.
 
 Report `partial` with the specifics if any change is unfinished.
 
-{{inputs}}
+## Stay out of openspec/, and out of the gate
+
+**Do not edit anything under `openspec/**`.** The spec was reviewed and the code was not, so a spec
+bent to match the code destroys the only independent statement of what this round is for. If the spec
+is wrong, say so in the report and let the gate send it back.
+
+**Do not commit anything under `openspec/**` either**, and the reason is a different one: three steps of
+this round deliberately keep the specs and the review records in the working tree and out of the
+history, because a commit during a review invalidates the verdict that review is producing.
+`genai.merge` is what commits them. The project's own baseline — `Makefile`, `tools/genai/`, and
+`openspec/config.yaml` — was committed at install time, so nothing here still needs a first commit.
+
+## If you are being sent back
+
+Two steps can return work here, and each writes down what it found:
+
+- the code review, in `openspec/changes/*/review.md`
+- the acceptance run, in `openspec/changes/*/genai/e2e-report.md` — a failure classified `product`
+  means a scenario the spec asked for does not work
+
+**Read whichever applies before starting.** The message you were handed names a verdict; the file names
+the work.
 
 {{rejection}}

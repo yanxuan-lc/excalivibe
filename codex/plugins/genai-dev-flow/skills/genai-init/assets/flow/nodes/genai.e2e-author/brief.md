@@ -80,6 +80,15 @@ gate stop the round. You cannot ask the user yourself.
 A scenario too vague to script is a spec defect, not something to invent around: name it and report
 `blocked`.
 
-{{inputs}}
+## If you are being sent back
+
+The acceptance run delegates to this step when a **test** is the thing that failed, and what it found is
+in `openspec/changes/*/genai/e2e-report.md`: which scenarios failed, and what the app did instead.
+**Read it before touching anything** — the message you were handed says only which of three
+classifications the failure landed in.
+
+That report is also the one legitimate way this step learns anything about the running application. It
+records behaviour, not implementation, so reading it does not cost you the independence the rest of this
+brief is about. Fix the tests it names, and nothing else.
 
 {{rejection}}

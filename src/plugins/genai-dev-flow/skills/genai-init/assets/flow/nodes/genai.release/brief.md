@@ -17,6 +17,4 @@ commits, commit, and tag.
 
 Record the tag and the release in `effects`, with `reversible: false`.
 
-{{inputs}}
-
 {{rejection}}

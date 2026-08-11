@@ -74,6 +74,4 @@ of the spec, not a summary of your own summary — bury the facts and you have n
 
 If something could not be reached, report it as what it is. Never infer a pass.
 
-{{inputs}}
-
 {{rejection}}

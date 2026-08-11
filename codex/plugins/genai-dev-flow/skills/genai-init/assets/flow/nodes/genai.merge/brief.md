@@ -31,6 +31,4 @@ the entry rule wants a clean tree either way.
 Do not reach for the `genai-metrics` target or the floors in `tools/genai/thresholds.json`. If the
 merge changed either of them, that is a conflict resolved wrong — restore them and say so.
 
-{{inputs}}
-
 {{rejection}}

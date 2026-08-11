@@ -215,6 +215,14 @@ Coverage is measured over the whole project, not over the diff. Patch coverage w
 at the failure below, and it was deliberately not built: it needs a merge base, a diff, and an
 intersection with the coverage report inside every project's own target.
 
+**"The whole project" is the project's claim, and some coverage tools quietly narrow it.** Several —
+Node's built-in `--experimental-test-coverage` among them — report only the files a test actually
+loaded, so a module nobody imports does not appear in the report at all and therefore **cannot pull any
+dimension down**. An entire unimplemented file is then invisible to this gate. If the project's tool
+works that way, its target has to close the gap itself: enumerate the source files, and score a file the
+report never mentions as zero. Choosing a machine-readable reporter fixes whether the format drifts; it
+says nothing about whether the scope is complete.
+
 ### A broken setup rejects; it never passes
 
 Three labels cover it — `metrics_missing` when no marked line came through at all, whatever the
@@ -305,10 +313,16 @@ behaviour. A gap there is a finding, and the finding becomes the backlog item ab
   commit handed over, so any commit during that step invalidates the verdict being given — and a
   passed step cannot be re-run. The records stay uncommitted and the merge picks them up.
   **No ordering avoids this**; the premise is fixed at dispatch.
-- **The specs are not in git history until the merge.** `genai.spec` writes `openspec/changes/`
-  and does not commit — its outputs are measured as a checksum over files on disk, so nothing
-  needs a commit to be gated — and neither `genai.implement` (which may not touch `openspec/**`)
-  nor `genai.code-review` (which may not commit at all) changes that. `genai.merge` is the first
+- **The specs are not in git history until the merge** — provided the project's own baseline is
+  already committed. `genai.spec` writes `openspec/changes/` and does not commit — its outputs are
+  measured as a checksum over files on disk, so nothing needs a commit to be gated — and neither
+  `genai.implement` (which may neither edit nor commit anything under `openspec/**`) nor
+  `genai.code-review` (which may not commit at all) changes that. The caveat is not hypothetical: on a
+  project where `Makefile`, `tools/genai/` and `openspec/config.yaml` were still untracked when the
+  round began, a developer facing a branch on which `make genai-metrics` cannot run has a real reason to
+  commit them — and then the gate files land inside the diff the code review is scoped to, which the
+  review is right to flag and the developer cannot fix. `genai-init` commits that baseline for exactly
+  this reason, and `genai.implement`'s brief carries the prohibition where its executor can see it. `genai.merge` is the first
   commit that carries them, so across three steps the requirement exists in the working tree and
   nowhere in the history. Two things follow: reverting an implementation commit does not revert the
   spec it was built from, and anything reading the specs out of git rather than off disk sees

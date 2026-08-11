@@ -62,7 +62,7 @@ gates:
       approve:     { verdict: pass }
       conditional:
         verdict: reject
-        message: "Approved-with-conditions is not approved. Treat the conditions as work and finish them"
+        message: "Approved-with-conditions is not approved. Treat the conditions as work and finish them; they are written in openspec/changes/*/review.md"
       reject:
         verdict: reject
-        message: "See the review. Address each point"
+        message: "Read openspec/changes/*/review.md and address each point"

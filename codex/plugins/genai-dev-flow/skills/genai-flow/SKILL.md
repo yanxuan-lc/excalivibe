@@ -147,10 +147,14 @@ because an applicable condition is recomputed from the world every single time.
 **Not every entry rule applies to every dispatch, and a skipped one is not a passed one.** A rule
 declares a `when`, and rework skips the rules a step's own execution invalidates — `genai.spec`
 stops asking for a `ready` backlog item once it has claimed them all, `genai.archive` stops asking
-for an unfolded change once it has folded them. Both `dispatch` and `next --check-ready` list what
-they skipped and which `when` excluded it. Read that list as "not asked this time", never as
-"satisfied": the fact it tests may well be false, and on this dispatch that is the intended
-answer.
+for an unfolded change once it has folded them. Read that as "not asked this time", never as
+"satisfied": the fact it tests may well be false, and on this dispatch that is the intended answer.
+
+**Only `dispatch` tells you which rules were skipped.** It returns `ready_skipped` with each rule and
+the `when` that excluded it. `next --check-ready` reports a skip list **only for a node it refuses** —
+a node it says can start carries no such list, so at that point the number of rules that were not asked
+is not observable. Do not read a clean `--check-ready` as "every precondition held"; it means "nothing
+refused it".
 
 Deliver the work yourself: spawn the subagent, or do it in this context when the node says
 `main`. The engine states who should do it and verifies what comes back; it never delivers.
@@ -194,8 +198,11 @@ person to decide about. Bring them the rejection history and the options.
 passed node cannot be reopened.
 
 Record it as a requirement instead, with `origin: agent`, `priority: P3`, and a first log line
-naming what surfaced it. Steps report these through `deferred` (produce) or `findings`
-(judge) — collect them at the end of the round and write them up in one pass. Individual steps
+naming what surfaced it. **Only a `produce` step has a `deferred` field**; `judge`, `verify` and
+`effect` reports do not, so those steps register a to-do under `findings` instead — the report contract
+refuses a field its kind does not declare, and `genai.merge`, `genai.e2e` and `genai.release` are the
+three that would otherwise reach for it. Collect them at the end of the round and write them up in one
+pass. Individual steps
 do not write to the requirements directory; eight writers on one todo list will eventually make
 a mess of it.
 

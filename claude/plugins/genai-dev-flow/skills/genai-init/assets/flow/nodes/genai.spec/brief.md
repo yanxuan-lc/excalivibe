@@ -48,4 +48,11 @@ undecided. A guess written into a spec is far more expensive to undo than a roun
 
 Report `partial` if anything selected was not covered.
 
+## If you are being sent back
+
+The design review's conditions are in `openspec/changes/*/spec-review.md`. **Read that file first** —
+the message you were handed states a verdict, not what was wrong with the design, and nothing else in
+this instruction carries the review's own words. Address the points it names; do not rewrite what it
+approved.
+
 {{rejection}}

@@ -41,7 +41,7 @@ gates:
       approve: { verdict: pass }
       conditional:
         verdict: reject
-        message: "Approved-with-conditions is not approved. A design condition is a design change — make it in the spec, not later in the code"
+        message: "Approved-with-conditions is not approved. A design condition is a design change — make it in the spec, not later in the code. The conditions themselves are in openspec/changes/*/spec-review.md; this message is not a substitute for reading them"
       reject:
         verdict: reject
-        message: "See the review. Fix the spec, then have it reviewed again — this is the cheapest point in the round to change the design"
+        message: "Read openspec/changes/*/spec-review.md and fix the spec, then have it reviewed again — this is the cheapest point in the round to change the design"
