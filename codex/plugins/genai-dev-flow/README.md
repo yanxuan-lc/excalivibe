@@ -61,7 +61,7 @@ run in a context that did not produce what it is judging.** A spec author who ac
 requirements is checking work they already convinced themselves about. That independence is the
 only thing the separation buys, and it is why they cannot be collapsed.
 
-The seven step definitions install into the project's own `.flow/nodes/`, since they belong to the
+The eight step definitions install into the project's own `.flow/nodes/`, since they belong to the
 engine rather than to any one agent framework.
 
 This file is generated from `src/plugins/genai-dev-flow/README.md`. Do not edit it here.

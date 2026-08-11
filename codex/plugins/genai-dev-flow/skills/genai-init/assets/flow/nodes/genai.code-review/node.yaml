@@ -17,6 +17,35 @@ outputs:
     locator: openspec/changes/*/review.md
     signature: checksum
 
+# `always`, and it is safe to be: this step writes only untracked files, and the `worktree` atom
+# ignores untracked files, so the rule cannot be made false by the step it guards.
+#
+# What it catches is upstream: the implement gate asks for commits and a moved tip, never for
+# everything to be committed. Uncommitted tracked work reaching this point makes the review read
+# a diff that HEAD does not have, and nothing notices until `genai.merge` refuses on the same
+# fact — one whole review round later.
+ready:
+  - rule_id: clean-tree
+    checker:
+      type: command
+      command: node .flow/genai/check.mjs worktree
+      label_from: result
+      values: [clean, dirty, unreadable]
+    on_result:
+      clean: { ready: true }
+      dirty:
+        ready: false
+        reason: "The working tree has uncommitted changes to tracked files. A verdict is recorded against a commit, so everything under review has to be committed first"
+      unreadable:
+        ready: false
+        reason: "git could not run — confirm this is a repository"
+      failed:
+        ready: false
+        reason: "The check itself exited non-zero. That is a bug in the installed step definitions"
+      unexecutable:
+        ready: false
+        reason: "The check could not run at all. Re-install with genai-init, and confirm node is on PATH"
+
 gates:
   - rule_id: outputs
     checker: { type: outputs_present }

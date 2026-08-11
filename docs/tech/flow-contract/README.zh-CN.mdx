@@ -9,7 +9,7 @@ English: [README.mdx](./README.mdx)
 
 > `genai-dev-flow` 装进项目后的那份步骤定义，与安装它的项目之间的约定。两边都用固定路径互相寻址，所以它不属于
 > 任何一方。
-> **权威来源：`src/plugins/genai-dev-flow/skills/genai-init/assets/flow/`** —— 七份
+> **权威来源：`src/plugins/genai-dev-flow/skills/genai-init/assets/flow/`** —— 八份
 > `nodes/genai.*/node.yaml`，加上
 > [`genai/check.mjs`](../../../src/plugins/genai-dev-flow/skills/genai-init/assets/flow/genai/check.mjs)
 > 和它的五个 `lib/*.mjs`。
@@ -38,7 +38,7 @@ English: [README.mdx](./README.mdx)
 
 | 义务 | 形状 | 缺了会怎样 |
 |---|---|---|
-| 一个 `genai-metrics` make 目标 | 打印一行，以 `genai-metrics: ` 开头，后面跟一个 JSON 对象；**退出码和其余输出一律忽略** | `genai.implement` 的门返回 `metrics_missing`，并要求交给人处理 |
+| 一个 `genai-metrics` make 目标 | 打印一行，以 `genai-metrics: ` 开头，后面跟一个 JSON 对象；**退出码和其余输出一律忽略** | `genai.implement` 与 `genai.merge` 的门都返回 `metrics_missing`，并要求交给人处理 |
 | `tools/genai/thresholds.json` | 覆盖率下限；`null` 表示放弃某个维度，这是唯一的出口，而且它在文件里看得见 | `thresholds_missing` |
 | 一个 `openspec/` 目录 | `openspec/changes/` 与 `openspec/specs/` | 四个原子都会返回 `unreadable` |
 | 兄弟目录 `<project>_genai/` | 一个需求一个目录，状态写在各自的 frontmatter 里 | backlog 那几个原子返回 `unreadable` |
@@ -69,23 +69,28 @@ node .flow/genai/check.mjs <atom> [--flag value]
 | 原子 | 标签 | 谁在读 |
 |---|---|---|
 | `backlog-status --status <s>` | `present` · `absent` · `unreadable` | `genai.spec` 进入 · `genai.accept` 门 · `genai.release` 进入 |
-| `open-changes` | `present` · `absent` · `unreadable` | `genai.archive` 门 · `genai.accept` 进入 |
+| `open-changes` | `present` · `absent` · `unreadable` | `genai.archive` 进入 · `genai.archive` 门 · `genai.accept` 进入 |
 | `spec-deltas` | `present` · `absent` · `unreadable` | `genai.implement` 进入 |
 | `openspec-valid --scope <changes\|specs>` | `satisfied` · `validation_failed` · `totals_unreadable` · `openspec_unavailable` | `genai.spec` 门 · `genai.archive` 门 |
 | `backlog-claimed` | `agreed` · `unclaimed` · `none_active` · `unreadable` | `genai.spec` 门 |
-| `worktree` | `clean` · `dirty` · `unreadable` | `genai.merge` 进入 |
-| `metrics` | `satisfied` · `tests_failing` · `no_tests` · `too_many_skipped` · `coverage_below_floor` · `metrics_missing` · `metrics_unreadable` · `thresholds_missing` | `genai.implement` 门 |
+| `worktree` | `clean` · `dirty` · `unreadable` | `genai.code-review` 进入 · `genai.merge` 进入 · `genai.archive` 进入 |
+| `metrics` | `satisfied` · `tests_failing` · `no_tests` · `too_many_skipped` · `coverage_below_floor` · `metrics_missing` · `metrics_unreadable` · `thresholds_missing` | `genai.implement` 门 · `genai.merge` 门 |
 | `signature-archive` | 不是检查 —— 打印一个 sha256 | `genai.accept` 的产出签名 |
 
 **原子只报事实，绝不报判决**，这正是同一个实现能服务两个想要相反答案的调用方的原因：`open-changes` 返回
 `absent`，对归档是 `pass`，对验收是 `ready`，而任何地方都没有取反开关。极性住在调用方的 `on_result` 里。
 
-有两条规则声明了超时，都因为它们要拉起外部进程：`openspec-valid` 给 120 秒，`metrics` 给 600 秒 —— 一整套带覆盖率
-的测试。
+有两个原子无论被谁调用都带超时，都因为它们要拉起外部进程：`openspec-valid` 给 120 秒，`metrics` 给 600 秒 ——
+一整套带覆盖率的测试。两个原子各被两个步骤读，所以一轮总共要付四次外部进程的代价。
 
 `worktree` 忽略未跟踪文件，这是承重的而非顺带的：评审那一步**故意**把记录留在未提交状态，由合并那一步来提交。
+这条性质也正是 `genai.code-review` 能带一条 `clean-tree` 开工条件的前提 —— 该步自己写下的记录推翻不了它。
 
-## 4. 七个步骤
+有三条开工条件收窄了 `when`，没有用 `always` 缺省，因为它们会被自己那一步推翻：`genai.spec` 把它进入时依据的
+ready 项认领掉（`first_attempt`，它是根步骤），`genai.archive` 把它进入时依据的 change 折叠掉、并把工作区弄脏
+（`upstream_reran`，它有一个会重跑的上游）。其余都是每次派发都问，这正是那几条挡在不可逆动作前面的规则值得依赖的原因。
+
+## 4. 八个步骤
 
 名册与执行者。**进入条件和门条件不在这里重复** —— 它们在各自的 `node.yaml` 里，紧挨着解释「为什么长这样」的注释；
 在这棵树里抄一份，第一次有人改它就腐烂了。
@@ -93,6 +98,7 @@ node .flow/genai/check.mjs <atom> [--flag value]
 | 步骤 | kind | 执行者 | 产出 |
 |---|---|---|---|
 | `genai.spec` | produce | 子代理 `genai-spec-writer` | openspec 变更与它们的 spec 增量 |
+| `genai.spec-review` | judge | 子代理 `genai-spec-reviewer` | 每个变更一份 `spec-review.md` |
 | `genai.implement` | produce | 子代理 `genai-developer` | sprint 分支上的提交 |
 | `genai.code-review` | judge | 子代理 `genai-code-reviewer` | 每个变更一份 `review.md` |
 | `genai.merge` | effect | main | 合并提交 |

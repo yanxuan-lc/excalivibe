@@ -33,6 +33,12 @@ that is a finding — say what the gate should also cover. **Do not edit that ta
 floors**, and treat an edit to either in the diff as an out-of-scope finding: a change may not
 widen the gate it is being measured by.
 
+The one exception is a commit carrying a `Genai-Setup-Fix:` trailer — a person repairing a metrics
+setup that was rejecting every attempt. Record it as `info`, and read the diff before you do: a
+lowered floor, a newly skipped test or a narrowed command is a blocker whatever the trailer says.
+Absent the trailer there is no exception, and the author field never distinguishes a person from
+the agent they are driving.
+
 ## Scope is the criterion that gets skipped
 
 Every out-of-scope edit has a good reason at the time. A bumped version string, an unrelated

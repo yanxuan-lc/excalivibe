@@ -16,9 +16,9 @@ Every check a step makes is one atom behind a single entry point:
 node .flow/genai/check.mjs <atom> [--flag value]
 ```
 
-There are twelve `command:` lines across the seven `node.yaml` files under
+There are sixteen `command:` lines across the eight `node.yaml` files under
 `skills/genai-init/assets/flow/nodes/`, and every one of them has that shape. **Do not add a
-thirteenth in shell.**
+seventeenth in shell.**
 
 A pipeline written into YAML is a line nobody can run on its own, review as code, or reuse. That is
 not hypothetical here: the six commands that used to live inline held four separate copies of "find
@@ -67,9 +67,13 @@ file to change when that protocol changes — it is what a person reads before w
 
 ## Two habits specific to the step definitions
 
-**An entry rule may only assert something its own step does not change.** A precondition the step
-destroys forbids its own rework. `nodes/genai.archive/node.yaml` therefore has no entry rule, and its
-comment names the two candidates that were rejected for exactly this reason.
+**An entry rule its own step invalidates must narrow its `when`.** The field defaults to `always`,
+and on `always` a precondition the step destroys forbids that step's own rework — permanently and
+silently, since a ready refusal writes no event, spends no patience and records no attempt. Two
+definitions depend on this: `nodes/genai.spec/node.yaml` uses `first_attempt` because it is a root,
+and `nodes/genai.archive/node.yaml` uses `upstream_reran` because it has an upstream that can re-run.
+Leave `when` off wherever the rule survives its own step — that is every rule guarding an
+irreversible act, and those are the ones worth asking every time.
 
 **When you change a node, change its comment with it.** There is no separate design document for this
 plugin: the reasoning lives in the node comments, in the evaluators, and in the root `CONTEXT.md`.

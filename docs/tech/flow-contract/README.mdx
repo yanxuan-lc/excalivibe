@@ -9,7 +9,7 @@ toc: true
 
 > The agreement between `genai-dev-flow`'s installed step definitions and the project that installs
 > them. Both sides address fixed paths, so it belongs to neither party.
-> **Authoritative source: `src/plugins/genai-dev-flow/skills/genai-init/assets/flow/`** — the seven
+> **Authoritative source: `src/plugins/genai-dev-flow/skills/genai-init/assets/flow/`** — the eight
 > `nodes/genai.*/node.yaml`, plus
 > [`genai/check.mjs`](../../../src/plugins/genai-dev-flow/skills/genai-init/assets/flow/genai/check.mjs)
 > and its five `lib/*.mjs`.
@@ -41,7 +41,7 @@ Four obligations, and only two of them are files the project writes:
 
 | Obligation | Shape | Consequence if absent |
 |---|---|---|
-| a `genai-metrics` make target | prints one line beginning `genai-metrics: ` followed by one JSON object; **the exit code and all other output are ignored** | the `genai.implement` gate returns `metrics_missing` and says to hand it to a person |
+| a `genai-metrics` make target | prints one line beginning `genai-metrics: ` followed by one JSON object; **the exit code and all other output are ignored** | the `genai.implement` and `genai.merge` gates both return `metrics_missing` and say to hand it to a person |
 | `tools/genai/thresholds.json` | coverage floors; `null` opts a dimension out, which is the only way out and is visible in the file | `thresholds_missing` |
 | an `openspec/` directory | `openspec/changes/` and `openspec/specs/` | `unreadable` from four atoms |
 | the sibling `<project>_genai/` | one directory per requirement, state in its own frontmatter | `unreadable` from the backlog atoms |
@@ -76,25 +76,34 @@ must cover exactly `values + [failed, unexecutable]`.
 | Atom | Labels | Read by |
 |---|---|---|
 | `backlog-status --status <s>` | `present` · `absent` · `unreadable` | `genai.spec` entry · `genai.accept` gate · `genai.release` entry |
-| `open-changes` | `present` · `absent` · `unreadable` | `genai.archive` gate · `genai.accept` entry |
+| `open-changes` | `present` · `absent` · `unreadable` | `genai.archive` entry · `genai.archive` gate · `genai.accept` entry |
 | `spec-deltas` | `present` · `absent` · `unreadable` | `genai.implement` entry |
 | `openspec-valid --scope <changes\|specs>` | `satisfied` · `validation_failed` · `totals_unreadable` · `openspec_unavailable` | `genai.spec` gate · `genai.archive` gate |
 | `backlog-claimed` | `agreed` · `unclaimed` · `none_active` · `unreadable` | `genai.spec` gate |
-| `worktree` | `clean` · `dirty` · `unreadable` | `genai.merge` entry |
-| `metrics` | `satisfied` · `tests_failing` · `no_tests` · `too_many_skipped` · `coverage_below_floor` · `metrics_missing` · `metrics_unreadable` · `thresholds_missing` | `genai.implement` gate |
+| `worktree` | `clean` · `dirty` · `unreadable` | `genai.code-review` entry · `genai.merge` entry · `genai.archive` entry |
+| `metrics` | `satisfied` · `tests_failing` · `no_tests` · `too_many_skipped` · `coverage_below_floor` · `metrics_missing` · `metrics_unreadable` · `thresholds_missing` | `genai.implement` gate · `genai.merge` gate |
 | `signature-archive` | not a check — prints a sha256 | `genai.accept` output signature |
 
 **An atom reports a fact, never a verdict**, which is why one implementation serves two callers wanting
 opposite answers: `open-changes` returning `absent` is a `pass` for the archive and a `ready` for the
 acceptance, with no negation flag anywhere. Polarity lives in the caller's `on_result`.
 
-Two rules declare a timeout, both because they spawn an external process: `openspec-valid` allows
-120 s, `metrics` allows 600 s — a full test suite with coverage.
+Two atoms carry a timeout wherever they are called, both because they spawn an external process:
+`openspec-valid` allows 120 s, `metrics` allows 600 s — a full test suite with coverage. Each is read
+by two steps, so the round pays for four external runs in all.
 
 `worktree` ignores untracked files, and that is load-bearing rather than incidental: the review step
-leaves its records uncommitted on purpose, and the merge is what commits them.
+leaves its records uncommitted on purpose, and the merge is what commits them. It is also what lets
+`genai.code-review` carry a `clean-tree` entry rule at all — the rule cannot be falsified by the
+records the step itself writes.
 
-## 4. The seven steps
+Three entry rules narrow their `when` rather than taking the `always` default, because their own step
+falsifies them: `genai.spec` claims the backlog items it entered on (`first_attempt`, a root step),
+and `genai.archive` folds away the changes and dirties the tree it entered on (`upstream_reran`, it
+has an upstream that can re-run). Everything else is asked on every dispatch, which is what makes the
+rules before an irreversible act worth relying on.
+
+## 4. The eight steps
 
 The roster and who runs each one. **The entry and gate rules are not reproduced here** — they are in
 each `node.yaml` next to the comment explaining why they are shaped that way, and a copy in this tree
@@ -103,6 +112,7 @@ would rot the first time one changes.
 | Step | Kind | Executor | Produces |
 |---|---|---|---|
 | `genai.spec` | produce | subagent `genai-spec-writer` | openspec changes and their spec deltas |
+| `genai.spec-review` | judge | subagent `genai-spec-reviewer` | one `spec-review.md` per change |
 | `genai.implement` | produce | subagent `genai-developer` | commits on the sprint branch |
 | `genai.code-review` | judge | subagent `genai-code-reviewer` | one `review.md` per change |
 | `genai.merge` | effect | main | the merge commit |

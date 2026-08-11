@@ -19,6 +19,20 @@ An edit to that target, or to the floors in `tools/genai/thresholds.json`, is it
 finding: **a change may not widen the gate it is measured by.** Say what the gate should also
 cover and leave both alone.
 
+**One exception, and it has to be claimed.** A broken metrics setup rejects until the round lands
+in front of a person, and their repair is an edit to exactly those files. Such a commit carries a
+trailer:
+
+```
+Genai-Setup-Fix: <what was broken, and which label the gate was returning>
+```
+
+Record that as `info` rather than a blocker — **but only after reading the diff.** A floor that
+moved down, a test newly skipped, a command narrowed to run less: those are blockers whatever the
+trailer claims, and the trailer being present is what makes checking mandatory rather than
+optional. No trailer, no exception. Do not try to tell a person's commit from an agent's by the
+author field; it is the same author.
+
 The scope criterion is the one that is easy to skip and expensive to lose. An edit that has
 nothing to do with the change — a bumped version string, an unrelated refactor, a touched
 config — is a finding, not a bonus.

@@ -1,6 +1,6 @@
 ---
 name: genai-guideline
-description: Explain how the genai development flow works and what a project has to supply for it — the seven steps and what each one is gated on, the make target and coverage floors a project supplies itself, and the traps that cost a whole round. Use when a step's verdict needs explaining, when deciding whether a gate is strong enough or where a new gate belongs, when the project-supplied metrics target or its floors have to be written, widened or replaced, and when someone needs to understand the flow before installing or running it.
+description: Explain how the genai development flow works and what a project has to supply for it — the eight steps and what each one is gated on, the make target and coverage floors a project supplies itself, and the traps that cost a whole round. Use when a step's verdict needs explaining, when deciding whether a gate is strong enough or where a new gate belongs, when the project-supplied metrics target or its floors have to be written, widened or replaced, and when someone needs to understand the flow before installing or running it.
 ---
 
 # The genai flow
@@ -14,12 +14,18 @@ To install it, use `genai-init`. To run a round, use `genai-flow`. To write requ
 ## First: is this project set up at all?
 
 ```bash
-fsx check
+fsx nodes -w genai-sprint      # the judgement: all eight steps listed
+fsx check                      # read problems[], not the counts
 ```
 
-Seven step definitions and nothing at `severity: error` means yes. Anything else — a missing
-`.flow/`, fewer than seven definitions, `unexecutable` on every command gate — means the project
-has not been installed, and **nothing in this flow will work until it is**.
+All eight listed and nothing at `severity: error` means yes. Anything else — a missing `.flow/`,
+fewer than eight in the listing, `unexecutable` on every command gate — means the project has not
+been installed, and **nothing in this flow will work until it is**.
+
+**`fsx check`'s counts are not the test.** It counts every definition on disk, and `fsx init`
+scaffolds a template node (`nodes/task/`) and a `workflows/default.yaml` that installing does not
+remove, so a correct install reports nine nodes and two workflows. Scoping the question to the
+workflow is what `-w genai-sprint` is for.
 
 That state is normal rather than broken, and a fresh clone is always in it. `.flow/` is not
 tracked in git: the definitions and the checks under `.flow/genai/` are versioned in the plugin
@@ -45,7 +51,7 @@ inside one change's context that change *is* everything, so finishing it looks l
 round and the version gets bumped again. Only the last step may bump it, and no earlier step
 mentions versions at all.
 
-## The seven steps
+## The eight steps
 
 Gates run in declaration order and the first non-pass concludes, so each row below is
 "every condition, cheapest first". Patience is 5 for all of them, shared across the whole batch.
@@ -53,10 +59,11 @@ Gates run in declaration order and the first non-pass concludes, so each row bel
 | Step | Executor | Produces | Passes when |
 |---|---|---|---|
 | `genai.spec` | `genai-spec-writer` | this round's changes and spec deltas | change and delta files exist · not byte-identical to the last attempt · `outcome: completed` · openspec strict validation reports 0 failed · every active requirement is referenced by some change |
+| `genai.spec-review` | `genai-spec-reviewer` | one design review per change | a record landed for each change · `verdict: approve` |
 | `genai.implement` | `genai-developer` | committed code on the sprint branch | *entry:* a spec delta exists to build from. *gate:* the branch has commits · the tip moved · `outcome: completed` · no test failed, at least one ran, at most a tenth skipped, and coverage is at or above the project's floors |
-| `genai.code-review` | `genai-code-reviewer` | one review record per change | a record landed for each change · `verdict: approve` |
-| `genai.merge` | main | the merge commit | *entry:* the branch has not moved since the review approved it · the tree is clean. *gate:* a merge commit exists · `outcome: completed` |
-| `genai.archive` | main | the folded main specs | main specs exist · `outcome: completed` · nothing left open under `openspec/changes/` · the main specs pass strict validation |
+| `genai.code-review` | `genai-code-reviewer` | one review record per change | *entry:* the tree is clean. *gate:* a record landed for each change · `verdict: approve` |
+| `genai.merge` | main | the merge commit | *entry:* the branch has not moved since the review approved it · the tree is clean. *gate:* a merge commit exists · `outcome: completed` · the merged tree still satisfies the same test-and-coverage check the branch did |
+| `genai.archive` | main | the folded main specs | *entry:* there is a change to fold · the tree is clean. *gate:* main specs exist · `outcome: completed` · nothing left open under `openspec/changes/` · the main specs pass strict validation |
 | `genai.accept` | `genai-requirement-checker` | the archived requirement records | *entry:* nothing left open under `openspec/changes/`, so the fold has happened. *gate:* the archive is non-empty · `verdict: approve` · no requirement is still `active` |
 | `genai.release` | main | the changelog, plus the version and tag in the report's effects | *entry:* no requirement is still `active`. *gate:* the changelog is written and committed · `outcome: completed` |
 
@@ -65,9 +72,14 @@ Three asymmetries are deliberate:
 - **Only `genai.spec` and `genai.implement` have the byte-identical check.** Elsewhere the gates
   assert an absolute end state that doing nothing cannot satisfy, so a delta check adds nothing —
   and it makes rework fragile, because a stalled signature drains the whole patience budget at once.
-- **An entry rule may only assert something its own step does not change.** `genai.archive` has
-  none for exactly that reason: both candidates (an open change to fold, a clean tree) are
-  destroyed by the archive itself, so either one would forbid its own rework.
+- **An entry rule that its own step invalidates has to say so, with `when`.** By default a rule
+  is evaluated on every dispatch, and for `genai.spec` (which empties the `ready` backlog it
+  entered on) and `genai.archive` (which folds away the changes it entered on) that would refuse
+  every rework forever — silently, because a ready refusal writes no event and spends no patience.
+  Both declare a narrower `when`: `first_attempt` where the step is a root, `upstream_reran` where
+  it has an upstream that can re-run. Rules that stay true through their own step — the two on
+  `genai.merge`, the ones on `genai.accept` and `genai.release` — keep the default and are asked
+  every time, which is what makes them safe to rely on before an irreversible act.
 - **`genai.accept` runs after `genai.archive`, not before.** Requirements go missing *during*
   the fold into the main specs, silently, with no mechanical gate able to see it. Checking
   before the fold would miss the one failure the step exists for.
@@ -91,6 +103,14 @@ Which test framework, which coverage tool, how the target is wired — none of t
 subject. Choosing and running a test setup is what `tdd` is for; this flow only states what has
 to come out the other end. A future step needing its own project-supplied gate gets its own
 `genai-<step>` target under the same rule.
+
+**One target, two steps, two trees.** `genai.implement` runs it on the sprint branch and
+`genai.merge` runs it again on the merged tree, against the same floors. The second run is not
+a retry of the first: only the merge happened in between, so what it catches is the merge itself
+— a conflict resolved wrong, or two changes that pass separately and fail together. Nothing else
+in the round looks at the integration branch, which is why this one costs a full suite run and
+is worth it. The consequence for the project is that the target has to be runnable on the
+integration branch too, not only on a feature branch.
 
 ### The project reports; the gate decides
 
@@ -148,6 +168,26 @@ reason; `metrics_unreadable` when one came through and does not satisfy the prot
 those files are the round's to fix. Patience runs out and the round lands in front of a person,
 which is where a broken setup belongs.
 
+### Do not scrape the suite's human-readable output
+
+The target has to end up with numbers, and the cheapest-looking route is a regex over whatever the
+test runner prints for people. **That route breaks on content, not on code.** A coverage summary
+pads its filename column to the widest path, so a run with no source files and a run with
+`src/parse-duration.mjs` in it produce different spacing on the same line — and a regex written
+against the first silently matches nothing against the second. Every dimension comes through
+`null`, the gate reads that as below the floor, and it rejects a round whose real coverage was
+100%. The rejection message blames the code, which is the expensive part: nothing points at the
+reporter.
+
+Two consequences worth taking seriously:
+
+- **Prefer a machine-readable reporter** — a JSON or LCOV summary, `--reporter=json`, a coverage
+  tool's own data file. A format with a contract does not move when the content does.
+- **When there is no choice but to parse text, the install-time check proves nothing.** It runs on
+  an empty project, which is exactly the layout the real one will not have. Re-run
+  `make genai-metrics` and the atom after the first real source file lands, and compare the numbers
+  against what the suite actually reported.
+
 Nothing here can be made to pass by leaving something out, which is the property worth keeping:
 **the gate demands numbers, so silence is a rejection.** Still, silence is not the only way to be
 wrong — a target printing plausible numbers it never measured passes, and no check can see that.
@@ -168,6 +208,24 @@ Strengthening the gate is **its own piece of work**: it becomes a backlog item l
 with `origin: agent` when a step surfaced the need, and it gets specced, implemented and
 reviewed in a later round. Between rounds, not inside one — editing it mid-round dirties the
 tree and can invalidate a review that already passed.
+
+**Repairing a broken one is the exception, and it needs a channel.** The three setup labels reject
+until patience runs out and the round lands in front of a person — and that person's fix is an edit
+to the target or the floors, mid-round, which is the exact diff the reviewer is told to treat as an
+out-of-scope finding. The reviewer sees a commit, not who made it or why; the author field does not
+distinguish a person from the agent they are driving.
+
+So mark it in the commit message, with a trailer:
+
+```
+Genai-Setup-Fix: <what was broken, and which label the gate was returning>
+```
+
+A reviewer finding that trailer records the edit as `info` rather than a blocker — **after checking
+that the diff repairs the target rather than loosening it**: a floor that moved down, a
+newly-skipped test or a narrowed command is a blocker whatever the trailer says. Without the
+trailer it is a scope finding, and correctly so. This is the whole of the exception: it does not
+license widening a gate, and it does not apply to any other file.
 
 ### What a green gate does and does not prove
 
@@ -192,6 +250,16 @@ behaviour. A gap there is a finding, and the finding becomes the backlog item ab
   commit handed over, so any commit during that step invalidates the verdict being given — and a
   passed step cannot be re-run. The records stay uncommitted and the merge picks them up.
   **No ordering avoids this**; the premise is fixed at dispatch.
+- **The specs are not in git history until the merge.** `genai.spec` writes `openspec/changes/`
+  and does not commit — its outputs are measured as a checksum over files on disk, so nothing
+  needs a commit to be gated — and neither `genai.implement` (which may not touch `openspec/**`)
+  nor `genai.code-review` (which may not commit at all) changes that. `genai.merge` is the first
+  commit that carries them, so across three steps the requirement exists in the working tree and
+  nowhere in the history. Two things follow: reverting an implementation commit does not revert the
+  spec it was built from, and anything reading the specs out of git rather than off disk sees
+  nothing during that window. The upside is what makes it worth keeping — `worktree` ignores
+  untracked files, which is what lets `genai.code-review` and `genai.merge` both demand a clean tree
+  without the review records tripping them.
 - **`.flow/` is ignored in full, definitions included.** They are versioned in this plugin, so
   tracking them puts a second copy of an already-versioned artifact in every repository — and it
   makes branch switches change the engine's contract, definition edits dirty the tree, and

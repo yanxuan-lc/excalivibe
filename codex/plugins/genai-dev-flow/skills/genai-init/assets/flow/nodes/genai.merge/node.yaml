@@ -79,3 +79,67 @@ gates:
       blocked:
         verdict: reject
         message: "Say what blocked it"
+
+  # The same atom genai.implement gates on, run once more on a different tree. That step left the
+  # sprint branch green; this one runs after the merge, and only one thing happened in between —
+  # so a failure here is the merge itself: a conflict resolved wrong, or two changes that are each
+  # correct and wrong together. Nothing else in the round looks at the integration branch.
+  #
+  # Fix it here, on the integration branch. Going back to the sprint branch moves the tip that
+  # genai.code-review approved, and `review-still-valid` above then refuses this step's next
+  # entry — with the review already passed, nothing re-approves it.
+  #
+  # No signature_changed rule alongside it, for the reason the other end-state gates give: doing
+  # nothing cannot turn a red tree green, so a delta check adds nothing, and it would make rework
+  # fragile by draining the whole patience budget on one stalled attempt.
+  - rule_id: checks
+    checker:
+      type: command
+      command: node .flow/genai/check.mjs metrics
+      timeout_ms: 600000
+      label_from: result
+      values:
+        - satisfied
+        - tests_failing
+        - no_tests
+        - too_many_skipped
+        - coverage_below_floor
+        - metrics_missing
+        - metrics_unreadable
+        - thresholds_missing
+    on_result:
+      satisfied: { verdict: pass }
+
+      # Four ways the merge broke something that was working. All are fixed on this branch.
+      tests_failing:
+        verdict: reject
+        message: "The merged tree is red, and the branch was green when it was reviewed. Fix it here on the integration branch — going back to the sprint branch strands this step behind a review that no longer matches"
+      no_tests:
+        verdict: reject
+        message: "The suite reported no tests on the merged tree, though it ran on the branch. The merge either lost the tests or broke how they are found"
+      too_many_skipped:
+        verdict: reject
+        message: "More than a tenth of the merged suite is skipped. A conflict settled by skipping a test is not a settled conflict"
+      coverage_below_floor:
+        verdict: reject
+        message: "Coverage on the merged tree is below the floor this project declared. Dropping a test while resolving a conflict is the usual cause; which dimensions fell short is in the gate facts"
+
+      # Three ways the setup is broken. If the same target worked on the branch, the merge changed
+      # it — and that is a scope problem, not something to fix by editing it again.
+      metrics_missing:
+        verdict: reject
+        message: "`make genai-metrics` produced no `genai-metrics:` line on the integration branch. If it printed one on the sprint branch, the merge changed the target. Setup problem — stop and hand it to a person"
+      metrics_unreadable:
+        verdict: reject
+        message: "The metrics line came through but does not satisfy the protocol; the gate facts say which field and what was found. Setup problem"
+      thresholds_missing:
+        verdict: reject
+        message: "tools/genai/thresholds.json is missing or unreadable on the integration branch, so the gate has no floors to judge against. Setup problem"
+
+      # The evaluator itself, which ships with these definitions.
+      failed:
+        verdict: reject
+        message: "The gate evaluator exited non-zero. That is a bug in the installed step definitions, not in the merged code"
+      unexecutable:
+        verdict: reject
+        message: "The gate evaluator could not run at all. Re-install with genai-init, and confirm node is on PATH"

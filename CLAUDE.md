@@ -64,7 +64,7 @@ Three plugins:
 |---|---|---|
 | `computer-use` | 3.0.0 | 4 skills + 2 hook files (Claude only) |
 | `dev-toolkit` | 3.0.0 | 19 skills; no agents, no hooks |
-| `genai-dev-flow` | 3.0.0 | 4 skills + 4 agents + 7 fsx step definitions |
+| `genai-dev-flow` | 3.0.0 | 4 skills + 5 agents + 8 fsx step definitions |
 
 `genai-dev-flow` differs from the other two by **having state**: its step definitions and gate code
 install into a consuming project's `.flow/`, while that project's requirements live outside it in a
@@ -94,7 +94,7 @@ The remaining five mechanisms:
 - **`${PLUGIN_ROOT}` substitution** — see the table above.
 - **`tier` / `tier-<end>` on agents** — resolved against the `TIER` table: top → opus /
   gpt-5.6-sol, standard → sonnet / gpt-5.6-terra, light → haiku / gpt-5.6-luna, and always null on
-  common. All four agents currently use plain `tier`; none uses `tier-<end>`.
+  common. All five agents currently use plain `tier`; none uses `tier-<end>`.
 - **`hooks/**`** — compiles to Claude by construction. Only `computer-use` has any: two files.
 - **`command: true`** — Claude additionally gets a thin `commands/<name>.md`. Three skills use it
   today: `install-computer-use`, `genai-flow`, `genai-init`.

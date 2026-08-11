@@ -56,7 +56,7 @@ Node 擦不掉的语法，于是「类型检查通过但跑不起来」这种情
 上下文的东西。500 行预算的由来是：`SKILL.md` 在 skill 触发的那一刻整份加载，而 `references/` 只在正文把模型指过去
 时才加载 —— 一份长 `SKILL.md` 于是在每次调用上都花掉上下文，去携带多数调用并不需要的材料。
 
-它检查 89 个 frontmatter 块：81 份 `SKILL.md`（27 个 skill × 3 端）和 8 份 agent markdown（4 个 agent ×
+它检查 91 个 frontmatter 块：81 份 `SKILL.md`（27 个 skill × 3 端）和 10 份 agent markdown（5 个 agent ×
 claude 与 common）。**Codex 的 agent 是 `.toml`，它不检查** —— 那份 frontmatter 的形状在本侧没有任何东西在校验。
 
 它接受的 YAML 子集刻意极小，其中一条抓的是真实故障：裸标量里含 `": "` 会让 YAML 把值读成嵌套映射，所以必须加引号。

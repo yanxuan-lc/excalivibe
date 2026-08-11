@@ -18,7 +18,7 @@ step 6; this skill installs against that protocol rather than restating it.
   .flow/
     config.yaml                       engine defaults
     workflows/genai-sprint.yaml       the step whitelist
-    nodes/genai.*/                    seven step definitions
+    nodes/genai.*/                    eight step definitions (fsx's own nodes/task/ stays alongside)
     genai/*.mjs                       the gate evaluators these definitions call
   Makefile                            must have a `genai-metrics` target (the project writes it)
   tools/genai/thresholds.json         the coverage floors (the project sets these)
@@ -39,6 +39,18 @@ it as `../$(basename "$PWD")_genai`. A different name breaks two gates silently.
 ```bash
 git rev-parse --show-toplevel
 ```
+
+**A greenfield directory is not a repository, and this flow cannot run outside one** — `worktree`,
+the branch-tip comparison, the merge commit and the tag are all git. So `fatal: not a git
+repository` is a fork, not a failure:
+
+```bash
+git init -b main && git commit --allow-empty -m "chore: init"
+```
+
+The empty first commit is worth the one line: several gates compare against `HEAD`, and a
+repository with no commits has none. Ask before running it — creating a repository is the user's
+call — and if they would rather set one up themselves, stop here and come back.
 
 **2. Scaffold `.flow/` if it is not there, and ignore all of it.**
 
@@ -96,6 +108,13 @@ defaults:
 therefore of the reports and documents they write back. Set it to the language of the
 requirement briefs, not to the language of whoever is typing.
 
+**It does not translate the step briefs.** Those ship inside this plugin as English source and are
+injected verbatim, so every dispatched instruction is two languages at once: an English brief, then
+a framework-rendered section in the configured language. That is the intended split — the brief is
+read by a model, the artifacts are written for people — but it means the language setting is
+carried only by the second half. Tell the executor which half is the language baseline if it has to
+ask.
+
 **5. Create the requirements directory** if it is not there:
 
 ```bash
@@ -141,11 +160,26 @@ Then prove both halves work, here, before moving on:
 
 ```bash
 make genai-metrics                     # must print a genai-metrics: line with real numbers
-node .flow/genai/check.mjs metrics     # must print {"result":"satisfied",...}
+node .flow/genai/check.mjs metrics     # the gate itself, reading that line
 ```
 
-The second one is the gate itself. Any other `result` names exactly what is wrong — and a
-`satisfied` reached with fabricated numbers is the one failure neither command can catch, so read
+**What has to be true at install time is the shape, not the verdict.** The second command must
+come back with a label about the numbers — and on a project that has no tests yet that label is
+`no_tests`, which is the **expected** answer here. `satisfied` is not reachable until something
+passes a test, and getting there is `genai.implement`'s job, not this step's.
+
+What would be a broken install is any of the three setup labels: `metrics_missing` (no marked line
+came through), `metrics_unreadable` (one did and does not satisfy the protocol), or
+`thresholds_missing`. Those three are this step's business; fix them here.
+
+**A target that parses human-readable output has not been tested by this.** The check runs on an
+empty project, where column widths, table alignment and summary lines all differ from what they
+will be once there are real source files — so a fragile reporter passes here and fails later, with
+the gate blaming the code. If the target scrapes formatted text rather than a machine-readable
+reporter, say so to the user now and re-run both commands after the first real source file exists.
+`genai-guideline` has the reasoning.
+
+A `satisfied` reached with fabricated numbers is the one failure no command here can catch, so read
 what the target actually runs.
 
 **7. Verify — with both commands, not just the first.**
@@ -155,8 +189,13 @@ fsx check
 fsx nodes -w genai-sprint
 ```
 
-`fsx check` must report seven step definitions and nothing at `severity: error`. `fsx nodes`
-must then list all seven. A failure in either is a broken install, not something to work around.
+**`fsx nodes -w genai-sprint` must list all eight, and that listing is the judgement.** A missing
+one is a broken install, not something to work around.
+
+**Do not judge by `fsx check`'s counts.** It counts every definition on disk, and `fsx init` in
+step 2 scaffolded a template node of its own (`.flow/nodes/task/`) plus `workflows/default.yaml`
+— neither of which step 3 removes. So it reports **nine** nodes and **two** workflows on a correct
+install. That is normal. What `fsx check` is for here is `problems[]`.
 
 **`ok` and the exit code answer only for errors.** Problems come in two severities, and a
 `warning` leaves both green — so `fsx check && ...` passing is not the same as a clean report.

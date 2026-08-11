@@ -2,6 +2,7 @@
 # graph creation, so "what can this kind of work do" has a definite answer.
 nodes:
   - genai.spec
+  - genai.spec-review
   - genai.implement
   - genai.code-review
   - genai.merge
@@ -10,7 +11,7 @@ nodes:
   - genai.release
 
 defaults:
-  # Seven nodes, one value — so it is declared once here rather than seven times in the definitions.
+  # Eight nodes, one value — so it is declared once here rather than eight times in the definitions.
   # This is a starting number to tune against real runs, not a derived one. Patience is shared
   # across the whole batch now that implement and review are not split per change, so a round
   # that reworks three changes once each spends three of it.

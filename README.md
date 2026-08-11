@@ -10,7 +10,7 @@ One source tree, compiled to three ends. A capability is written once under `src
 |---|---|---|
 | `computer-use` | How to operate a computer — the capabilities that let an agent reach past its own text output and act on a real machine | `graceful-browser`, `mdx-artifact`, `notify-user`, `install-computer-use` (plus one turn-end hook, silent out of the box, on the Claude end) |
 | `dev-toolkit` | Atomic development capabilities — each stands alone, triggers on its own subject, and assumes nothing about who invoked it | 19 (conventions 6 / methods 4 / process 1 / checks 5 / grounded research 3) |
-| `genai-dev-flow` | A whole flow — requirements in, one release out, every step gated on something re-runnable | 4 skills (manual / install / requirements / driving) + 4 subagents + 7 fsx step definitions |
+| `genai-dev-flow` | A whole flow — requirements in, one release out, every step gated on something re-runnable | 4 skills (manual / install / requirements / driving) + 5 subagents + 8 fsx step definitions |
 
 **One rule runs through the repository: a skill never names its caller.** A description answers *when should this be used* and never *who will use it*. A skill saying `invoked by name from the developer agent` has three problems at once — it fails to trigger when a person asks for the same thing directly (it describes a dispatch rather than a situation), it breaks the moment that agent is renamed, and it inverts the dependency so the reusable thing depends on the specific one. The arrow points one way: **an orchestrator names the skills it calls; a skill never names its orchestrator.**
 

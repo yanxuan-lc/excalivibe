@@ -1,4 +1,5 @@
-// The test and coverage verdict for genai.implement.
+// The test and coverage verdict, read by genai.implement on the sprint branch and again by
+// genai.merge on the merged tree.
 //
 // The project reports; this file judges. That split is what makes the gate a gate: a project that
 // decides its own verdict has none, and this code ships with the step definitions, so a round

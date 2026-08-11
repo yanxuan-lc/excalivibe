@@ -43,7 +43,7 @@ output and distrusts its exit code, and `nodes/genai.archive/brief.md` sends the
 `warnings[]` that `openspec archive` prints for itself. Reimplementing one of its rules would drift
 silently the day it changes that rule.
 
-**The four subagents cannot be collapsed into fewer.** Each has to run in a context that did not
+**The five subagents cannot be collapsed into fewer.** Each has to run in a context that did not
 produce what it is judging — that is the entire reason `agents/genai-code-reviewer.md` exists, and
 that file also records that a green gate proves only that the tests which exist pass, never that they
 cover the requirements.
@@ -51,7 +51,7 @@ cover the requirements.
 ## Known gaps
 
 **This repository cannot satisfy its own flow.** No tests, no test runner, and no `genai-metrics`
-target in the `Makefile`, so the `genai.implement` gate would return `metrics_missing` here. Either
+target in the `Makefile`, so the `genai.implement` and `genai.merge` gates would both return `metrics_missing` here. Either
 add tests, or accept that this is a project whose coverage floors are `null`.
 
 **`verify-variants` cannot see a registry entry whose file is gone.** Its main loop walks the `.md`

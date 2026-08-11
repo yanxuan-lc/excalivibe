@@ -18,6 +18,11 @@ exiting 0**. The findings are in its output, not in its exit code:
 ]
 ```
 
+**When there is nothing to report the key is absent, not empty.** openspec builds the payload by
+spreading `warnings` in only when the list is non-empty, so `archive.warnings` on a clean run is
+`undefined` and no amount of reading tells you apart from a run that reported an empty array. Treat
+a missing key as "no warnings" and never index into it blind.
+
 That one is the common case, because openspec applies the length rule to main specs but not to the
 deltas they came from — so a Purpose that read fine three steps ago becomes a failure the moment
 it is folded. **Nothing earlier can catch it**: `openspec validate --changes` does not apply the

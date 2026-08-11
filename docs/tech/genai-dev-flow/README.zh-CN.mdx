@@ -8,7 +8,7 @@ toc: true
 English: [README.mdx](./README.mdx)
 
 > 一整套开发流程：需求进来，一个版本出去，每一步都被某个可重跑的东西门控住。
-> **权威来源：`src/plugins/genai-dev-flow/`** —— 4 个 skill、4 个 agent、7 份步骤定义。
+> **权威来源：`src/plugins/genai-dev-flow/`** —— 4 个 skill、5 个 agent、8 份步骤定义。
 > 版本 3.0.0。引擎侧的契约在 [`../flow-contract/`](../flow-contract/README.zh-CN.mdx)；本文是那 4 个 skill 的手册，
 > 以及一轮到底怎么跑起来。
 
@@ -62,13 +62,16 @@ English: [README.mdx](./README.mdx)
 
 **驱动一轮**：建图、派发每一步、给结果判决、路由返工。它**先检测再询问** —— 项目已经装好了的话，它直接开跑。
 
-图是一条直线加一条回边：
+图是一条直线加两条回边：
 
 ```
-spec ─▶ implement ─▶ code-review ─▶ merge ─▶ archive ─▶ accept ─▶ release
-              ▲            │
-              └── reject ──┘
+spec ─▶ spec-review ─▶ implement ─▶ code-review ─▶ merge ─▶ archive ─▶ accept ─▶ release
+  ▲          │                 ▲            │
+  └─ reject ─┘                 └── reject ──┘
 ```
+
+两条回边分列代码两侧：前一条在改动还只是改一次 spec 的时候把设计打回，后一条在那次改动已经变成重写之后
+把代码打回。这个不对称正是设计要被评审的理由。
 
 耐心是 5，**整批共享**，所以返工三个变更各一次就花掉三点。
 
@@ -78,6 +81,8 @@ spec ─▶ implement ─▶ code-review ─▶ merge ─▶ archive ─▶ acce
 - **绝不把 `pass` 边往回画。** pass 边是依赖；往回指一条就把图变成了环。
 - **`reject` 的自返工不需要边。** 多余的自环无害；缺一条**跨节点**的 reject 边则不然 ——
   `genai.code-review → genai.implement` 就是那条要紧的。
+- **绝不把 `genai.archive` 用 `reject` 往回路由。** 它的两条开工条件是 `upstream_reran`，一次依赖类重新激活会再问一遍
+  「有没有待折叠的 change」和「工作区干不干净」—— 那时两条都已为假。
 - **绝不把 `genai.accept` 用 `reject` 往回路由。** 它判的是整批，所以一条回边会把整批重新打开。让它挂起、交给人处理
   才是设计意图。
 
@@ -85,10 +90,10 @@ spec ─▶ implement ─▶ code-review ─▶ merge ─▶ archive ─▶ acce
 
 ### genai-guideline
 
-**手册本身。** 它回答七步各自被什么门控住以及为什么、项目要提供什么、度量协议的全文，以及那些坑。给项目接线之前读它，
+**手册本身。** 它回答八步各自被什么门控住以及为什么、项目要提供什么、度量协议的全文，以及那些坑。给项目接线之前读它，
 某个判决需要解释时读它。
 
-## 四个 agent
+## 五个 agent
 
 每个要产出或要判断的步骤都会派发给一个子代理，而**它们之间的划分不是组织架构上的 —— 每一个都必须运行在一个"没有生产
 过它正在评判的东西"的上下文里。** 一个 spec 作者去验收自己写的需求，是在检查他早已说服过自己的活。这份独立性是这个
@@ -97,6 +102,7 @@ spec ─▶ implement ─▶ code-review ─▶ merge ─▶ archive ─▶ acce
 | Agent | Tier | 判断或产出 |
 |---|---|---|
 | `genai-spec-writer` | top | 决定哪些需求归进一份 spec、哪些各自独立，然后写增量 |
+| `genai-spec-reviewer` | top | 在还没有代码的时候评判设计 —— 数据模型、契约兼容性、模块边界，以及每条需求能不能被判失败 |
 | `genai-developer` | standard | 照 spec 实现并提交；由项目的门来决定什么时候算完 |
 | `genai-code-reviewer` | standard | 正确性、可维护性，以及**改动有没有越出这个变更本来的范围** |
 | `genai-requirement-checker` | top | 读**当初要的**而不是后来规定的，判断有没有东西被落下 |
@@ -117,6 +123,13 @@ spec ─▶ implement ─▶ code-review ─▶ merge ─▶ archive ─▶ acce
 - **`.flow/` 整个被 ignore，包括定义。** 它们在这个插件里已经被版本化了，所以跟踪它们等于在每个仓库里放一份已被版本化
   产物的第二副本，还会让切分支改变引擎的契约、让改定义弄脏工作区、让合并在白名单上冲突。
 - **在图运行期间改定义会让这次运行失效。** 哪怕只改一个步骤 brief 里的注释也算。先把这一轮跑完或中止。
+- **`fsx check` 的计数里含 fsx 自己的脚手架。** `fsx init` 会写一个 `nodes/task/` 模板和一份 `workflows/default.yaml`，
+  安装过程不会删它们，所以一次正确的安装报的是九个节点、两个工作流。装机判据是 `fsx nodes -w genai-sprint` 列出全部八个；
+  `fsx check` 是用来读 `problems[]` 的。
+- **规约要到合并那一步才进 git。** `genai.spec` 的产出按磁盘校验和量，不提交；实现那步不许碰 `openspec/**`，评审那步
+  完全不许提交。于是有三个环节的时间里，需求在工作区里而不在历史里 —— revert 掉一个实现提交，不会 revert 掉它依据的规约。
+- **项目侧那个报数目标如果解析人类可读输出，它会因内容而坏。** 覆盖率汇总会把文件名那一列补齐到最长路径的宽度，所以
+  装机自检（跑在空项目上）能过，而第一个真实源文件一进来正则就失配 —— 各维度全 `null`，门于是拒掉一轮真实覆盖率 100% 的工作。
 
 ## 这套流程不做什么
 

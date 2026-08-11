@@ -15,16 +15,66 @@ outputs:
     locator: openspec/specs/**/*.md
     signature: checksum
 
-# No entry rule, and it is not an oversight — an entry rule may only assert something the step
-# does not change, because a step that destroys its own precondition forbids its own rework. Both
-# candidates here fail that test:
+# Both rules here are preconditions this step's own execution destroys, which is exactly what
+# `when` exists for. On `always` neither could be declared at all: the archive empties the set of
+# open changes and dirties the tree by folding, so the second attempt would be refused forever —
+# and refused silently, since a ready refusal writes no event, spends no patience and records no
+# attempt.
 #
-#   "there is an open change to fold"  — emptied by the archive itself
-#   "the working tree is clean"        — dirtied by the fold, and a rejection can land in the
-#                                       window between folding and committing
+# `upstream_reran` rather than `first_attempt` because this step has an upstream that can re-run.
+# The question is not "has this ever been dispatched" but "did fresh work arrive from the merge",
+# and only the second one stays right if the merge produces another round of work.
 #
-# So this step's preconditions are asserted upstream instead: the pass edge, and its required
-# input from the merge.
+# The corollary is a constraint on the graph: a `reject` edge from here back to `genai.merge` would
+# re-activate this step through a dependency edge with the changes already folded, and these rules
+# would then refuse it. The current graph has no such edge. Do not add one without revisiting this.
+ready:
+  - rule_id: has-changes-to-fold
+    when: upstream_reran
+    checker:
+      type: command
+      command: node .flow/genai/check.mjs open-changes
+      label_from: result
+      values: [present, absent, unreadable]
+    on_result:
+      present: { ready: true }
+      absent:
+        ready: false
+        reason: "There is nothing open under openspec/changes/ to fold. Either this round produced no change, or something archived them already"
+      unreadable:
+        ready: false
+        reason: "openspec/changes/ could not be read — confirm openspec/ exists in this repository"
+      failed:
+        ready: false
+        reason: "The check itself exited non-zero. That is a bug in the installed step definitions"
+      unexecutable:
+        ready: false
+        reason: "The check could not run at all. Re-install with genai-init, and confirm node is on PATH"
+
+  # The merge committed everything it touched, so the tree is clean when this step is first
+  # reached. Anything uncommitted at that moment is work nobody accounted for, and folding on top
+  # of it mixes it into the archive commit.
+  - rule_id: clean-tree
+    when: upstream_reran
+    checker:
+      type: command
+      command: node .flow/genai/check.mjs worktree
+      label_from: result
+      values: [clean, dirty, unreadable]
+    on_result:
+      clean: { ready: true }
+      dirty:
+        ready: false
+        reason: "The working tree has uncommitted changes to tracked files. The merge left it clean, so something happened after it — commit or clean it before folding"
+      unreadable:
+        ready: false
+        reason: "git could not run — confirm this is a repository"
+      failed:
+        ready: false
+        reason: "The check itself exited non-zero. That is a bug in the installed step definitions"
+      unexecutable:
+        ready: false
+        reason: "The check could not run at all. Re-install with genai-init, and confirm node is on PATH"
 
 gates:
   - rule_id: outputs

@@ -20,8 +20,16 @@ outputs:
 
 # One entry rule, deliberately. Two mutually exclusive ones deadlock: neither can be satisfied
 # without breaking the other, and there is no recovery path.
+#
+# `first_attempt` is what makes it survivable at all. This step flips the items it selects from
+# `ready` to `active`, so after one pass the rule it entered under is false — and on `always` any
+# rework would be refused forever, silently, because a ready refusal writes no event and spends no
+# patience. This is a root node with no upstream, so "has never been dispatched" is the whole of
+# what "fresh work arrived" can mean here; a step with an upstream that can re-run wants
+# `upstream_reran` instead.
 ready:
   - rule_id: has-ready-backlog
+    when: first_attempt
     checker:
       type: command
       command: node .flow/genai/check.mjs backlog-status --status ready
