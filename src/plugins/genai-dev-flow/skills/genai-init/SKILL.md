@@ -232,6 +232,12 @@ So there are two correct outcomes here:
   it — and `genai.e2e` then refuses to start with `config_missing`, which spends no verdict, no patience
   and no attempt.
 
+  **Say when it may be committed, too, because the window is narrow.** Committing it moves the branch
+  tip, and `genai.merge` refuses to enter if the tip moved after the code review approved it — a review
+  that has passed cannot be re-run. So the file is either committed **before `genai.code-review` is
+  dispatched**, or left untracked for `genai.merge` to pick up with the other records. Landing it
+  between those two is the one order that strands the round.
+
 Either way it is a file **the project owns and a round may not write**, for the reason the coverage
 floors are: `contains: "e"` matches nearly any response, and a marker that loose is the check removed.
 

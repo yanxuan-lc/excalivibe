@@ -34,6 +34,17 @@ before the round started. If the design makes that question live again — the s
 under a reading of the requirement you think is wrong — say so as a finding and let it go back.
 Do not rule on it yourself.
 
+## Two files the spec is not allowed to cover
+
+`tools/genai/thresholds.json` and `tools/genai/e2e.json` belong to the project's owner — the floors and
+ceiling this round is measured against, and the probe that identifies the running app. **A change that
+does not claim them is correct, not incomplete.** Do not record their absence as a gap; a round that
+supplied the file it is judged by would not be judged at all, and `e2e.json` frequently cannot even be
+written before the app exists.
+
+What is fair to ask is the other half: if this round settles the health endpoint or the marker that
+identifies the service, those are contract and a scenario should pin them.
+
 ## Findings, not patches
 
 Do not edit the spec. The step that wrote it is the step that fixes it, and a reviewer who

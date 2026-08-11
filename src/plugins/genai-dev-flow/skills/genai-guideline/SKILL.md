@@ -148,8 +148,15 @@ a version string, the title a known route renders. `ok`, `healthy` and `200` are
 other process on the machine says those too.
 
 The e2e ceiling rides in `thresholds.json` alongside the coverage floors, under an `e2e` key holding
-`max_non_scripted` and `max_non_scripted_ratio`, and **its default is the opposite of the floors'**.
-An omitted coverage dimension opts out — a project saying it does not measure that. An omitted e2e
+`max_non_scripted` and `max_non_scripted_ratio`. **They are two numbers describing one limit: the
+allowance is whichever is larger at this round's scenario count.** They cover opposite ends of the
+range — the absolute stops a five-scenario round being nagged about three waivers, the ratio keeps a
+sixty-scenario round honest — so applying both at once would hand every large round to the absolute
+(at 63 scenarios, `0.2` allows 12 and `5` allows 5, and the ratio does nothing). That is not
+hypothetical: it once pushed a round into narrowing its waiver list by **adding an interface to the
+product** so that a scenario became scriptable.
+
+**Its default is the opposite of the floors'.** An omitted coverage dimension opts out — a project saying it does not measure that. An omitted e2e
 ceiling does **not** opt out; the shipped 5 and 0.2 apply. A floor left out is a statement about
 tooling, while a ceiling left out would be a round quietly allowed to hand-drive or waive everything,
 so raising this one has to be visible in the project's own file.

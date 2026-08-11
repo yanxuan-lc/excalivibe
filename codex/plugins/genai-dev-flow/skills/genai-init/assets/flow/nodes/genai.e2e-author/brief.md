@@ -35,6 +35,14 @@ project's stack. Beyond it, four conventions this flow depends on:
 If the project already has an e2e setup, write into it and follow its conventions rather than
 standing up a second one beside it.
 
+**Where the files go matters, and a fresh project has nowhere established.** Before choosing, read what
+the project's own test command actually collects — `make genai-metrics` is run by two later gates at
+moments when **the application is not running**. An e2e test inside that command's scope fails there on
+a connection error, and the gate reports it as a failing test with a message pointing at the code. So
+put the suite somewhere the unit command does not reach (a dedicated `e2e/` directory is the usual
+answer), confirm that by reading the command rather than assuming, and **say in your report where you
+put it and why it is out of scope for that command.**
+
 ## The manifest
 
 One per change. **Start from the template rather than retyping it** — it carries the field rules and

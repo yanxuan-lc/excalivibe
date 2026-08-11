@@ -50,6 +50,9 @@ const ID = /^S\d+$/;
 // coverage floors, where an absent dimension opts out: a floor left out is a project saying it does
 // not measure that, while a ceiling left out would be a project silently allowed to hand-drive
 // every scenario. Raising it has to be visible in the project's own file.
+//
+// Two numbers, one limit: the round is over the ceiling only when it exceeds **both**, so the
+// effective allowance is the larger of them at this scenario count.
 const CEILING = { max_non_scripted: 5, max_non_scripted_ratio: 0.2 };
 
 const APP_TIMEOUT_MS = 5000;
@@ -143,12 +146,24 @@ export function judgeManifest() {
     return { label: "unaccounted", facts: { missing, extra, scenarios } };
   }
 
+  // The two limits are one limit: whichever is the more generous at this scenario count. They are
+  // there for opposite ends of the range — the absolute keeps a small round from being nagged about
+  // three waivers out of eight, the ratio keeps a large one honest — so taking them together with
+  // `or` would let the absolute govern everything: at 63 scenarios, `0.2` allows 12 and `5` allows 5,
+  // and the ratio has no effect at all. Which is what happened, and it pushed a round into narrowing
+  // its waiver list by changing the product's own interface.
   const ceiling = ceiling_();
   const ratio = scenarios === 0 ? 0 : nonScripted / scenarios;
-  const facts = { scenarios, non_scripted: nonScripted, ratio: Number(ratio.toFixed(3)), buckets, ceiling };
-  if (nonScripted > ceiling.max_non_scripted || ratio > ceiling.max_non_scripted_ratio) {
-    return { label: "over_ceiling", facts };
-  }
+  const allowed = Math.max(ceiling.max_non_scripted, ceiling.max_non_scripted_ratio * scenarios);
+  const facts = {
+    scenarios,
+    non_scripted: nonScripted,
+    ratio: Number(ratio.toFixed(3)),
+    allowed: Number(allowed.toFixed(2)),
+    buckets,
+    ceiling,
+  };
+  if (nonScripted > allowed) return { label: "over_ceiling", facts };
   return { label: "accounted", facts };
 }
 
