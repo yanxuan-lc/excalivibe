@@ -35,6 +35,63 @@ it as `../$(basename "$PWD")_genai`. A different name breaks two gates silently.
 
 ## Steps
 
+**0. Settle what this needs that does not ship with it. Check everything, report once, ask, then
+act — in that order.**
+
+Nothing below is optional at run time: without `fsx` this skill's own step 2 cannot run, and without
+`openspec` four steps of a round have no tool to call. Check them in one pass, because most of the
+time most of it is already there and the user should be agreeing to the one thing missing rather than
+to a list of four.
+
+```bash
+command -v fsx      >/dev/null || echo "MISSING  fsx        — the graph engine the flow runs on"
+command -v openspec >/dev/null || echo "MISSING  openspec   — the spec and change tool"
+test -d openspec              || echo "MISSING  openspec/   — this project has never been initialised"
+```
+
+```bash
+test -f .claude/skills/flow-scratch/SKILL.md || echo "MISSING  flow-scratch skill — the driving manual"
+```
+
+**Then present what is missing and offer three answers, not two:** install it now, install it
+themselves, or stop. Recommend the first. **Stopping is a real answer** — say plainly that the flow
+cannot be installed without these and leave the project untouched, rather than doing the half that
+needs no permission.
+
+If they choose the first, run only the lines for what actually came back missing:
+
+```bash
+npm i -g flow-scratch          && fsx --version        # only if fsx was missing
+npm i -g @fission-ai/openspec  && openspec --version   # only if openspec was missing
+```
+
+```bash
+fsx skill install --target claude
+openspec init --tools claude --no-animation     # after step 1 confirms the repository root
+```
+
+Four things to get right, each of which has a way of going wrong quietly:
+
+- **Install only what came back missing. Never re-install one that answered.** A global install
+  replaces whatever was there, including a `npm link` to somebody's local checkout, and nothing warns
+  you — the version you print afterwards looks the same.
+- **`openspec init` is interactive without `--tools`** and will sit waiting for an answer nobody is
+  there to give. `--no-animation` is for the same reason.
+- **`npm i -g` exiting 0 is not the binary answering.** Verify with `--version`, and report what that
+  printed rather than that the install succeeded.
+- **`fsx skill install` refuses to overwrite a copy that has been edited.** That refusal is
+  information: someone customised it. Do not reach for `--force` without showing them the diff.
+- **`openspec init` writes more than `openspec/`.** Given `--tools` it also drops command and skill
+  files wherever this host keeps them, which step 8's baseline commit says nothing about. Show the
+  user what appeared and let them decide what to track — those files are the project's, not this
+  flow's.
+
+**The `computer-use` prerequisites are not this skill's to explain.** `genai.arch-decision` sends its
+executor to the `mdx-artifact` skill, which needs a renderer installed globally — and that, the
+notification config and the browser stack are all settled by **`/install-computer-use`**, which this
+plugin already declares a dependency on. Run it, or tell the user to. Do not restate what it covers
+here; a second copy of that list is a second thing to keep true.
+
 **1. Confirm the working directory is a repository root with a `HEAD`.** Two commands, because
 these are two different failures with two different fixes:
 
