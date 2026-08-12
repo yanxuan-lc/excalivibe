@@ -5,8 +5,12 @@ description: Start and drive one round of development from requirements to relea
 
 # Run one round
 
-One round is one release: several requirements, several changes, **one version bump**. Thirteen
-steps, fixed at graph creation.
+One round is one release: several requirements, several changes, **one version bump**. The graph is
+fixed once created — but *which* steps it contains is decided before that, and the list to decide
+from is `fsx nodes -w genai-sprint`. That listing is the only authority on what steps exist, and it
+carries a `description` on every step whose inclusion is a real choice: which ones a lighter round
+may leave out, and which ones look droppable and are not. Read it before assembling; do not work
+from a count written down anywhere, including here.
 
 ```
                                                                     ┌──▶ genai.implement ──┬──▶ genai.code-review ──┐
@@ -57,13 +61,13 @@ only the driving: create, dispatch, gate, route.
 
 ## Before starting
 
-- `fsx nodes -w genai-sprint` lists all thirteen steps, and `fsx check` raises nothing at
+- `fsx nodes -w genai-sprint` returns the step definitions, and `fsx check` raises nothing at
   `severity: error`. **When both hold, start the round — this is not a question to put to anyone.**
   Only when they do not is the project uninstalled, and then ask whether to run `/genai-init`; a
   fresh clone is always in that state, because `.flow/` is not tracked in git. Never hand-write the
   missing pieces. Read `fsx check`'s `problems[]`, never its counts: it counts every definition on
-  disk, including the `nodes/task/` template `fsx init` scaffolds, so **fourteen** nodes and **two**
-  workflows is what a correct install reports.
+  disk, including the `nodes/task/` template `fsx init` scaffolds, so its totals always exceed what
+  this workflow admits. Scoping the question is what `-w genai-sprint` is for.
 - The application under test can be started, and `tools/genai/e2e.json` says how to recognise it.
   Nothing needs it until `genai.e2e`, and that step refuses to start rather than testing whatever
   else happens to be listening — so this is worth confirming at the top of a round instead of an
@@ -80,6 +84,13 @@ only the driving: create, dispatch, gate, route.
 
 Pick a branch name for the round and create the branch off the integration branch first. One
 branch per round, not per change.
+
+**The call below is the full round, and it is a worked example rather than a form to submit
+unchanged.** A lighter round leaves steps out — but only the ones `fsx nodes` marks as optional. The
+rest are load-bearing in a way the graph cannot express: drop one and the graph still creates, then
+a downstream step is refused entry forever, writing no event and spending no patience. So decide
+what to include from the listing's `description` lines, and read the assembly rules at the end of
+this skill before changing any edge.
 
 ```bash
 fsx graph create --name <round-label> --var branch=<branch-name> --inline '{
@@ -188,8 +199,9 @@ condition was not asked, which is what makes `--check-ready` usable as "can this
 Deliver the work yourself: spawn the subagent, or do it in this context when the node says
 `main`. The engine states who should do it and verifies what comes back; it never delivers.
 
-Three nodes say `main` — `genai.merge`, `genai.archive` and `genai.release`. All three need the
-whole round in view: two resolve conflicts between changes, the third decides a version.
+The nodes that say `main` are `genai.merge`, `genai.archive` and `genai.release` — check the
+listing rather than this line. All of them need the whole round in view: two resolve conflicts
+between changes, the third decides a version.
 
 **Between attempts, only the rejection message travels.** Say what failed and where, not that
 it failed.

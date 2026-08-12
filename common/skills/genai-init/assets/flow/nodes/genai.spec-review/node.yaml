@@ -1,5 +1,6 @@
 id: genai.spec-review
 kind: judge
+description: optional - nothing downstream consumes this verdict, so a round whose design needs no second reading can leave it out
 
 executor:
   protocol: subagent

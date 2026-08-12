@@ -1,5 +1,6 @@
 id: genai.release
 kind: effect
+description: optional - leave it out for a round that should merge and archive without cutting a version
 
 executor:
   protocol: main

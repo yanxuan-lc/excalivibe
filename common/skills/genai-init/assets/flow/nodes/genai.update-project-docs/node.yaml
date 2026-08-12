@@ -1,5 +1,6 @@
 id: genai.update-project-docs
 kind: produce
+description: optional - nothing downstream consumes it, so a round that changed no documented behaviour can leave it out
 
 executor:
   protocol: subagent

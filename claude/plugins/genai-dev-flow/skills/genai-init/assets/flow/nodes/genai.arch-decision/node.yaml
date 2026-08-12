@@ -1,5 +1,6 @@
 id: genai.arch-decision
 kind: judge
+description: keep in every graph - genai.implement premises on this ruling and silently never starts without it
 
 executor:
   protocol: human

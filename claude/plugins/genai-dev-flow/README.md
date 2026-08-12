@@ -72,7 +72,7 @@ verification triangle at the end: the tests are written from the spec by an agen
 the implementation, and they are executed by a third agent that may edit neither the tests nor the
 code.
 
-The thirteen step definitions install into the project's own `.flow/nodes/`, since they belong to the
-engine rather than to any one agent framework.
+The step definitions install into the project's own `.flow/nodes/`, since they belong to the
+engine rather than to any one agent framework. `fsx nodes -w genai-sprint` is what enumerates them.
 
 This file is generated from `src/plugins/genai-dev-flow/README.md`. Do not edit it here.

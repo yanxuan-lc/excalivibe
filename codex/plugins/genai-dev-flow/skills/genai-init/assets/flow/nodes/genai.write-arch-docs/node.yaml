@@ -1,5 +1,6 @@
 id: genai.write-arch-docs
 kind: produce
+description: keep it - genai.arch-decision has nothing to put in front of a person without it, and dropping both silently stalls genai.implement
 
 executor:
   protocol: subagent

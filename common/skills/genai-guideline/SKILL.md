@@ -1,6 +1,6 @@
 ---
 name: genai-guideline
-description: Explain how the genai development flow works and what a project has to supply for it — the thirteen steps and what each one is gated on, the make target, coverage floors and app probe a project supplies itself, and the traps that cost a whole round. Use when a step's verdict needs explaining, when deciding whether a gate is strong enough or where a new gate belongs, when the project-supplied metrics target or its floors have to be written, widened or replaced, and when someone needs to understand the flow before installing or running it.
+description: Explain how the genai development flow works and what a project has to supply for it — every step and what it is gated on, the make target, coverage floors and app probe a project supplies itself, and the traps that cost a whole round. Use when a step's verdict needs explaining, when deciding whether a gate is strong enough or where a new gate belongs, when the project-supplied metrics target or its floors have to be written, widened or replaced, and when someone needs to understand the flow before installing or running it.
 ---
 
 # The genai flow
@@ -15,17 +15,17 @@ convention three steps depend on — use `genai-openspec`.
 ## First: is this project set up at all?
 
 ```bash
-fsx nodes -w genai-sprint      # the judgement: all thirteen steps listed
+fsx nodes -w genai-sprint      # the judgement: the steps this workflow admits
 fsx check                      # read problems[], not the counts
 ```
 
-All thirteen listed and nothing at `severity: error` means yes. Anything else — a missing `.flow/`,
-fewer than thirteen in the listing, `unexecutable` on every command gate — means the project has not
-been installed, and **nothing in this flow will work until it is**.
+A listing carrying the steps documented below, and nothing at `severity: error`, means yes. Anything
+else — a missing `.flow/`, a listing short of them, `unexecutable` on every command gate — means the
+project has not been installed, and **nothing in this flow will work until it is**.
 
 **`fsx check`'s counts are not the test.** It counts every definition on disk, and `fsx init`
 scaffolds a template node (`nodes/task/`) and a `workflows/default.yaml` that installing does not
-remove, so a correct install reports fourteen nodes and two workflows. Scoping the question to the
+remove, so its totals always exceed what this workflow admits. Scoping the question to the
 workflow is what `-w genai-sprint` is for.
 
 That state is normal rather than broken, and a fresh clone is always in it. `.flow/` is not
@@ -52,7 +52,11 @@ inside one change's context that change *is* everything, so finishing it looks l
 round and the version gets bumped again. Only the last step may bump it, and no earlier step
 mentions versions at all.
 
-## The thirteen steps
+## The steps
+
+**This table documents them; `fsx nodes -w genai-sprint` enumerates them.** When the two disagree,
+the listing is right and this table is stale — and the listing carries one thing this table does not:
+a `description` on each step whose inclusion in a graph is a real choice.
 
 Gates run in declaration order and the first non-pass concludes, so each row below is
 "every condition, cheapest first". Patience is one number for all of them, shared across the whole

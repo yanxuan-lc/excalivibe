@@ -18,7 +18,7 @@ step 6; this skill installs against that protocol rather than restating it.
   .flow/
     config.yaml                       engine defaults
     workflows/genai-sprint.yaml       the step whitelist
-    nodes/genai.*/                    thirteen step definitions (fsx's own nodes/task/ stays alongside)
+    nodes/genai.*/                    the step definitions (fsx's own nodes/task/ stays alongside)
     genai/*.mjs                       the gate evaluators these definitions call
     genai/templates/                  the records the e2e steps copy and fill in
   Makefile                            must have a `genai-metrics` target (the project writes it)
@@ -265,13 +265,16 @@ fsx check
 fsx nodes -w genai-sprint
 ```
 
-**`fsx nodes -w genai-sprint` must list all ten, and that listing is the judgement.** A missing
-one is a broken install, not something to work around.
+**`fsx nodes -w genai-sprint` is the judgement, and what it must return is one entry per
+`genai.*` directory step 3 copied into `.flow/nodes/`.** Compare those two, rather than either
+against a number written here — a number in this document is wrong the first time a step is added
+or removed, and neither the listing nor the directory ever is. A step missing from the listing is a
+broken install, not something to work around.
 
-**Do not judge by `fsx check`'s counts.** It counts every definition on disk, and `fsx init` in
-step 2 scaffolded a template node of its own (`.flow/nodes/task/`) plus `workflows/default.yaml`
-— neither of which step 3 removes. So it reports **eleven** nodes and **two** workflows on a correct
-install. That is normal. What `fsx check` is for here is `problems[]`.
+**Do not judge by `fsx check`'s counts either.** It counts every definition on disk, and `fsx init`
+in step 2 scaffolded a template node of its own (`.flow/nodes/task/`) plus `workflows/default.yaml`
+— neither of which step 3 removes, so its totals always come out higher than this workflow's. That
+is normal. What `fsx check` is for here is `problems[]`.
 
 **`ok` and the exit code answer only for errors.** Problems come in two severities, and a
 `warning` leaves both green — so `fsx check && ...` passing is not the same as a clean report.

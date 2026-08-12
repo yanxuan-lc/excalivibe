@@ -16,9 +16,10 @@ Every check a step makes is one atom behind a single entry point:
 node .flow/genai/check.mjs <atom> [--flag value]
 ```
 
-There are twenty-four `command:` lines across the twelve `node.yaml` files under
-`skills/genai-init/assets/flow/nodes/`, and every one of them has that shape. **Do not add a
-twenty-fifth in shell.**
+**Every `command:` line across the `node.yaml` files under `skills/genai-init/assets/flow/nodes/`
+has that shape, and the next one has to as well.** Count them with
+`grep -h '^[[:space:]]*command:' skills/genai-init/assets/flow/nodes/*/node.yaml | wc -l` rather
+than trusting a number written here — the two previous numbers in this sentence had both gone stale.
 
 A pipeline written into YAML is a line nobody can run on its own, review as code, or reuse. That is
 not hypothetical here: the six commands that used to live inline held four separate copies of "find

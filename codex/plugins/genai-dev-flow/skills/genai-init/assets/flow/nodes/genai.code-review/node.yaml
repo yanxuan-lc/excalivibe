@@ -1,5 +1,6 @@
 id: genai.code-review
 kind: judge
+description: keep in every graph - genai.merge premises on this verdict and silently never starts without it
 
 executor:
   protocol: subagent

@@ -1,5 +1,10 @@
 # The whitelist of steps a genai-sprint graph may reference. Anything outside it is refused at
 # graph creation, so "what can this kind of work do" has a definite answer.
+#
+# This list is what `fsx nodes -w genai-sprint` reports, and that command — not any prose in the
+# skills — is where a graph designer reads the available steps. A step whose inclusion in a graph is
+# a real choice carries a `description` in its own node.yaml saying so; the ones without a line are
+# the spine, and their ids say the rest.
 nodes:
   - genai.spec
   - genai.spec-review
@@ -16,8 +21,8 @@ nodes:
   - genai.release
 
 defaults:
-  # Thirteen nodes, one value — so it is declared once here rather than thirteen times in the definitions.
-  # This is a starting number to tune against real runs, not a derived one. Patience is shared
+  # One value for every node above — so it is declared once here rather than repeated in each
+  # definition. This is a starting number to tune against real runs, not a derived one. Patience is shared
   # across the whole batch now that implement and review are not split per change, so a round
   # that reworks three changes once each spends three of it.
   #

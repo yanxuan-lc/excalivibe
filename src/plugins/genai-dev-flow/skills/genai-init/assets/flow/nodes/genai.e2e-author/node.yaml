@@ -1,5 +1,6 @@
 id: genai.e2e-author
 kind: produce
+description: keep whenever genai.e2e is in the graph - it is the only source of the manifest that step routes by
 
 executor:
   protocol: subagent
