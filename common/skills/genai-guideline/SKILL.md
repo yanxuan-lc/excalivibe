@@ -203,6 +203,26 @@ data, not an error — so no project has to remember `|| true` to keep make quie
 has to redirect its test output to keep stdout clean. Both are mistakes that would otherwise
 break the gate silently.
 
+**The gate ignoring the exit code does not make the recipe reach its last line.** make stops a
+recipe at the line that failed, so a target whose first line runs the suite and whose second line
+prints the numbers prints nothing at all when a test fails. The gate then reports `metrics_missing`
+— a broken setup, which no round can fix — for a round whose real state was `tests_failing`, which
+the round's own next attempt can. The two labels route to opposite places, and the useful one is
+the one that gets lost.
+
+Prefix the line that runs the suite with make's own `-`:
+
+```makefile
+genai-metrics:
+	-@npx vitest run --coverage --reporter=json --outputFile=coverage/tests.json
+	@node tools/genai/metrics.mjs
+```
+
+`-` tells make to ignore that line's failure and carry on, and make still says
+`[genai-metrics] Error 1 (ignored)` on its own output, so a suite that fell over is visible to
+whoever is watching. `cmd || true` reaches the same second line while erasing that, which is why
+it is the worse of the two and not merely unnecessary.
+
 | Field | Required | Value |
 |---|---|---|
 | `tests.passed` / `skipped` / `failed` | yes | non-negative integers. **The total is computed from these**, never read — one less number that can disagree with itself |
