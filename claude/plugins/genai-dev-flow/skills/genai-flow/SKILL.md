@@ -179,15 +179,31 @@ the acceptance run is the thing at fault — a missing report, a scenario nobody
 evidence behind a pass — there is nothing for the developer to do, and the rejection message says so.
 Dispatch what the message names; `fsx next` answers a topology question, not an assignment.
 
-Rejection is normal. Patience is 5, shared across the whole batch — a round that reworks three
-changes once each has spent three of it. Read it from `patience.remaining`; when `fsx next`
-marks a node `last_chance`, one attempt is left, and **that belongs in the instruction you hand
-over** — after the gate is too late to try harder.
+Rejection is normal. **Patience is a number the project sets, not a constant** — declared in
+`.flow/config.yaml` and in the workflow's `defaults`, shipped at 5 and meant to be tuned against real
+runs. Read this round's from the response rather than from memory: `patience.initial` is what this
+project set, `patience.remaining` is what is left. It is shared across the whole batch, so a round
+that reworks three changes once each has spent three of it.
+
+**That arithmetic holds only while every rejection is an ordinary one.** `patience.consumed_now` says
+what *this* gate call took: `0` for a pass, a waiver, a delegation or a replay; `1` for an ordinary
+rejection; and **the whole remaining budget at once** when the engine finds the attempt stalled or a
+cache hit, because it has judged that looking again cannot produce a different result. So one attempt
+can take a round from four left to suspended, and "one rework costs one" is a planning assumption, not
+a rule. When `fsx next` marks a node `last_chance`, one attempt is left, and **that belongs in the
+instruction you hand over** — after the gate is too late to try harder.
 
 ## When the graph suspends
 
 Patience ran out. **This is a handoff, not a failure**: a path that keeps not working is for a
 person to decide about. Bring them the rejection history and the options.
+
+**Read `consumed_now` on the rejection that suspended it before you offer those options.** Equal to
+the whole remaining budget means the engine stopped because a repeat was pointless — a stalled attempt
+or a cache hit — and more patience buys nothing until something about the attempt changes. Drained one
+at a time means the work really was moving and simply did not arrive; more budget is a reasonable ask.
+Say which of the two it was. (The same distinction is in the gate diagnostics as `no_progress` /
+`cache_hit`; `consumed_now` is the one number that does not need them parsed.)
 
 - Grant more budget: `fsx resume -g <round> --by <who>`. **`--by` is required** — a suspension
   lifted by a person has to say which person.

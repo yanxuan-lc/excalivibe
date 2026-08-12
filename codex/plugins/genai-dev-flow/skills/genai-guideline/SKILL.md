@@ -55,7 +55,9 @@ mentions versions at all.
 ## The ten steps
 
 Gates run in declaration order and the first non-pass concludes, so each row below is
-"every condition, cheapest first". Patience is 5 for all of them, shared across the whole batch.
+"every condition, cheapest first". Patience is one number for all of them, shared across the whole
+batch, and it is the project's to set — `.flow/config.yaml` and the workflow's `defaults` ship it at 5.
+Read a live round's from `patience.initial` rather than assuming the shipped value survived.
 
 | Step | Executor | Produces | Passes when |
 |---|---|---|---|

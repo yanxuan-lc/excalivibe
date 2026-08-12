@@ -102,12 +102,20 @@ const modeOf = (file: string): number => fs.statSync(file).mode & 0o777;
 
 const json = (o: unknown): string => JSON.stringify(o, null, 2) + '\n';
 
+/**
+ * Finder droppings, not source. Left in they are copied verbatim like any data file, and on the
+ * common end — which drops the plugin directory — two plugins' copies land on one path and fail the
+ * build with a collision naming a file nobody wrote. `.mcp.json` is why this is a name list rather
+ * than "skip dotfiles".
+ */
+const OS_JUNK = new Set(['.DS_Store', 'Thumbs.db']);
+
 function walk(dir: string, base: string = dir, acc: string[] = []): string[] {
   if (!fs.existsSync(dir) || !fs.statSync(dir).isDirectory()) return acc;
   for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
     const abs = path.join(dir, e.name);
     if (e.isDirectory()) walk(abs, base, acc);
-    else acc.push(path.relative(base, abs).split(path.sep).join('/'));
+    else if (!OS_JUNK.has(e.name)) acc.push(path.relative(base, abs).split(path.sep).join('/'));
   }
   return acc;
 }
