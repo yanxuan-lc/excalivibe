@@ -3,17 +3,20 @@
 nodes:
   - genai.spec
   - genai.spec-review
+  - genai.write-arch-docs
+  - genai.arch-decision
   - genai.implement
   - genai.e2e-author
   - genai.code-review
   - genai.e2e
   - genai.merge
   - genai.archive
+  - genai.update-project-docs
   - genai.accept
   - genai.release
 
 defaults:
-  # Ten nodes, one value — so it is declared once here rather than ten times in the definitions.
+  # Thirteen nodes, one value — so it is declared once here rather than thirteen times in the definitions.
   # This is a starting number to tune against real runs, not a derived one. Patience is shared
   # across the whole batch now that implement and review are not split per change, so a round
   # that reworks three changes once each spends three of it.

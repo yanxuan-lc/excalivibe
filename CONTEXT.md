@@ -16,16 +16,76 @@ with the state in the item's own frontmatter (`skills/genai-backlog/SKILL.md`). 
 directory has no history and no backup — a known trade, and the project owner's call whether to give
 it one.
 
-**One round bumps the version once.** Only `genai.release` is allowed to touch a version number; the
-six steps before it never mention versions at all.
+**One round bumps the version once.** Only `genai.release` is allowed to touch a version number; no
+step before it mentions versions at all.
 
 **`genai.accept` runs after `genai.archive`**, for the reason written into
 `nodes/genai.accept/brief.md`: a requirement goes missing during the fold of the deltas into the main
 specs, so checking before the fold would miss the one failure the step exists for.
 
 **An entry rule may only assert something its own step does not change.** A precondition the step
-destroys is a precondition that forbids its own rework. `nodes/genai.archive/node.yaml` therefore has
-no entry rule at all, and its comment names the two candidates that were rejected.
+destroys is a precondition that forbids its own rework — permanently and silently, since a ready
+refusal writes no event and spends no patience. `nodes/genai.archive/node.yaml` is the worked case:
+both its rules would be unstatable on the default `always`, because the fold empties the open
+changes and dirties the tree they assert, so both narrow to `when: upstream_reran`. The comment
+there also names the graph constraint that follows — a `reject` edge back into the merge would
+re-activate the archive through a dependency edge with the changes already folded.
+
+**The round's one human step is depended on, not merely sequenced.** `genai.implement` declares the
+ruling as an input it never opens, so that an `upstream_premise` entry rule can measure it against
+the spec (`nodes/genai.implement/node.yaml`). Without that rule the step would wait for a person and
+then build whatever the spec had since become — approved in sequence, binding on nothing. This also
+settles what the ported design used to do by hand: it recorded a fingerprint of the spec inside the
+document and re-checked it at the gate, roughly eighty lines of shell whose allow-list had already
+been got wrong once. A fingerprint can only *detect* staleness; the entry rule refuses it, and the
+graph's own activation regenerates the document when the spec moves.
+
+**`DECISION.mdx` is named for its purpose, not its contents.** By volume it is mostly appendix — the
+worked example runs 13% decisions and 71% domain model, interfaces and use cases. The name still says
+decision, because the document's only failure mode is being read as reference material: a reader who
+opens it expecting depth finds depth, answers "looks fine to me", and the step becomes theatre. The
+appendix earns its place as the evidence the decisions are answerable from, and one rule keeps it
+honest (`skills/genai-arch-doc/SKILL.md`) — it may carry no decision of its own.
+
+**A change with nothing to rule on gets no document, and no gate counts files against changes.** A
+fake choice of the "A. do it / B. don't (not recommended)" kind spends a person's attention and makes
+the step look effective, so coverage is claimed in the executor's report and refused as `partial`,
+rather than checked by counting (`nodes/genai.write-arch-docs/node.yaml`). The cost is that a round
+producing one thin document for one change passes on a claim rather than on a measurement.
+
+**The human ruling does not travel into the openspec archive.** `fsx human` writes it to the node's
+declared locator under `.flow/`, which is not tracked, so the durable copy is the signed report in
+the event log rather than a file beside the change. A round-level decision has no per-change
+directory to live in, and the e2e records' pattern does not transfer.
+
+**Documentation is written last, after the fold, and nothing reviews it.** Every step before
+`genai.update-project-docs` can still be reworked — the implementation goes back on a review or a
+failed scenario, the merge itself can change the result — so documentation written any earlier
+describes a state that has not settled and is rewritten each time one does. Placing it inside the
+code review's diff was the alternative, and it buys less than it looks: the review's subject is
+code, so what it would add there is nearer a signature than a reading, and the price is pinning the
+document to a branch still in motion. Two of `genai.merge`'s entry rules also measure a conclusion
+against the commits, which rules out any committing step between the review and the merge —
+verified in `ready.ts`, where the subject signature is measured fresh at dispatch rather than
+replayed from the upstream's record.
+
+**Its gate judges nothing about its subject, on purpose.** `nodes/genai.update-project-docs/node.yaml`
+reads only the executor's `outcome`. The step exists to put documentation in front of an agent every
+round, and **not every round should change a word** — a refactor behind an unchanged contract
+legitimately writes nothing. Nothing available here separates that from skipping the job:
+`signature_changed` passes with no baseline on a first dispatch (`checkers.ts`), and the integration
+branch this round forked from is never named in the flow, so a gate command — which receives no
+variables — cannot ask git what moved. A gate that cannot make the distinction and rejects anyway
+would teach every round to manufacture an edit, which is worse than the omission it was trying to
+catch. The missing ingredient is the project declaring its integration branch beside the coverage
+floors.
+
+**Its output is the documentation tree, not a commit, because fsx refused the alternative.**
+Declaring the branch tip put it at the same locator as `genai.implement`'s, and fsx reports that at
+load time as `node_output_collision`: the presence check would be satisfied by the other step's
+write, so whichever ran second would pass having done nothing. It is an `observed` artifact signed
+by `check.mjs signature-docs` — a glob would not do either, since a project on its first round has
+no `docs/` and a glob matching nothing reads as missing rather than empty.
 
 **The e2e suite is built in parallel with the code, from the spec.** `nodes/genai.e2e-author/node.yaml`
 declares its input as `from: genai.spec` and never the commits, so the instruction it receives has no
@@ -121,6 +181,29 @@ path-based, not content-based, and a skeleton stored anywhere else would be pars
 
 **`.gitignore` lists `.flow/runs/` with nothing to ignore.** This repository does not run fsx and has
 no `.flow/`.
+
+**The plugin dependency graph is declared on the Claude end only.** The real graph is
+`genai-dev-flow → dev-toolkit → computer-use`, plus `genai-dev-flow → computer-use`, and
+`plugin.json`'s `dependencies` now carries it (`scripts/build.ts`). The Codex manifest does not get
+it, and that is an open question rather than a conclusion: the Codex validator **exits 1 on a field
+it does not know** — which is exactly what `hooks` does to it — so emitting one there unverified
+would turn a documented dependency into a plugin nobody can install. Someone has to read the Codex
+plugin schema before that half can be closed. Until then a Codex user installing one plugin alone
+gets the same dangling cross-plugin instructions this was meant to end.
+
+**Nothing checks that a skill named in prose exists.** The declaration above says which plugins are
+needed; it says nothing about whether `` `docs-guideline` `` in a brief resolves to a skill that any
+plugin provides. A repo-wide sweep for names that resolve to nothing is the gate this wants, and it
+would have caught the `plugin-infra` mis-attribution that was fixed by hand. It would still not
+catch the user's half of the problem — what they actually installed.
+
+**`verify-no-nul` does not cover `docs/` or the root documents.** Its corpus is `src/` plus
+`scripts/` (`scripts/verify-no-nul.ts`), on the reasoning that the three compiled trees derive from
+`src/` and a NUL there is reported where it can be fixed. But a raw NUL hides a file from grep
+wherever it sits, and `docs/tech/**` plus the root `README`s are outside the sweep — the same defect
+would be just as invisible there and nothing would say so. Widening the corpus is a one-line change;
+what it needs first is a decision about whether the root's human-facing documents belong to a gate's
+subject at all, which is the same question `verify-no-cjk` answered the other way.
 
 ## Two habits this repository keeps
 

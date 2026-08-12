@@ -1,0 +1,92 @@
+id: genai.write-arch-docs
+kind: produce
+
+executor:
+  protocol: subagent
+  params:
+    name: genai-spec-writer
+
+# From genai.spec, not from the design review that runs in between. `inputs` names where the
+# material came from, and this document is derived from the spec one way; the review's approval is
+# an ordering fact, and the graph's edge carries it. Wiring it here instead would say the document
+# is derived from the review, which is exactly the second source of truth this step must not create.
+inputs:
+  - name: changes
+    from: genai.spec
+    required: true
+
+outputs:
+  - name: arch-docs
+    kind: glob
+    locator: openspec/changes/*/genai/DECISION.mdx
+    signature: checksum
+
+# No entry rule. The required input already asserts the only precondition — that something was
+# designed — and a rule re-reading that off disk would be a slower copy of it. This mirrors
+# genai.spec-review, which is in the same position for the same reason.
+
+gates:
+  - rule_id: outputs
+    checker: { type: outputs_present }
+    on_result:
+      satisfied: { verdict: pass }
+      missing:
+        verdict: reject
+        message: "No decision document landed anywhere in this round. If genuinely nothing needs a person's ruling, that is a case for taking this step out of the graph, not for producing an empty round"
+
+  # Which changes warranted a document is a judgement, and it is the executor's. A change with
+  # nothing irreversible in it should have no document at all — manufacturing a "please confirm"
+  # for it spends a person's attention and makes the step look effective. So coverage is claimed
+  # here, in the report, rather than checked by counting files against changes.
+  - rule_id: outcome
+    checker: { type: report, field: outcome }
+    on_result:
+      completed: { verdict: pass }
+      partial:
+        verdict: reject
+        message: "A change was left without a document and without a reason. Either write one, or say in the report why that change has nothing for a person to rule on"
+      failed:
+        verdict: reject
+        message: "Say where this got stuck"
+      blocked:
+        verdict: reject
+        message: "Record what blocked it under deferred, with the reason"
+
+  # No `signature_changed` here, deliberately. It survives only where the end state cannot be
+  # expressed mechanically; here it can, and the rule below is that expression — a resubmission
+  # identical to the last one fails the same way it failed before, with the same facts.
+  - rule_id: shape
+    checker:
+      type: command
+      command: node .flow/genai/check.mjs arch-doc
+      label_from: result
+      values:
+        - complete
+        - no_decisions
+        - decision_incomplete
+        - external_reference
+        - background_over_ceiling
+        - unreadable
+    on_result:
+      complete: { verdict: pass }
+      no_decisions:
+        verdict: reject
+        message: "A document asks the reader nothing. A person who is handed material and no question answers 'looks fine to me', and this step becomes theatre — either state what has to be decided, or leave that change out and say why"
+      decision_incomplete:
+        verdict: reject
+        message: "An item cannot be answered from what surrounds it. The gate facts name each one: every item needs a question as its heading, at least two options, a recommendation on its anchor, and the cost of the wrong choice"
+      external_reference:
+        verdict: reject
+        message: "The document points at a file the reader has never opened. The gate facts name each path — say the thing in the document instead of referring to where it is written"
+      background_over_ceiling:
+        verdict: reject
+        message: "More material stands in front of the decisions than a reader will cross. Move it behind them, into the appendix"
+      unreadable:
+        verdict: reject
+        message: "openspec/changes/ could not be read. A setup problem, not a problem with the artifact"
+      failed:
+        verdict: reject
+        message: "The check exited non-zero. That is a bug in the installed step definitions"
+      unexecutable:
+        verdict: reject
+        message: "The check could not run at all. Re-install with genai-init, and confirm node is on PATH"

@@ -1,6 +1,6 @@
 ---
 name: genai-guideline
-description: Explain how the genai development flow works and what a project has to supply for it — the ten steps and what each one is gated on, the make target, coverage floors and app probe a project supplies itself, and the traps that cost a whole round. Use when a step's verdict needs explaining, when deciding whether a gate is strong enough or where a new gate belongs, when the project-supplied metrics target or its floors have to be written, widened or replaced, and when someone needs to understand the flow before installing or running it.
+description: Explain how the genai development flow works and what a project has to supply for it — the thirteen steps and what each one is gated on, the make target, coverage floors and app probe a project supplies itself, and the traps that cost a whole round. Use when a step's verdict needs explaining, when deciding whether a gate is strong enough or where a new gate belongs, when the project-supplied metrics target or its floors have to be written, widened or replaced, and when someone needs to understand the flow before installing or running it.
 ---
 
 # The genai flow
@@ -15,17 +15,17 @@ convention three steps depend on — use `genai-openspec`.
 ## First: is this project set up at all?
 
 ```bash
-fsx nodes -w genai-sprint      # the judgement: all ten steps listed
+fsx nodes -w genai-sprint      # the judgement: all thirteen steps listed
 fsx check                      # read problems[], not the counts
 ```
 
-All ten listed and nothing at `severity: error` means yes. Anything else — a missing `.flow/`,
-fewer than ten in the listing, `unexecutable` on every command gate — means the project has not
+All thirteen listed and nothing at `severity: error` means yes. Anything else — a missing `.flow/`,
+fewer than thirteen in the listing, `unexecutable` on every command gate — means the project has not
 been installed, and **nothing in this flow will work until it is**.
 
 **`fsx check`'s counts are not the test.** It counts every definition on disk, and `fsx init`
 scaffolds a template node (`nodes/task/`) and a `workflows/default.yaml` that installing does not
-remove, so a correct install reports eleven nodes and two workflows. Scoping the question to the
+remove, so a correct install reports fourteen nodes and two workflows. Scoping the question to the
 workflow is what `-w genai-sprint` is for.
 
 That state is normal rather than broken, and a fresh clone is always in it. `.flow/` is not
@@ -52,7 +52,7 @@ inside one change's context that change *is* everything, so finishing it looks l
 round and the version gets bumped again. Only the last step may bump it, and no earlier step
 mentions versions at all.
 
-## The ten steps
+## The thirteen steps
 
 Gates run in declaration order and the first non-pass concludes, so each row below is
 "every condition, cheapest first". Patience is one number for all of them, shared across the whole
@@ -63,16 +63,19 @@ Read a live round's from `patience.initial` rather than assuming the shipped val
 |---|---|---|---|
 | `genai.spec` | `genai-spec-writer` | this round's changes and spec deltas | change and delta files exist · not byte-identical to the last attempt · `outcome: completed` · openspec strict validation reports 0 failed · every active requirement is referenced by some change |
 | `genai.spec-review` | `genai-spec-reviewer` | one design review per change | a record landed for each change · `verdict: approve` |
-| `genai.implement` | `genai-developer` | committed code on the sprint branch | *entry:* a spec delta exists to build from. *gate:* the branch has commits · the tip moved · `outcome: completed` · no test failed, at least one ran, at most a tenth skipped, and coverage is at or above the project's floors |
+| `genai.write-arch-docs` | `genai-spec-writer` | one `DECISION.mdx` per change that has something to settle | at least one document landed · `outcome: completed` · every document asks something, each item answerable from what surrounds it, nothing in front of the decisions past the line ceiling, and no internal artifact named anywhere |
+| `genai.arch-decision` | **a person** | the recorded ruling | `verdict: approve`. Unattended it suspends and waits, rather than passing or failing on nobody's behalf |
+| `genai.implement` | `genai-developer` | committed code on the sprint branch | *entry:* the spec has not moved since it was approved · a spec delta exists to build from. *gate:* the branch has commits · the tip moved · `outcome: completed` · no test failed, at least one ran, at most a tenth skipped, and coverage is at or above the project's floors |
 | `genai.e2e-author` | `genai-e2e-author` | the e2e suite, plus one `e2e-manifest.md` per change | the manifest landed · the manifest or a test file moved since the last attempt · `outcome: completed` · every scenario in exactly one bucket and the non-scripted share under the project's ceiling · every mapped scenario's id greppable in the test file it names |
 | `genai.code-review` | `genai-code-reviewer` | one review record per change | *entry:* the tree is clean. *gate:* a record landed for each change · `verdict: approve` |
 | `genai.e2e` | `genai-e2e-runner` | one `e2e-report.md` per change | *entry:* the app answers and is the right app · the tree is clean. *gate:* a report landed · `outcome: completed` · every non-waived scenario executed, every pass carrying database evidence, and no failure left unclassified |
 | `genai.merge` | main | the merge commit | *entry:* the branch has not moved since the review approved it, nor since the acceptance run · the tree is clean. *gate:* a merge commit exists · `outcome: completed` · the merged tree still satisfies the same test-and-coverage check the branch did |
 | `genai.archive` | main | the folded main specs | *entry:* there is a change to fold · the tree is clean. *gate:* main specs exist · `outcome: completed` · nothing left open under `openspec/changes/` · the main specs pass strict validation |
+| `genai.update-project-docs` | `genai-doc-writer` | the project's documentation, folded forward | `outcome: completed`, and nothing more. **No gate judges the documentation** — not every round should change a word, and no check here can tell a round that correctly wrote nothing from one that skipped the job |
 | `genai.accept` | `genai-requirement-checker` | the archived requirement records | *entry:* nothing left open under `openspec/changes/`, so the fold has happened. *gate:* the archive is non-empty · `verdict: approve` · no requirement is still `active` |
 | `genai.release` | main | the changelog, plus the version and tag in the report's effects | *entry:* no requirement is still `active`. *gate:* the changelog is written and committed · `outcome: completed` |
 
-Five asymmetries are deliberate:
+Six asymmetries are deliberate:
 
 - **The suite is built in parallel with the code, from the spec.** `genai.e2e-author` takes its input
   from `genai.spec`, not from the commits, so nothing in its instruction points at the implementation.
@@ -99,6 +102,12 @@ Five asymmetries are deliberate:
 - **`genai.accept` runs after `genai.archive`, not before.** Requirements go missing *during*
   the fold into the main specs, silently, with no mechanical gate able to see it. Checking
   before the fold would miss the one failure the step exists for.
+- **The human ruling is depended on, not merely awaited.** `genai.implement` takes the decision as
+  an input it never reads, purely so an entry rule can measure it: approval covers the spec it was
+  given and no other, and a spec revised afterwards refuses entry until it has been ruled on again.
+  Without that rule the step would still wait for a person and then build whatever the spec had
+  since become — a human step that is sequenced but not binding, which is the failure mode worth
+  more than the step itself.
 
 ## What the project has to supply
 

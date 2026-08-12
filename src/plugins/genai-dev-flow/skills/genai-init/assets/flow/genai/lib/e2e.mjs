@@ -336,18 +336,24 @@ export async function probeApp() {
  * so a locator cannot reach it and the framework has nothing to measure. Deriving the signature
  * from the manifest's own claims closes that: a rework that edits a selector moves this hash, and a
  * rework that changed nothing does not.
+ *
+ * The field separator is NUL because no change id, scenario id or path can contain one, so two
+ * different splits of the same bytes cannot collide. **Write it as the escape `\x00`, never as a
+ * literal NUL byte in this file** — a source file carrying one is classified as binary by grep, git
+ * grep and most editors' search, and the whole file then goes silently missing from the tool people
+ * look for it with. This one did, for as long as it held four of them.
  */
 export function suiteSignature() {
   const hash = createHash("sha256");
   for (const change of collect() ?? []) {
     const parsed = payload(join(genaiDir(change.id), MANIFEST));
     if (parsed.label !== null) {
-      hash.update(`${change.id} ${parsed.label}\n`);
+      hash.update(`${change.id}\x00${parsed.label}\n`);
       continue;
     }
     for (const [id, row] of Object.entries(parsed.data?.scenarios ?? {}).sort(([a], [b]) => a.localeCompare(b))) {
       if (row?.bucket !== "mapped" || typeof row.test !== "string") continue;
-      hash.update(`${change.id} ${id} ${row.test} `);
+      hash.update(`${change.id}\x00${id}\x00${row.test}\x00`);
       hash.update(existsSync(row.test) ? readFileSync(row.test) : "absent");
       hash.update("\n");
     }

@@ -72,7 +72,7 @@ Two rules govern the labels, both stated as rules in the plugin's `AGENTS.md`: a
 (a non-zero exit is reported by the engine as `failed` and the label is lost), and a rule's `on_result`
 must cover exactly `values + [failed, unexecutable]`.
 
-### The thirteen atoms
+### The fifteen atoms
 
 | Atom | Labels | Read by |
 |---|---|---|
@@ -84,10 +84,12 @@ must cover exactly `values + [failed, unexecutable]`.
 | `worktree` | `clean` · `dirty` · `unreadable` | `genai.code-review` entry · `genai.merge` entry · `genai.archive` entry |
 | `metrics` | `satisfied` · `tests_failing` · `no_tests` · `too_many_skipped` · `coverage_below_floor` · `metrics_missing` · `metrics_unreadable` · `thresholds_missing` | `genai.implement` gate · `genai.merge` gate |
 | `spec-scenarios` | `unique` · `unnumbered` · `duplicated` · `count_mismatch` · `unreadable` | `genai.spec` gate |
+| `arch-doc` | `complete` · `no_decisions` · `decision_incomplete` · `external_reference` · `background_over_ceiling` · `unreadable` | `genai.write-arch-docs` gate |
 | `e2e-manifest` | `accounted` · `unaccounted` · `over_ceiling` · `manifest_missing` · `manifest_malformed` · `unreadable` | `genai.e2e-author` gate |
 | `e2e-mapping` | `matched` · `title_missing` · `file_missing` · `unreadable` | `genai.e2e-author` gate |
 | `e2e-report` | `green` · `product_failure` · `test_failure` · `infra_failure` · `coverage_short` · `db_evidence_missing` · `report_missing` · `report_malformed` · `unreadable` | `genai.e2e` gate |
 | `app-identity` | `identified` · `wrong_service` · `unreachable` · `config_missing` · `config_malformed` | `genai.e2e` entry |
+| `signature-docs` | not a check — prints a sha256 over the documentation tree's paths and contents | `genai.update-project-docs` output signature |
 | `signature-archive` | not a check — prints a sha256 | `genai.accept` output signature |
 | `signature-e2e-suite` | not a check — prints a sha256 over the test files the manifests name | `genai.e2e-author` output signature |
 
@@ -122,7 +124,7 @@ and `genai.archive` folds away the changes and dirties the tree it entered on (`
 has an upstream that can re-run). Everything else is asked on every dispatch, which is what makes the
 rules before an irreversible act worth relying on.
 
-## 4. The ten steps
+## 4. The thirteen steps
 
 The roster and who runs each one. **The entry and gate rules are not reproduced here** — they are in
 each `node.yaml` next to the comment explaining why they are shaped that way, and a copy in this tree
@@ -132,12 +134,15 @@ would rot the first time one changes.
 |---|---|---|---|
 | `genai.spec` | produce | subagent `genai-spec-writer` | openspec changes and their spec deltas |
 | `genai.spec-review` | judge | subagent `genai-spec-reviewer` | one `spec-review.md` per change |
+| `genai.write-arch-docs` | produce | subagent `genai-spec-writer` | one `genai/DECISION.mdx` per change that has something to settle |
+| `genai.arch-decision` | judge | **human**, channel `stdout` | the recorded ruling, written by `fsx human` itself |
 | `genai.implement` | produce | subagent `genai-developer` | commits on the sprint branch |
 | `genai.e2e-author` | produce | subagent `genai-e2e-author` | the e2e suite, and one `genai/e2e-manifest.md` per change |
 | `genai.code-review` | judge | subagent `genai-code-reviewer` | one `review.md` per change |
 | `genai.e2e` | verify | subagent `genai-e2e-runner` | one `genai/e2e-report.md` per change |
 | `genai.merge` | effect | main | the merge commit |
 | `genai.archive` | produce | main | the folded main specs |
+| `genai.update-project-docs` | produce | subagent `genai-doc-writer` | the project's documentation tree (an observed artifact, signed by command) |
 | `genai.accept` | judge | subagent `genai-requirement-checker` | the archived requirements (an observed artifact, signed by command) |
 | `genai.release` | effect | main | the changelog, and the only version bump of the round |
 

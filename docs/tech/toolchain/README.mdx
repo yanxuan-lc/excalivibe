@@ -26,6 +26,7 @@ toc: true
 | `check-skills.ts` | 105 | emitted frontmatter validity + the SKILL.md line budget |
 | `ui.ts` | 109 | the single output channel — a module *and* a CLI |
 | `verify-json.ts` | 75 | JSON parseability + graph skeleton reference integrity |
+| `verify-no-nul.ts` | 78 | no raw NUL byte in a text source |
 | `bump.ts` | 71 | the only entry point for a version |
 
 They run as they are: Node ≥22.18 strips the types at load, so `node scripts/build.ts` needs no build
@@ -52,6 +53,7 @@ wrong bytes.
 | 4 | `verify-skills` | **the artifacts** | frontmatter is a valid YAML subset; each rendered `SKILL.md` ≤ 500 lines |
 | 5 | `verify-variants` | `src/**/*.md`, rendered per end | orphan headings with no counterpart on another end |
 | 6 | `verify-no-cjk` | `src/**` + three root files | any CJK character outside a registered exception |
+| 7 | `verify-no-nul` | `src/**` + `scripts/**` | a raw NUL byte, which makes grep treat the whole file as binary |
 
 ### Why two gates read artifacts rather than source
 
@@ -62,7 +64,7 @@ context. The 500-line budget exists because `SKILL.md` loads in full the moment 
 `references/` loads only when the body sends the model there — a long `SKILL.md` spends context on every
 invocation to carry material most invocations do not need.
 
-It checks 91 frontmatter blocks: 81 `SKILL.md` (27 skills × 3 ends) and 10 agent markdown files (5 agents
+It checks 103 frontmatter blocks: 87 `SKILL.md` (29 skills × 3 ends) and 16 agent markdown files (8 agents
 × claude and common). **The Codex agents are `.toml` and are not checked by it** — the shape of that
 frontmatter is validated by nothing on this side.
 

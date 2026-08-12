@@ -57,6 +57,9 @@
       "research"
     ]
   },
+  "dependencies": [
+    "computer-use"
+  ],
   "interface": {
     "displayName": "Dev Toolkit",
     "shortDescription": "Atomic engineering conventions, methods and checks",

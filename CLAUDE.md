@@ -10,7 +10,7 @@ things it leaves out: **commands** and **the big picture**. Current state and op
 
 ```bash
 make build          # src/ → claude/ + codex/ + common/. Run it after every source change
-make check          # the full pre-commit gate, six of them
+make check          # the full pre-commit gate, seven of them
 make rebuild        # clean → rebuild → byte-compare, proving the source is complete (no git state needed)
 make help           # every target, grouped by domain
 ```
@@ -24,11 +24,12 @@ make verify-json      # every JSON in src/ parses; graph skeletons reference onl
 make verify-skills    # emitted frontmatter is valid; each rendered SKILL.md is within 500 lines
 make verify-variants  # no variant block boundary is mis-nested
 make verify-no-cjk    # src/ and the agent-facing root docs stay English
+make verify-no-nul    # no source carries a raw NUL byte, which hides the file from grep
 ```
 
 **There is no test suite and no test runner.** `package.json` has exactly two scripts — `build` and
 `typecheck` — its `devDependencies` are `typescript` and `@types/node`, and there is not one
-`*.test.*` file in the repository. Correctness rests on `typecheck` plus the other five verifies.
+`*.test.*` file in the repository. Correctness rests on `typecheck` plus the other six verifies.
 There is no `npm test`, and "run a single test" does not mean anything here.
 
 Versions and publishing:
@@ -64,7 +65,7 @@ Three plugins:
 |---|---|---|
 | `computer-use` | 3.0.0 | 4 skills + 2 hook files (Claude only) |
 | `dev-toolkit` | 3.0.0 | 19 skills; no agents, no hooks |
-| `genai-dev-flow` | 3.0.0 | 4 skills + 5 agents + 8 fsx step definitions |
+| `genai-dev-flow` | 3.0.0 | 6 skills + 8 agents + 13 fsx step definitions |
 
 `genai-dev-flow` differs from the other two by **having state**: its step definitions and gate code
 install into a consuming project's `.flow/`, while that project's requirements live outside it in a
@@ -94,7 +95,7 @@ The remaining five mechanisms:
 - **`${PLUGIN_ROOT}` substitution** — see the table above.
 - **`tier` / `tier-<end>` on agents** — resolved against the `TIER` table: top → opus /
   gpt-5.6-sol, standard → sonnet / gpt-5.6-terra, light → haiku / gpt-5.6-luna, and always null on
-  common. All five agents currently use plain `tier`; none uses `tier-<end>`.
+  common. All eight agents currently use plain `tier`; none uses `tier-<end>`.
 - **`hooks/**`** — compiles to Claude by construction. Only `computer-use` has any: two files.
 - **`command: true`** — Claude additionally gets a thin `commands/<name>.md`. Three skills use it
   today: `install-computer-use`, `genai-flow`, `genai-init`.

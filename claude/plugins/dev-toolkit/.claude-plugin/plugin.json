@@ -19,5 +19,8 @@
     "performance",
     "code-review",
     "research"
+  ],
+  "dependencies": [
+    "computer-use"
   ]
 }

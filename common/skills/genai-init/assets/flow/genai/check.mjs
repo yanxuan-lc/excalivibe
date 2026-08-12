@@ -23,6 +23,8 @@
 //                                | coverage_below_floor | metrics_missing | metrics_unreadable
 //                                | thresholds_missing
 //   spec-scenarios               unique | unnumbered | duplicated | count_mismatch | unreadable
+//   arch-doc                     complete | no_decisions | decision_incomplete | external_reference
+//                                | background_over_ceiling | unreadable
 //   e2e-manifest                 accounted | unaccounted | over_ceiling | manifest_missing
 //                                | manifest_malformed | unreadable
 //   e2e-mapping                  matched | title_missing | file_missing | unreadable
@@ -31,6 +33,7 @@
 //                                | report_malformed | unreadable
 //   app-identity                 identified | wrong_service | unreachable | config_missing
 //                                | config_malformed
+//   signature-docs               (not a check: prints the documentation tree's signature)
 //   signature-archive            (not a check: prints the archive's signature)
 //   signature-e2e-suite          (not a check: prints the e2e suite's signature)
 
@@ -38,6 +41,8 @@ import { execFileSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import { archived, backlogRoot, items } from "./lib/backlog.mjs";
 import { changeFiles, openChanges, specDeltas } from "./lib/changes.mjs";
+import { judgeDocs } from "./lib/decision.mjs";
+import { treeSignature } from "./lib/docs.mjs";
 import { judgeManifest, judgeMapping, judgeReport, judgeScenarios, probeApp, suiteSignature } from "./lib/e2e.mjs";
 import { judge } from "./lib/metrics.mjs";
 import { validate } from "./lib/openspec.mjs";
@@ -56,10 +61,12 @@ const atoms = {
   "openspec-valid": openspecValid,
   metrics: metricsAtom,
   "spec-scenarios": specScenarios,
+  "arch-doc": archDoc,
   "e2e-manifest": e2eManifest,
   "e2e-mapping": e2eMapping,
   "e2e-report": e2eReport,
   "app-identity": appIdentity,
+  "signature-docs": signatureDocs,
   "signature-archive": signatureArchive,
   "signature-e2e-suite": signatureE2eSuite,
 };
@@ -139,6 +146,11 @@ function specScenarios() {
   say(label, facts);
 }
 
+function archDoc() {
+  const { label, facts } = judgeDocs();
+  say(label, facts);
+}
+
 function e2eManifest() {
   const { label, facts } = judgeManifest();
   say(label, facts);
@@ -157,6 +169,13 @@ function e2eReport() {
 async function appIdentity() {
   const { label, facts } = await probeApp();
   say(label, facts);
+}
+
+// Not a check. The documentation step produces the tree rather than a commit, and declaring the
+// branch tip instead would collide with the implementation step's own output — fsx refuses that at
+// load time. An absent docs/ is a legitimate state and hashes to the empty digest.
+function signatureDocs() {
+  emit(treeSignature());
 }
 
 // Not a check. The acceptance step's artifact lives outside the repository, where a locator may not

@@ -6,25 +6,44 @@ command: true
 
 # Run one round
 
-One round is one release: several requirements, several changes, **one version bump**. Ten
+One round is one release: several requirements, several changes, **one version bump**. Thirteen
 steps, fixed at graph creation.
 
 ```
-                              ┌──▶ genai.implement ──────┬──▶ genai.code-review ──┐
-genai.spec ──▶ genai.spec-review                         │                        ├──▶ genai.merge ──▶ genai.archive ──▶ genai.accept ──▶ genai.release
-                              └──▶ genai.e2e-author ─────┴──▶ genai.e2e ──────────┘
+                                                                    ┌──▶ genai.implement ──┬──▶ genai.code-review ──┐
+genai.spec ──▶ genai.spec-review ──▶ genai.write-arch-docs ──▶ genai.arch-decision         │                        ├──▶ genai.merge ──▶ …
+                                                                    └──▶ genai.e2e-author ─┴──▶ genai.e2e ──────────┘
+
+… ──▶ genai.merge ──▶ genai.archive ──▶ genai.update-project-docs ──▶ genai.accept ──▶ genai.release
 ```
 
-The fork is the design: **the tests and the code are built in parallel from the same confirmed
-spec**, and `genai.e2e-author` is wired to `genai.spec` rather than to the commits so that its
-instruction has no path to the implementation in it. A suite derived from the code passes by
+`genai.update-project-docs` runs last of everything that changes the repository, and that is the
+whole of why it is there rather than earlier. Every step before it can still be reworked — the
+implementation goes back on a review or a failed scenario, and the merge itself can change the
+result — so documentation written any earlier describes a state that has not settled, and gets
+rewritten each time one does. Here nothing upstream can move under it: the code is merged, the
+specs are folded, and what it writes is true of the release.
+
+**Nothing reviews it, and that is the accepted cost.** Placing it before the code review would put
+it inside a diff someone reads, but only by pinning it to a state still being reworked — and the
+review's own subject is code, so what it would add is closer to a signature than to a reading.
+
+`genai.arch-decision` is the round's **only human step**, and everything before it exists to make
+that one ruling cheap: a person settles the structure while changing it is still an edit to a
+document nobody has built against. It suspends and waits when nobody is there — an unattended run
+that moved past it would have removed the step rather than passed it.
+
+The fork after it is the design: **the tests and the code are built in parallel from the same
+approved spec**, and `genai.e2e-author` is wired to `genai.spec` rather than to the commits so that
+its instruction has no path to the implementation in it. A suite derived from the code passes by
 construction. Then two independent judgements — a review and an acceptance run — meet at the merge.
 
-Four rework edges, and they are where the routing lives:
+Five rework edges, and they are where the routing lives:
 
 | From | On | To | Why there |
 |---|---|---|---|
 | `genai.spec-review` | reject | `genai.spec` | a design goes back while changing it is still one edit |
+| `genai.arch-decision` | reject | `genai.spec` | the same destination, for the same reason. A condition attached to an approval is a change to the design, so `conditional` routes here too rather than counting as a pass |
 | `genai.code-review` | reject | `genai.implement` | that edit has become a rewrite, and this is what it costs |
 | `genai.e2e` | reject | `genai.implement` | the product failed a scenario. Also every case where the acceptance run itself did not deliver |
 | `genai.e2e` | delegate | `genai.e2e-author` | a **test** failed, not the product. `delegate` spends no patience and leaves the step `delegated` rather than `rejected` — the work moved, the graph is not stalled |
@@ -39,12 +58,12 @@ only the driving: create, dispatch, gate, route.
 
 ## Before starting
 
-- `fsx nodes -w genai-sprint` lists all ten steps, and `fsx check` raises nothing at
+- `fsx nodes -w genai-sprint` lists all thirteen steps, and `fsx check` raises nothing at
   `severity: error`. **When both hold, start the round — this is not a question to put to anyone.**
   Only when they do not is the project uninstalled, and then ask whether to run `/genai-init`; a
   fresh clone is always in that state, because `.flow/` is not tracked in git. Never hand-write the
   missing pieces. Read `fsx check`'s `problems[]`, never its counts: it counts every definition on
-  disk, including the `nodes/task/` template `fsx init` scaffolds, so **eleven** nodes and **two**
+  disk, including the `nodes/task/` template `fsx init` scaffolds, so **fourteen** nodes and **two**
   workflows is what a correct install reports.
 - The application under test can be started, and `tools/genai/e2e.json` says how to recognise it.
   Nothing needs it until `genai.e2e`, and that step refuses to start rather than testing whatever
@@ -68,33 +87,40 @@ fsx graph create --name <round-label> --var branch=<branch-name> --inline '{
   "workflow": "genai-sprint",
   "intent": "<what this round is for>",
   "nodes": [
-    { "id": "genai.spec#1",        "node": "genai.spec" },
-    { "id": "genai.spec-review#1", "node": "genai.spec-review" },
-    { "id": "genai.implement#1",   "node": "genai.implement" },
-    { "id": "genai.e2e-author#1",  "node": "genai.e2e-author" },
-    { "id": "genai.code-review#1", "node": "genai.code-review" },
-    { "id": "genai.e2e#1",         "node": "genai.e2e" },
-    { "id": "genai.merge#1",       "node": "genai.merge" },
-    { "id": "genai.archive#1",     "node": "genai.archive" },
-    { "id": "genai.accept#1",      "node": "genai.accept" },
-    { "id": "genai.release#1",     "node": "genai.release" }
+    { "id": "genai.spec#1",            "node": "genai.spec" },
+    { "id": "genai.spec-review#1",     "node": "genai.spec-review" },
+    { "id": "genai.write-arch-docs#1", "node": "genai.write-arch-docs" },
+    { "id": "genai.arch-decision#1",   "node": "genai.arch-decision" },
+    { "id": "genai.implement#1",       "node": "genai.implement" },
+    { "id": "genai.e2e-author#1",      "node": "genai.e2e-author" },
+    { "id": "genai.code-review#1",     "node": "genai.code-review" },
+    { "id": "genai.e2e#1",             "node": "genai.e2e" },
+    { "id": "genai.merge#1",           "node": "genai.merge" },
+    { "id": "genai.archive#1",         "node": "genai.archive" },
+    { "id": "genai.update-project-docs#1", "node": "genai.update-project-docs" },
+    { "id": "genai.accept#1",          "node": "genai.accept" },
+    { "id": "genai.release#1",         "node": "genai.release" }
   ],
   "edges": [
-    { "from": "genai.spec#1",        "to": "genai.spec-review#1", "on": "pass" },
-    { "from": "genai.spec-review#1", "to": "genai.implement#1",   "on": "pass" },
-    { "from": "genai.spec-review#1", "to": "genai.e2e-author#1",  "on": "pass" },
-    { "from": "genai.spec-review#1", "to": "genai.spec#1",        "on": "reject" },
-    { "from": "genai.implement#1",   "to": "genai.code-review#1", "on": "pass" },
-    { "from": "genai.implement#1",   "to": "genai.e2e#1",         "on": "pass" },
-    { "from": "genai.e2e-author#1",  "to": "genai.e2e#1",         "on": "pass" },
-    { "from": "genai.code-review#1", "to": "genai.merge#1",       "on": "pass" },
-    { "from": "genai.code-review#1", "to": "genai.implement#1",   "on": "reject" },
-    { "from": "genai.e2e#1",         "to": "genai.merge#1",       "on": "pass" },
-    { "from": "genai.e2e#1",         "to": "genai.implement#1",   "on": "reject" },
-    { "from": "genai.e2e#1",         "to": "genai.e2e-author#1",  "on": "delegate" },
-    { "from": "genai.merge#1",       "to": "genai.archive#1",     "on": "pass" },
-    { "from": "genai.archive#1",     "to": "genai.accept#1",      "on": "pass" },
-    { "from": "genai.accept#1",      "to": "genai.release#1",     "on": "pass" }
+    { "from": "genai.spec#1",            "to": "genai.spec-review#1",     "on": "pass" },
+    { "from": "genai.spec-review#1",     "to": "genai.write-arch-docs#1", "on": "pass" },
+    { "from": "genai.spec-review#1",     "to": "genai.spec#1",            "on": "reject" },
+    { "from": "genai.write-arch-docs#1", "to": "genai.arch-decision#1",   "on": "pass" },
+    { "from": "genai.arch-decision#1",   "to": "genai.implement#1",       "on": "pass" },
+    { "from": "genai.arch-decision#1",   "to": "genai.e2e-author#1",      "on": "pass" },
+    { "from": "genai.arch-decision#1",   "to": "genai.spec#1",            "on": "reject" },
+    { "from": "genai.implement#1",       "to": "genai.code-review#1",     "on": "pass" },
+    { "from": "genai.implement#1",       "to": "genai.e2e#1",             "on": "pass" },
+    { "from": "genai.e2e-author#1",      "to": "genai.e2e#1",             "on": "pass" },
+    { "from": "genai.code-review#1",     "to": "genai.merge#1",           "on": "pass" },
+    { "from": "genai.code-review#1",     "to": "genai.implement#1",       "on": "reject" },
+    { "from": "genai.e2e#1",             "to": "genai.merge#1",           "on": "pass" },
+    { "from": "genai.e2e#1",             "to": "genai.implement#1",       "on": "reject" },
+    { "from": "genai.e2e#1",             "to": "genai.e2e-author#1",      "on": "delegate" },
+    { "from": "genai.merge#1",           "to": "genai.archive#1",         "on": "pass" },
+    { "from": "genai.archive#1",         "to": "genai.update-project-docs#1", "on": "pass" },
+    { "from": "genai.update-project-docs#1", "to": "genai.accept#1",      "on": "pass" },
+    { "from": "genai.accept#1",          "to": "genai.release#1",         "on": "pass" }
   ]
 }'
 ```

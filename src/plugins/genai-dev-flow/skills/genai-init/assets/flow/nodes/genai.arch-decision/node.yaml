@@ -1,0 +1,53 @@
+id: genai.arch-decision
+kind: judge
+
+executor:
+  protocol: human
+  params:
+    channel: stdout
+
+# Suspend rather than fail or auto-approve. This is the round's only human step, and the whole
+# reason it exists is that a person rules on the structure before anyone writes code against it —
+# an unattended run that moved past it would have removed the step rather than passed it.
+unattended: suspend
+
+# `require_interactive` is deliberately left at its default. Approving on someone's behalf is not
+# the failure mode worth blocking; delegation becoming the default with nobody ever looking back
+# is, and the framework already records the approval source, so that is visible rather than
+# forbidden. Turn it on for a project where this ruling may never be delegated.
+
+inputs:
+  - name: arch-docs
+    from: genai.write-arch-docs
+    required: true
+
+# `fsx human` writes the decision to this path itself, so the artifact check holds for a human step
+# the same way it does for every other. The durable copy is the signed report in the event log —
+# this record does not travel into the openspec archive the way the e2e records do, because a
+# round-level decision has no per-change directory to live in.
+#
+# Parameterised by the round's branch: two rounds running at once would otherwise write here in
+# turn, and the second would find the first one's approval already sitting in place.
+outputs:
+  - name: decision
+    kind: file
+    locator: ".flow/genai/decisions/{{vars.branch}}.json"
+    signature: checksum
+
+# No entry rule, and none is possible: the only precondition is that there is something to read,
+# which the required input already asserts.
+
+gates:
+  # `fsx human` ghostwrites the ruling into a conforming judge report, so it is read exactly the
+  # way every other verdict in this flow is read. There is no human special case in the gating
+  # layer — only the record of who approved it.
+  - rule_id: verdict
+    checker: { type: report, field: verdict }
+    on_result:
+      approve: { verdict: pass }
+      conditional:
+        verdict: reject
+        message: "Approved-with-conditions is not approved. A condition on the architecture is a change to the architecture — make it in the spec now, while it is still one edit, rather than discovering it in the code"
+      reject:
+        verdict: reject
+        message: "The structure was not approved. The note carries what the reader asked for; fold it into the spec and let the document be written again from that"

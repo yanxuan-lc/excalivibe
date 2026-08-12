@@ -10,7 +10,7 @@
 |---|---|---|
 | `computer-use` | 如何使用电脑 —— 让 agent 越过自身文本输出、作用于真实机器的能力 | `graceful-browser`、`mdx-artifact`、`notify-user`、`install-computer-use`（Claude 端另带一份出厂静默的 turn-end hook） |
 | `dev-toolkit` | 原子开发能力 —— 每个独立成立、按自身主题触发、不假设谁来调 | 19 个（规约 6 / 方法 4 / 流程约定 1 / 检查器 5 / 实地调研 3） |
-| `genai-dev-flow` | 一整套流程 —— 需求进、一个版本出，每步门控在可复测的东西上 | 4 个 skill（手册 / 安装 / 需求 / 调度）+ 4 个 subagent + 7 个 fsx 环节定义 |
+| `genai-dev-flow` | 一整套流程 —— 需求进、一个版本出，每步门控在可复测的东西上 | 6 个 skill（手册 / 安装 / 需求 / 调度 / spec 约定 / 决策文档）+ 8 个 subagent + 13 个 fsx 环节定义 |
 
 **一条贯穿全仓的规则：skill 不写调用者。** description 只回答「什么情况下该用我」，绝不回答「谁会调我」。写着 `invoked by name from the developer agent` 的 skill 有三重问题 —— 人直接提出同样需求时它不触发（描述的是派发而非情境）、那个 agent 一改名它就得重写、以及可复用的东西反过来依赖了具体的东西。箭头只能单向：**编排者点名它调用的 skill，skill 永不点名编排者。**
 
@@ -50,9 +50,9 @@ make help            # 全部 target
 | 单端目录树 | `hooks/**` | 天然只编到 Claude |
 | 命令包装 | skill frontmatter 的 `command: true` | Claude 额外得到一个薄的 `commands/<name>.md` |
 
-## 六道门禁，各自防什么
+## 七道门禁，各自防什么
 
-`make check` 由六步组成，每步都可单独跑：
+`make check` 由七步组成，每步都可单独跑：
 
 - **`verify-build`** —— 产物与源码是否一致。抓「忘了编译」「手改了产物」「产物里有源码不产生的孤儿文件」三类。
 - **`typecheck`** —— `tsc --noEmit` 扫 `src/` 和 `scripts/`。
@@ -60,6 +60,8 @@ make help            # 全部 target
 - **`verify-skills`** —— 两件事：产出的 SKILL.md / agent frontmatter 是合法 YAML 子集，以及每份渲染后的 SKILL.md 不超过 500 行的上下文预算。都跑产物而非源码，因为分端描述可能只在**一个端**上把 frontmatter 弄坏，而源码文件同时装着三端的正文、行数根本不代表实际入上下文的量。
 - **`verify-variants`** —— variant 块边界是否嵌错。这是编译器**看不见**的一类失败：边界错位会让某个端整段丢失，而产物依然是源码逐字生成的、round-trip 依然字节一致、所有测试依然绿。它的办法是渲染每个端，找**没有对应物的孤儿标题**；确属有意的单端章节，逐条登记进 `src/variant-exceptions.json` 并写明理由。
 - **`verify-no-cjk`** —— 凡是模型要读的都保持英文，连注释也算:整个 `src/`，外加根目录三份面向 agent 的文件(`AGENTS.md` / `CLAUDE.md` / `CONTEXT.md`，在脚本里逐个列名)。要例外必须登记进 `src/cjk-exceptions.json` 并写明理由，键是相对仓库根的路径；`evals/` 按目录豁免，因为触发 fixture 故意是中文、且从不随产物发出。面向人的文档按设计不在范围内，并且**按规定双语** —— `README.md` / `README.zh-CN.md`，以及 `docs/` 每一级的 `README.mdx` / `README.zh-CN.mdx`（见 [AGENTS.md](./AGENTS.md#hard-rules)）。两份是否还对得上，没有任何检查在看。
+
+- **`verify-no-nul`** —— `src/` 和 `scripts/` 下没有任何文件带**裸 NUL 字节**。NUL 作为哈希字段分隔符的取值是对的，但写成源文件里的真实字节而非转义 `\x00`，grep、`git grep` 和多数编辑器的全局搜索就会把整个文件判为二进制、不再报告其中的匹配——一个 488 行的门控判断代码曾就此从所有搜索里消失，而其余每道门全绿。它没有例外登记表：描述里的中文是正当例外，文本源码里的裸 NUL 不是。
 
 另外两道防线在编译器内部，不在门禁里：`lintVariants` 拒绝输出任何残留 marker 的文件（端名拼错、漏了 `@end` 都是这个signature），`emit` 拒绝两个源码编到同一路径（common 端没有插件目录，skill 名在那里是仓库全局的）。
 

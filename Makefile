@@ -20,7 +20,7 @@ UI := $(NODE) scripts/ui.ts
 EVAL_TMP := $(if $(CLAUDE_JOB_DIR),$(CLAUDE_JOB_DIR)/tmp,$(TMPDIR))
 
 .PHONY: help build rebuild clean check check-banner typecheck \
-        verify-build verify-skills verify-variants verify-json verify-no-cjk \
+        verify-build verify-skills verify-variants verify-json verify-no-cjk verify-no-nul \
         eval eval-build eval-score \
         bump pack release-check publish tag \
         install-claude install-codex install-common
@@ -32,7 +32,7 @@ build: ## compile src/ → claude/ + codex/ + common/ (all three are artifacts, 
 
 # check-banner comes first so the verdicts below it read as a list under a subject rather than as six
 # unrelated lines. Prerequisites run left to right, which is why the banner lands on top.
-check: check-banner verify-build typecheck verify-json verify-skills verify-variants verify-no-cjk ## the full pre-commit gate
+check: check-banner verify-build typecheck verify-json verify-skills verify-variants verify-no-cjk verify-no-nul ## the full pre-commit gate
 	@$(UI) result "all checks passed"
 
 check-banner:
@@ -63,6 +63,9 @@ verify-json: ## every JSON in src/ parses; graph skeletons refer only to nodes t
 
 verify-no-cjk: ## src/ and the agent-facing root docs stay English; exceptions are registered with a reason
 	@$(NODE) scripts/verify-no-cjk.ts
+
+verify-no-nul: ## no source carries a raw NUL byte, which would hide the whole file from grep
+	@$(NODE) scripts/verify-no-nul.ts
 
 # ────────────────────────────── evals ──────────────────────────────
 # Not part of `check`: it costs a model call, and a description is retuned deliberately, not on

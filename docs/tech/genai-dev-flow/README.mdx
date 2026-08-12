@@ -8,9 +8,9 @@ toc: true
 中文版: [README.zh-CN.mdx](./README.zh-CN.mdx)
 
 > A whole development flow: requirements in, one release out, every step gated on something re-runnable.
-> **Authoritative source: `src/plugins/genai-dev-flow/`** — 5 skills, 7 agents, 10 step definitions.
-> Version 3.1.0. The engine-side contract is [`../flow-contract/`](../flow-contract/README.mdx); this is
-> the manual for the five skills and how a round is actually run.
+> **Authoritative source: `src/plugins/genai-dev-flow/`** — 6 skills, 8 agents, 13 step definitions.
+> Version 3.0.0. The engine-side contract is [`../flow-contract/`](../flow-contract/README.mdx); this is
+> the manual for the six skills and how a round is actually run.
 
 ## What you get
 
@@ -29,7 +29,7 @@ round. What fixes it is not restating "do not bump the version" — in this repo
 explicitly excluded a scenario still triggered on it 5 times out of 5 — but never raising the subject
 upstream and putting the one step that *is* allowed to bump it at the end.
 
-## The five skills, and which one you want
+## The six skills, and which one you want
 
 The split between the first three is **learn / install / drive**, and it is deliberate: a manual that also
 drives gets read when nobody wanted to read, and a driver that also teaches makes every round pay for the
@@ -42,6 +42,7 @@ explanation.
 | `genai-flow` | `/genai-dev-flow:genai-flow` | a round should start, is already running, or has a step that will not pass |
 | `genai-backlog` | — | somebody described something they want built, or the question is what to pick up next |
 | `genai-openspec` | — | a spec, a delta or a scenario is being written, or something reads like a formatting complaint from openspec |
+| `genai-arch-doc` | — | a decision document is being written or repaired, or the question is whether a change warrants a human ruling at all |
 
 ### genai-backlog
 
@@ -130,7 +131,7 @@ passed. Put it in the backlog.
 
 ### genai-guideline
 
-**The manual.** It answers what each of the ten steps is gated on and why, what the project supplies,
+**The manual.** It answers what each of the thirteen steps is gated on and why, what the project supplies,
 the metrics protocol in full, and the traps. Read it before wiring a project up, and when a verdict needs
 explaining.
 

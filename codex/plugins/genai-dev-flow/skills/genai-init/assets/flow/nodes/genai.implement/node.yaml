@@ -10,6 +10,13 @@ inputs:
   - name: changes
     from: genai.spec
     required: true
+  # Not material this step builds from — it never opens the decision document, which was trimmed
+  # and diagrammed for a person and has lost the detail an implementer needs. It is here so the
+  # premise rule below has a conclusion to measure, and so the human ruling is a thing this step
+  # depends on rather than a thing that merely happened before it.
+  - name: decision
+    from: genai.arch-decision
+    required: true
 
 outputs:
   - name: commits
@@ -17,10 +24,30 @@ outputs:
     locator: "{{vars.branch}}"
     signature: commit_sha
 
-# One entry rule, and it asserts something this step does not touch. A clean-worktree rule would
-# deadlock against the very artifact that makes the tree dirty, and upstream_premise needs a
-# judge's conclusion plus the thing it judged — neither exists this early in the graph.
+# Neither rule asserts anything this step changes. A clean-worktree rule would deadlock against the
+# very artifact that makes the tree dirty, and is left out for that reason.
 ready:
+  # of is whose conclusion; against is what that conclusion was about. A person approved a
+  # structure, and this is where that approval stops applying if the structure moved afterwards —
+  # the same shape genai.merge uses twice to keep a review from covering commits it never saw.
+  #
+  # This is what makes the human step load-bearing rather than ceremonial. Without it, a spec
+  # revised after the ruling would be built anyway, and the approval on record would describe a
+  # design nobody implemented.
+  - rule_id: decision-still-valid
+    checker:
+      type: upstream_premise
+      of: [decision]
+      against: changes
+    on_result:
+      fresh: { ready: true }
+      stale:
+        ready: false
+        reason: "The spec moved after it was approved. Have the decision document written again from the current spec and re-approved — an approval describes the design it was given and no other"
+      unknown:
+        ready: false
+        reason: "The approved spec cannot be measured — confirm openspec/changes/ still holds this round's changes"
+
   - rule_id: has-spec-deltas
     checker:
       type: command

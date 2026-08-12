@@ -8,8 +8,8 @@ toc: true
 English: [README.mdx](./README.mdx)
 
 > 一整套开发流程：需求进来，一个版本出去，每一步都被某个可重跑的东西门控住。
-> **权威来源：`src/plugins/genai-dev-flow/`** —— 5 个 skill、7 个 agent、10 份步骤定义。
-> 版本 3.1.0。引擎侧的契约在 [`../flow-contract/`](../flow-contract/README.zh-CN.mdx)；本文是那 5 个 skill 的手册，
+> **权威来源：`src/plugins/genai-dev-flow/`** —— 6 个 skill、8 个 agent、13 份步骤定义。
+> 版本 3.0.0。引擎侧的契约在 [`../flow-contract/`](../flow-contract/README.zh-CN.mdx)；本文是那 6 个 skill 的手册，
 > 以及一轮到底怎么跑起来。
 
 ## 你得到什么
@@ -25,7 +25,7 @@ English: [README.mdx](./README.mdx)
 修好这件事的办法不是反复强调"不要 bump 版本" —— 在本仓库里，一条明确排除了某场景的 description 仍然 5 次中 5 次在
 该场景上触发 —— 而是**在上游根本不提这个话题**，并把唯一**被允许** bump 的那一步放在最后。
 
-## 五个 skill，你要的是哪个
+## 六个 skill，你要的是哪个
 
 前三个之间的划分是**学 / 装 / 跑**，这是刻意的：一份顺手也能开跑的手册，会在没人想读的时候被读；一个顺手也教学的
 驱动器，会让每一轮都为那段解释付费。
@@ -37,6 +37,7 @@ English: [README.mdx](./README.mdx)
 | `genai-flow` | `/genai-dev-flow:genai-flow` | 一轮该开始了、已经在跑、或者某一步过不去 |
 | `genai-backlog` | — | 有人描述了他想要建的东西，或者问题是"接下来该拾起哪个" |
 | `genai-openspec` | — | 正在写 spec、增量或场景，或者 openspec 报回来的东西读起来像在挑格式 |
+| `genai-arch-doc` | — | 正在写或修一份决策文档，或者要判断某个变更值不值得让人拍板 |
 
 ### genai-backlog
 

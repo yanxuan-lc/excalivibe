@@ -52,12 +52,19 @@ re-run the work.
 | `genai-flow` | That a round should start, how the graph is built, and what to do when a step will not pass |
 | `genai-backlog` | Where a stated intention belongs, what state it is in, and what is worth picking up next |
 | `genai-openspec` | How a spec, a delta or a scenario has to be written so openspec accepts it and the gates can measure it |
+| `genai-arch-doc` | What a person actually has to rule on before code is written, and how that is put in front of them |
 
 The split between the first three is **learn / install / drive**, and it is deliberate: a manual
 that also drives gets read when nobody wanted to read, and a driver that also teaches makes every
 round pay for the explanation.
 
-Seven agents come with it, and the split between them is not organisational: **each one has to
+**One step reaches outside this plugin.** The round's human step hands a rendered document to a
+person, and the rendering belongs to `mdx-artifact` in `computer-use` rather than being rebuilt
+here. Without it that step still works — it degrades to handing over a file path — but the document
+was designed to be read as a page, so a project running this flow wants `computer-use` installed
+alongside. Nothing else here depends on another plugin.
+
+Eight agents come with it, and the split between them is not organisational: **each one has to
 run in a context that did not produce what it is judging.** A spec author who accepts their own
 requirements is checking work they already convinced themselves about. That independence is the
 only thing the separation buys, and it is why they cannot be collapsed. Its sharpest form is the
@@ -65,7 +72,7 @@ verification triangle at the end: the tests are written from the spec by an agen
 the implementation, and they are executed by a third agent that may edit neither the tests nor the
 code.
 
-The ten step definitions install into the project's own `.flow/nodes/`, since they belong to the
+The thirteen step definitions install into the project's own `.flow/nodes/`, since they belong to the
 engine rather than to any one agent framework.
 
 This file is generated from `src/plugins/genai-dev-flow/README.md`. Do not edit it here.

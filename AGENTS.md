@@ -65,9 +65,10 @@ break by accident and no gate catches it: **every check a step makes is one atom
 `make bump PLUGIN=<name> LEVEL=<major|minor|patch|x.y.z>`. Editing `version` in `plugin.json` by
 hand misses the places it has to stay in step with.
 
-Run `make check` before committing — six gates (`verify-build`, `typecheck`, `verify-json`,
-`verify-skills`, `verify-variants`, `verify-no-cjk`), each runnable on its own. There is no runtime
-dependency: Node ≥22.18 strips types at load, so `node scripts/build.ts` runs as it is.
+Run `make check` before committing — seven gates (`verify-build`, `typecheck`, `verify-json`,
+`verify-skills`, `verify-variants`, `verify-no-cjk`, `verify-no-nul`), each runnable on its own.
+There is no runtime dependency: Node ≥22.18 strips types at load, so `node scripts/build.ts` runs
+as it is.
 
 ## The three description slots
 
@@ -88,8 +89,8 @@ vendor-neutral end, so the untuned fallback *is* its description. Writing one wo
 (the lookup is generic), but it would mean the fallback has stopped being neutral; tune the two
 named ends and leave `description` as the thing they diverge from.
 
-Of the 28 skills today, 23 carry all three slots with identical content — a deliberate starting
-point: lay the slots down first, tune per end later. The other five (`genai-dev-flow`'s) carry only
+Of the 29 skills today, 23 carry all three slots with identical content — a deliberate starting
+point: lay the slots down first, tune per end later. The other six (`genai-dev-flow`'s) carry only
 `description:` and take the fallback. **Per-end tuning must be measured**, not felt — see the next
 section.
 

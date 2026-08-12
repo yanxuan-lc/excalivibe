@@ -18,7 +18,7 @@ step 6; this skill installs against that protocol rather than restating it.
   .flow/
     config.yaml                       engine defaults
     workflows/genai-sprint.yaml       the step whitelist
-    nodes/genai.*/                    ten step definitions (fsx's own nodes/task/ stays alongside)
+    nodes/genai.*/                    thirteen step definitions (fsx's own nodes/task/ stays alongside)
     genai/*.mjs                       the gate evaluators these definitions call
     genai/templates/                  the records the e2e steps copy and fill in
   Makefile                            must have a `genai-metrics` target (the project writes it)

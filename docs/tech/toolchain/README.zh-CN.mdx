@@ -25,6 +25,7 @@ English: [README.mdx](./README.mdx)
 | `check-skills.ts` | 105 | 输出的 frontmatter 合法性 + SKILL.md 行数预算 |
 | `ui.ts` | 109 | 唯一输出通道 —— 既是模块**也是** CLI |
 | `verify-json.ts` | 75 | JSON 可解析性 + 图骨架引用完整性 |
+| `verify-no-nul.ts` | 78 | 文本源码里不得有裸 NUL 字节 |
 | `bump.ts` | 71 | 版本号的唯一入口 |
 
 它们直接就能跑：Node ≥22.18 在加载时擦除类型，所以 `node scripts/build.ts` 自己不需要构建步骤。`typescript` 是
@@ -48,6 +49,7 @@ Node 擦不掉的语法，于是「类型检查通过但跑不起来」这种情
 | 4 | `verify-skills` | **产物** | frontmatter 是合法的 YAML 子集；每份渲染后的 `SKILL.md` ≤ 500 行 |
 | 5 | `verify-variants` | `src/**/*.md`，按端渲染 | 在别的端找不到对应物的孤儿标题 |
 | 6 | `verify-no-cjk` | `src/**` + 根目录三份文件 | 未登记例外之外的任何 CJK 字符 |
+| 7 | `verify-no-nul` | `src/**` + `scripts/**` | 裸 NUL 字节 —— 它会让 grep 把整个文件判为二进制 |
 
 ### 为什么有两道门读产物而不读源码
 
@@ -56,7 +58,7 @@ Node 擦不掉的语法，于是「类型检查通过但跑不起来」这种情
 上下文的东西。500 行预算的由来是：`SKILL.md` 在 skill 触发的那一刻整份加载，而 `references/` 只在正文把模型指过去
 时才加载 —— 一份长 `SKILL.md` 于是在每次调用上都花掉上下文，去携带多数调用并不需要的材料。
 
-它检查 91 个 frontmatter 块：81 份 `SKILL.md`（27 个 skill × 3 端）和 10 份 agent markdown（5 个 agent ×
+它检查 103 个 frontmatter 块：87 份 `SKILL.md`（29 个 skill × 3 端）和 16 份 agent markdown（8 个 agent ×
 claude 与 common）。**Codex 的 agent 是 `.toml`，它不检查** —— 那份 frontmatter 的形状在本侧没有任何东西在校验。
 
 它接受的 YAML 子集刻意极小，其中一条抓的是真实故障：裸标量里含 `": "` 会让 YAML 把值读成嵌套映射，所以必须加引号。

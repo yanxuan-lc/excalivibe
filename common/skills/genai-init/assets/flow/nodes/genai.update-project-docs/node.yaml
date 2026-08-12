@@ -1,0 +1,75 @@
+id: genai.update-project-docs
+kind: produce
+
+executor:
+  protocol: subagent
+  params:
+    name: genai-doc-writer
+
+# The folded main specs, and through them the whole round. This step runs last on purpose: it is
+# the only point at which nothing upstream can still move. Everything before it is reworkable —
+# the implementation goes back on a review or a failed scenario, and the merge itself can change
+# the result — so documentation written any earlier describes a state that has not settled.
+#
+# What it reads is wider than what it declares: the merged code is in git, and the specs are here.
+# Both are needed, because this documents what was **built**, and the built thing and the designed
+# thing differ often enough that writing from the design alone is the failure worth naming.
+inputs:
+  - name: specs
+    from: genai.archive
+    required: true
+
+# What this step produces is the documentation tree, not a commit. Declaring the branch tip instead
+# would put this output at the same location as genai.implement's and genai.merge's, and fsx says
+# exactly what goes wrong then (`node_output_collision`): the presence check is satisfied by another
+# step's write, so whichever runs last passes having done nothing.
+#
+# `observed` rather than a glob because a project on its first round may have no docs/ at all, and a
+# glob matching nothing reads as a missing artifact rather than an empty one. The signature covers
+# paths as well as contents — moving a document changes what a reader can find.
+outputs:
+  - name: project-docs
+    kind: observed
+    signature:
+      scheme: custom
+      name: docs_tree
+      command: node .flow/genai/check.mjs signature-docs
+
+# No entry rule. The required input asserts the only precondition — that the round's specs have been
+# folded — and a rule re-reading that off disk would be a slower copy of the one genai.accept already
+# asks for itself.
+
+# ─────────────────────────────────────────────────────────────────────────────────────────────
+# One gate, and it deliberately judges nothing about the documentation itself.
+#
+# This step exists to put the work in front of an agent every round, not to decide whether the
+# result is good: not every round should change a word, and no check available here can tell a
+# round that correctly wrote nothing from one that skipped the job. A gate that cannot make that
+# distinction and rejects anyway would train every round to manufacture an edit, which is the
+# outcome this flow least wants — a document diluted by paragraphs written to satisfy a gate.
+#
+# fsx requires at least one gate rule per node, so the honest minimum is the executor's own
+# `outcome`: this step ran and it says what it did. What that leaves uncovered is stated rather
+# than hidden — **nothing here proves the documentation matches the code.** Two things carry that
+# instead, and neither is a gate: the step's position, immediately upstream of a code review that
+# reads the same branch, and the report it files.
+#
+# If a project wants this hard, the missing ingredient is its integration branch. A gate command
+# receives no variables and this flow never names that branch, so `git diff <base>...HEAD -- docs/`
+# cannot be written today; declaring it alongside the coverage floors would make "this round
+# changed no documentation" a measurable fact instead of a claim.
+# ─────────────────────────────────────────────────────────────────────────────────────────────
+gates:
+  - rule_id: outcome
+    checker: { type: report, field: outcome }
+    on_result:
+      completed: { verdict: pass }
+      partial:
+        verdict: reject
+        message: "Something was left half-written. Finish it, or leave it out entirely and say why — a document that is right in one half and stale in the other is trusted for both"
+      failed:
+        verdict: reject
+        message: "Say where this got stuck"
+      blocked:
+        verdict: reject
+        message: "Record what blocked it under deferred, with the reason"

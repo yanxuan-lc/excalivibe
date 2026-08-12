@@ -10,7 +10,7 @@ One source tree, compiled to three ends. A capability is written once under `src
 |---|---|---|
 | `computer-use` | How to operate a computer — the capabilities that let an agent reach past its own text output and act on a real machine | `graceful-browser`, `mdx-artifact`, `notify-user`, `install-computer-use` (plus one turn-end hook, silent out of the box, on the Claude end) |
 | `dev-toolkit` | Atomic development capabilities — each stands alone, triggers on its own subject, and assumes nothing about who invoked it | 19 (conventions 6 / methods 4 / process 1 / checks 5 / grounded research 3) |
-| `genai-dev-flow` | A whole flow — requirements in, one release out, every step gated on something re-runnable | 4 skills (manual / install / requirements / driving) + 5 subagents + 8 fsx step definitions |
+| `genai-dev-flow` | A whole flow — requirements in, one release out, every step gated on something re-runnable | 6 skills (manual / install / requirements / driving / spec conventions / decision documents) + 8 subagents + 13 fsx step definitions |
 
 **One rule runs through the repository: a skill never names its caller.** A description answers *when should this be used* and never *who will use it*. A skill saying `invoked by name from the developer agent` has three problems at once — it fails to trigger when a person asks for the same thing directly (it describes a dispatch rather than a situation), it breaks the moment that agent is renamed, and it inverts the dependency so the reusable thing depends on the specific one. The arrow points one way: **an orchestrator names the skills it calls; a skill never names its orchestrator.**
 
@@ -50,9 +50,9 @@ Sharing is the default; a difference has to be declared. Eight mechanisms:
 | single-end directory tree | `hooks/**` | compiles to Claude by construction |
 | command wrapper | `command: true` in skill frontmatter | Claude additionally gets a thin `commands/<name>.md` |
 
-## Six gates, and what each one prevents
+## Seven gates, and what each one prevents
 
-`make check` runs six steps, each runnable on its own:
+`make check` runs seven steps, each runnable on its own:
 
 - **`verify-build`** — do the artifacts match the source? Catches "forgot to compile", "hand-edited an artifact", and "an orphan in the artifacts that no source produces".
 - **`typecheck`** — `tsc --noEmit` over `src/` and `scripts/`.
@@ -60,6 +60,8 @@ Sharing is the default; a difference has to be declared. Eight mechanisms:
 - **`verify-skills`** — two things: the emitted SKILL.md and agent frontmatter are a valid YAML subset, and every rendered SKILL.md stays inside its 500-line context budget. Both run over the artifacts rather than the source, because a per-end description can break the frontmatter on **one end only**, and a source file holds all three ends' prose at once so its line count says nothing about what actually enters context.
 - **`verify-variants`** — is a variant block boundary mis-nested? This is a failure the compiler **cannot see**: a misplaced boundary drops a whole section on some end while the artifact is still generated verbatim from the source, the round-trip is still byte-identical, and every check still passes. Its method is to render each end and look for **orphan headings with no counterpart**. A genuinely single-end section is registered in `src/variant-exceptions.json` with its reason.
 - **`verify-no-cjk`** — everything a model reads stays English, comments included: all of `src/`, plus the three agent-facing root files (`AGENTS.md`, `CLAUDE.md`, `CONTEXT.md`) named one by one in the script. Exceptions are registered in `src/cjk-exceptions.json` with a reason, keyed relative to the repository root; `evals/` is exempt as a directory, because trigger fixtures are Chinese on purpose and never ship. Human-facing documents are out of scope by design and **bilingual by rule** — `README.md` / `README.zh-CN.md`, and every level of `docs/` as `README.mdx` / `README.zh-CN.mdx` (see [AGENTS.md](./AGENTS.md#hard-rules)). Nothing checks that a pair still corresponds.
+
+- **`verify-no-nul`** — no file under `src/` or `scripts/` carries a **raw NUL byte**. A NUL is the right value for a hash field separator, but written as a literal byte instead of the escape `\x00` it makes grep, `git grep` and most editors' search treat the whole file as binary and stop reporting matches in it — a 488-line gate evaluator went missing from every search while every other check stayed green. There is no exception registry: Chinese in a description is a legitimate exception, a raw NUL in a text source is not.
 
 Two more defences live inside the compiler rather than in the gate: `lintVariants` refuses to emit any file with a surviving marker (a misspelled end name and a missing `<!--@end-->` share that signature), and `emit` refuses to compile two sources to one path (the common end has no plugin directory, so a skill name is repository-global there).
 

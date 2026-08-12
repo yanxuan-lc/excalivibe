@@ -65,7 +65,7 @@ node .flow/genai/check.mjs <atom> [--flag value]
 标签受两条规则约束，两条都在插件的 `AGENTS.md` 里以规则形式写着：checker 永远 exit 0（非零退出会被引擎报成
 `failed`，标签就丢了），以及一条规则的 `on_result` 必须恰好覆盖 `values + [failed, unexecutable]`。
 
-### 十三个原子
+### 十五个原子
 
 | 原子 | 标签 | 谁在读 |
 |---|---|---|
@@ -77,6 +77,7 @@ node .flow/genai/check.mjs <atom> [--flag value]
 | `worktree` | `clean` · `dirty` · `unreadable` | `genai.code-review` 进入 · `genai.merge` 进入 · `genai.archive` 进入 |
 | `metrics` | `satisfied` · `tests_failing` · `no_tests` · `too_many_skipped` · `coverage_below_floor` · `metrics_missing` · `metrics_unreadable` · `thresholds_missing` | `genai.implement` 门 · `genai.merge` 门 |
 | `spec-scenarios` | `unique` · `unnumbered` · `duplicated` · `count_mismatch` · `unreadable` | `genai.spec` 门 |
+| `arch-doc` | `complete` · `no_decisions` · `decision_incomplete` · `external_reference` · `background_over_ceiling` · `unreadable` | `genai.write-arch-docs` 门 |
 | `e2e-manifest` | `accounted` · `unaccounted` · `over_ceiling` · `manifest_missing` · `manifest_malformed` · `unreadable` | `genai.e2e-author` 门 |
 | `e2e-mapping` | `matched` · `title_missing` · `file_missing` · `unreadable` | `genai.e2e-author` 门 |
 | `e2e-report` | `green` · `product_failure` · `test_failure` · `infra_failure` · `coverage_short` · `db_evidence_missing` · `report_missing` · `report_malformed` · `unreadable` | `genai.e2e` 门 |
@@ -107,7 +108,7 @@ locator 能找到它们，框架也就没有东西可量。manifest 点名了那
 ready 项认领掉（`first_attempt`，它是根步骤），`genai.archive` 把它进入时依据的 change 折叠掉、并把工作区弄脏
 （`upstream_reran`，它有一个会重跑的上游）。其余都是每次派发都问，这正是那几条挡在不可逆动作前面的规则值得依赖的原因。
 
-## 4. 十个步骤
+## 4. 十三个步骤
 
 名册与执行者。**进入条件和门条件不在这里重复** —— 它们在各自的 `node.yaml` 里，紧挨着解释「为什么长这样」的注释；
 在这棵树里抄一份，第一次有人改它就腐烂了。
@@ -116,12 +117,15 @@ ready 项认领掉（`first_attempt`，它是根步骤），`genai.archive` 把�
 |---|---|---|---|
 | `genai.spec` | produce | 子代理 `genai-spec-writer` | openspec 变更与它们的 spec 增量 |
 | `genai.spec-review` | judge | 子代理 `genai-spec-reviewer` | 每个变更一份 `spec-review.md` |
+| `genai.write-arch-docs` | produce | 子代理 `genai-spec-writer` | 有东西要裁的变更，每个一份 `genai/DECISION.mdx` |
+| `genai.arch-decision` | judge | **人**，channel `stdout` | 记录下来的裁决，由 `fsx human` 自己写入 |
 | `genai.implement` | produce | 子代理 `genai-developer` | sprint 分支上的提交 |
 | `genai.e2e-author` | produce | 子代理 `genai-e2e-author` | e2e 测试套件，以及每个变更一份 `genai/e2e-manifest.md` |
 | `genai.code-review` | judge | 子代理 `genai-code-reviewer` | 每个变更一份 `review.md` |
 | `genai.e2e` | verify | 子代理 `genai-e2e-runner` | 每个变更一份 `genai/e2e-report.md` |
 | `genai.merge` | effect | main | 合并提交 |
 | `genai.archive` | produce | main | 折叠后的主 spec |
+| `genai.update-project-docs` | produce | 子代理 `genai-doc-writer` | 项目的文档树（observed 产物，由命令签名） |
 | `genai.accept` | judge | 子代理 `genai-requirement-checker` | 已归档的需求（observed 产物，由命令签名） |
 | `genai.release` | effect | main | changelog，以及全轮唯一一次版本号变更 |
 

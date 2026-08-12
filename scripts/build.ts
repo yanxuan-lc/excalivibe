@@ -63,6 +63,16 @@ interface PluginManifest {
   interface: Record<string, unknown>;
   mcpServers?: string;
   license?: string;
+  /**
+   * Plugins this one needs installed, resolved by Claude Code at install time.
+   *
+   * A bare name is the unversioned form and tracks the dependency's latest version — which
+   * upstream would normally be able to move without warning, except that all three of these ship
+   * from **one marketplace served straight out of this repository**, so "latest" is always the same
+   * revision they were built from. A version range would couple their releases to each other and
+   * buy nothing until they are published apart.
+   */
+  dependencies?: (string | { name: string; version?: string; marketplace?: string })[];
   /** Everything `package.json` needs except the version, which is `version` above. */
   npm?: { name: string; version?: never } & Record<string, unknown>;
 }
@@ -169,7 +179,15 @@ for (const p of PLUGINS) {
   //    The common end has no plugin manifest at all — nothing to emit.
   const src = `src/plugins/${p}/plugin.json`;
   const base = { name: m.name, version: m.version, description: m.description, author: m.author };
-  emit(`claude/plugins/${p}/.claude-plugin/plugin.json`, json({ ...base, keywords: m.keywords.claude }), src);
+  // `dependencies` goes to Claude only, and its absence from the Codex manifest below is a gap
+  // rather than a decision: the Codex validator **exits 1 on a field it does not know** (that is
+  // what `hooks` does to it), so emitting one there unverified would turn a documented dependency
+  // into a plugin that will not install. Verify the Codex schema before widening this.
+  emit(
+    `claude/plugins/${p}/.claude-plugin/plugin.json`,
+    json({ ...base, keywords: m.keywords.claude, ...(m.dependencies ? { dependencies: m.dependencies } : {}) }),
+    src
+  );
   emit(
     `codex/plugins/${p}/.codex-plugin/plugin.json`,
     json({
