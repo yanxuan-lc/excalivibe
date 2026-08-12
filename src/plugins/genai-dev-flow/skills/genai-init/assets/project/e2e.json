@@ -1,4 +1,5 @@
 {
+  "_comment": "Exactly one of `url` (it listens on a port) or `command` (it does not: a CLI, a library, a batch job). Replace `contains` with a marker only this project's own output carries — ok / healthy / 200 are not markers. Delete this line.",
   "url": "http://127.0.0.1:5173/healthz",
   "contains": "REPLACE-WITH-A-MARKER-ONLY-THIS-APP-RETURNS"
 }

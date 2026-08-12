@@ -134,12 +134,28 @@ rather than from a transcription — the shapes live there and are not repeated 
 
 `e2e.json` exists because "is the app up" is not a question a port can answer. On a developer's
 machine several projects' services are usually listening at once, so a TCP connect — or even a 200 —
-only proves *something* answered. So the project declares a URL and a marker its own app returns.
-`status` may be added when the health endpoint does not return 200. Both other fields are required:
-without a marker there is nothing to tell this app from anything else on that port, and port 8080
-replying with someone else's console is a failed precondition, not a reachable app. `genai.e2e`
-refuses to **start** on it rather than failing afterwards, so nothing is consumed — no verdict, no
-patience, no attempt.
+only proves *something* answered. So the project declares a marker its own app returns, and identity
+is what gets measured: without one there is nothing to tell this app from anything else on that port,
+and port 8080 replying with someone else's console is a failed precondition, not a reachable app.
+
+**Two shapes, and exactly one of them per project.** `url` for anything that listens — plus `status`
+when the endpoint does not answer 200. `command` for everything that never will: a CLI, a library, a
+batch job. The argument is the same with the nouns changed — a binary on PATH proves nothing about
+*which* build answered — so a `command` is judged on whether the marker appears in its output, not on
+its exit code (`--version` exits 0, `--help` often exits 2), and both streams are read because plenty
+of tools print their banner to stderr. Declaring both is refused: two ways to identify one app is two
+things that can disagree.
+
+**The second shape is not a convenience.** `genai.merge` premises on `genai.e2e`, which refuses to
+**start** without an identified app — so before `command` existed, a project with no HTTP surface
+could complete every other step of a round and never merge. A shape this check cannot express is a
+shape that cannot ship.
+
+Refusing to start, rather than failing afterwards, is what keeps this cheap: nothing is consumed — no
+verdict, no patience, no attempt.
+
+It is also the one project-supplied file that names something the gate will **execute**, which is a
+further reason a round may not write it.
 
 **This one is due before the first acceptance run, not at install time.** It is the only
 project-supplied piece whose content a fresh project cannot know: a greenfield repository has no port,

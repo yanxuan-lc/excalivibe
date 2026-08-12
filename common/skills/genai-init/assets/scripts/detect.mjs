@@ -235,7 +235,10 @@ item(
 );
 const e2e = json("tools/genai/e2e.json");
 const e2eTemplate = e2e !== null && String(e2e.contains).startsWith("REPLACE-");
-item("tools/genai/e2e.json", e2e ? (e2eTemplate ? "TEMPLATE, unedited — phase 4 fills it" : `${e2e.url} contains ${JSON.stringify(e2e.contains)}`) : "absent");
+// Either shape reads back the way it was declared; a project with a `command` would otherwise be
+// reported as `undefined contains "…"`.
+const e2eShape = e2e?.url ? `url ${e2e.url}` : e2e?.command ? `command ${JSON.stringify(e2e.command)}` : "NEITHER url NOR command — the gate reads that as config_malformed";
+item("tools/genai/e2e.json", e2e ? (e2eTemplate ? "TEMPLATE, unedited — phase 4 fills it" : `${e2eShape}, contains ${JSON.stringify(e2e.contains)}`) : "absent");
 
 const sibling = `../${basename(process.cwd())}_genai`;
 const siblingState = isDir(sibling)

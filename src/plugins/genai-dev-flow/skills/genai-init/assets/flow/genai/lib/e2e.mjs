@@ -18,6 +18,7 @@
 // rejection in another.
 
 import { existsSync, readFileSync } from "node:fs";
+import { spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import { isAbsolute, join, normalize } from "node:path";
 import { genaiDir, openChanges, specDeltasOf } from "./changes.mjs";
@@ -295,6 +296,11 @@ export function judgeReport() {
  * listening at once, so a TCP connect or even a 200 only proves *something* answered — port 8080
  * replying with someone else's console is a failed precondition, not a reachable app. The project
  * declares a marker its own app returns, and identity is what gets measured.
+ *
+ * Two shapes, one meaning. `url` covers anything that listens; `command` covers everything that never
+ * will — a CLI, a library, a batch job — where the same argument holds with the nouns changed: a
+ * binary on PATH proves nothing about *which* build answered. Exactly one of the two, because two
+ * ways to identify the same app is two things that can disagree.
  */
 export async function probeApp() {
   if (!existsSync(APP_CONFIG)) return { label: "config_missing", facts: { file: APP_CONFIG } };
@@ -306,12 +312,29 @@ export async function probeApp() {
     return { label: "config_malformed", facts: { file: APP_CONFIG, reason: String(cause?.message ?? cause) } };
   }
   const url = config?.url;
+  const command = config?.command;
   const contains = config?.contains;
-  const status = config?.status ?? 200;
-  if (typeof url !== "string" || url === "" || typeof contains !== "string" || contains === "") {
-    return { label: "config_malformed", facts: { file: APP_CONFIG, reason: "`url` and `contains` are both required — without a marker there is nothing to identify the app by" } };
+  const declared = [typeof url === "string" && url !== "", typeof command === "string" && command !== ""].filter(Boolean).length;
+  if (typeof contains !== "string" || contains === "") {
+    return { label: "config_malformed", facts: { file: APP_CONFIG, reason: "`contains` is required — without a marker there is nothing to identify the app by" } };
+  }
+  if (declared !== 1) {
+    return {
+      label: "config_malformed",
+      facts: {
+        file: APP_CONFIG,
+        reason: declared === 0
+          ? "declare exactly one of `url` (something answers over HTTP) or `command` (something answers on stdout or stderr). A project with no runtime surface at all has nothing for this step to accept"
+          : "`url` and `command` are alternatives, not a pair. Two ways to identify the app is two things that can disagree",
+      },
+    };
   }
 
+  return url ? await probeUrl(url, contains, config?.status ?? 200) : probeCommand(command, contains);
+}
+
+/** HTTP: the shape for anything that listens on a port. */
+async function probeUrl(url, contains, status) {
   let response;
   let body;
   try {
@@ -327,6 +350,35 @@ export async function probeApp() {
     return { label: "wrong_service", facts: { url, status, expected_marker: contains, body_head: body.slice(0, 200) } };
   }
   return { label: "identified", facts: { url, status, marker: contains } };
+}
+
+/**
+ * A command: the shape for a CLI, a library, a batch job — anything that never listens on a port.
+ *
+ * The reasoning is the one behind the URL check, transposed: a binary on PATH proves nothing about
+ * *which* build answered, so the project declares a marker only its own output carries and identity is
+ * what gets measured. Both streams are read, because plenty of tools print their version banner to
+ * stderr and a marker found there identifies the app just as well.
+ *
+ * The exit code does not decide identity — `--version` exits 0 and `--help` often exits 2, and letting
+ * either mean "not this app" would refuse a correct answer over an unrelated convention. What it does
+ * decide is *which failure* an absent marker is, and that mirrors the URL shape exactly: a non-zero
+ * exit is `unreachable`, the way a refused connection or a wrong status is, because nothing answered;
+ * exit 0 with the wrong output is `wrong_service`, the way a 200 carrying someone else's console is.
+ * The two route to different reasons at the node, so collapsing them would send whoever reads the
+ * refusal to the wrong place.
+ */
+function probeCommand(command, contains) {
+  const run = spawnSync(command, { shell: true, encoding: "utf8", timeout: APP_TIMEOUT_MS });
+  const out = `${String(run.stdout ?? "")}${String(run.stderr ?? "")}`;
+  if (run.error && !out.trim()) {
+    return { label: "unreachable", facts: { command, reason: String(run.error?.message ?? run.error) } };
+  }
+  if (out.includes(contains)) return { label: "identified", facts: { command, marker: contains, exit: run.status } };
+  if (run.status !== 0) {
+    return { label: "unreachable", facts: { command, exit: run.status, reason: "the command did not answer, and the marker is not in what it printed", output_head: out.slice(0, 200) } };
+  }
+  return { label: "wrong_service", facts: { command, expected_marker: contains, output_head: out.slice(0, 200) } };
 }
 
 /**

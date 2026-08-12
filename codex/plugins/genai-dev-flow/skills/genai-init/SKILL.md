@@ -190,10 +190,25 @@ floor of `null` opts that dimension out — the only way out, and visible in the
 is the ceiling on how much of a round may go unscripted; leave it at the shipped values unless the
 user has a reason, and note that **omitting it does not opt out** the way an omitted floor does.
 
-**3. Fill `tools/genai/e2e.json`, if phase 3 wrote it.** `url` is an endpoint of this project's app;
-`contains` is something specific to **this service** — the name in a health payload, a version
-string, the title a known route renders. `ok`, `healthy` and `200` are not markers: every other
-process on the machine says those too. Add `status` when the endpoint does not answer 200.
+**3. Fill `tools/genai/e2e.json`, if phase 3 wrote it.** Declare **exactly one** of two shapes, and
+`contains` either way:
+
+| The project… | Declare | Example |
+|---|---|---|
+| listens on a port | `url` (+ `status` if not 200) | `{"url": "http://127.0.0.1:5173/healthz", "contains": "widget-api"}` |
+| never will — a CLI, a library, a batch job | `command` | `{"command": "node src/cli.js --version", "contains": "lintly 1.2.0"}` |
+
+`contains` is something specific to **this** build — the name in a health payload, a version string,
+the title a known route renders, the banner the binary prints. `ok`, `healthy` and `200` are not
+markers: every other process on the machine says those too. **Two shapes, one argument**: an open
+port proves nothing about which service answered, and a binary on PATH proves nothing about which
+build answered. Declaring both is refused — two ways to identify one app is two things that can
+disagree.
+
+For a `command`, the exit code is not a criterion (`--version` exits 0, `--help` often exits 2) and
+both streams are read, since plenty of tools print their banner to stderr. What is measured is
+whether the marker came out. Note that this file names something the gate will **execute**, which is
+one more reason it is the project's to own and a round may not write it.
 
 ```bash
 node .flow/genai/check.mjs app-identity     # identified — anything else names what to fix
@@ -202,8 +217,10 @@ node .flow/genai/check.mjs app-identity     # identified — anything else names
 `unreachable` means the app is not up, which is fine at install time. `wrong_service` is not: the
 marker does not appear, so the URL points at something else.
 
-If the app does not exist yet, **tell the user in one sentence** what will be needed before the
-round's acceptance step can start: a URL and a marker only this app returns. Nothing earlier in a
+If nothing runs yet, **tell the user in one sentence** what will be needed before the round's
+acceptance step can start: a URL or a command, and a marker only this build returns. **A project that
+can never answer either is a project that can never merge** — `genai.merge` premises on this step, so
+that is worth raising now rather than at the merge. Nothing earlier in a
 round touches it, and `genai.e2e` then refuses to start with `config_missing`, which spends no
 verdict, no patience and no attempt. **Say when it may be committed, too — the window is narrow**,
 and [references/troubleshooting.md](references/troubleshooting.md) has it.

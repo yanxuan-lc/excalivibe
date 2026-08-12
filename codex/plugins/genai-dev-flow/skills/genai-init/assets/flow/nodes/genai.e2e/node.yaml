@@ -29,6 +29,11 @@ ready:
   # at once, so a TCP connect — or even a 200 — only proves something answered. The project declares
   # a marker its own app returns, and identity is what gets measured.
   #
+  # A project with no port declares a `command` instead and the same argument holds with the nouns
+  # changed: a binary on PATH proves nothing about which build answered. That is what keeps a CLI, a
+  # library or a batch job able to finish a round at all — genai.merge premises on this step, so a
+  # shape this check cannot express is a shape that can never merge.
+  #
   # Safe on the default `always`: this step does not start, stop or deploy the app, so nothing it does
   # can make the rule false. A refusal here consumes nothing at all — no verdict, no patience, no
   # attempt — which is exactly the right shape for "the app is not up yet": start it and dispatch
@@ -44,16 +49,16 @@ ready:
       identified: { ready: true }
       wrong_service:
         ready: false
-        reason: "Something is answering at that URL and it is not this project's app — the marker the project declared is not in the response. Point the config at the right port, or start the right service"
+        reason: "Something answered and it is not this project's app — the marker the project declared is not in what came back. For a `url`, point it at the right port or start the right service; for a `command`, check it runs this build rather than one on PATH"
       unreachable:
         ready: false
         reason: "The app under test is not reachable. Start it with the project's own command; this step validates a running system and never boots one"
       config_missing:
         ready: false
-        reason: "tools/genai/e2e.json is not there, so there is no way to tell this app from anything else listening. A project often cannot write it until the app exists, which is why nothing earlier in the round asked for it — get the URL and a marker only this app returns from a person, rather than guessing either. genai-init has the shape. If it is being added now, mind the commit window: before genai.code-review is dispatched, or left untracked for genai.merge to collect — a commit after the review approved the tip strands the merge"
+        reason: "tools/genai/e2e.json is not there, so there is no way to tell this app from anything else listening. A project often cannot write it until the app exists, which is why nothing earlier in the round asked for it — get the URL — or, for something that never listens on a port, the command — and a marker only this app returns from a person, rather than guessing either. genai-init has the shape. If it is being added now, mind the commit window: before genai.code-review is dispatched, or left untracked for genai.merge to collect — a commit after the review approved the tip strands the merge"
       config_malformed:
         ready: false
-        reason: "tools/genai/e2e.json does not satisfy its contract; the reason names the field. Both `url` and `contains` are required — without a marker there is nothing to identify the app by"
+        reason: "tools/genai/e2e.json does not satisfy its contract; the reason names the field. Exactly one of `url` or `command` is required, and `contains` always — without a marker there is nothing to identify the app by"
       failed:
         ready: false
         reason: "The check itself exited non-zero. That is a bug in the installed step definitions"
