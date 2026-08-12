@@ -8,7 +8,20 @@ description: Run the genai-init setup procedure — install the genai step defin
 One-time setup per project. Idempotent — safe to re-run to upgrade the definitions.
 
 **Read `genai-guideline` first.** It defines what the project has to supply and the protocol behind
-step 6; this skill installs against that protocol rather than restating it.
+phase 4; this skill installs against that protocol rather than restating it.
+
+## Four phases, and what decides each one
+
+| Phase | Who decides | Cost |
+|---|---|---|
+| 1 · detect | `detect.mjs` — every branch is code, what comes out is already a conclusion | one call, read-only |
+| 2 · ask | you, in **one** pass over everything phase 1 could not answer | one exchange |
+| 3 · apply | `apply.mjs` — no judgement of its own; phase 2's answers arrive as flags | one call |
+| 4 · finish | you, because a script cannot pick a test reporter or a service marker | a few calls |
+
+**Do not go back to running the install one command at a time.** The two scripts exist because that
+version spent a model call and a paragraph of reading per shell line. If a script is wrong, fix the
+script — the failure is then fixed for every project, not for this one.
 
 ## What gets installed where
 
@@ -20,7 +33,7 @@ step 6; this skill installs against that protocol rather than restating it.
     nodes/genai.*/                    the step definitions (fsx's own nodes/task/ stays alongside)
     genai/*.mjs                       the gate evaluators these definitions call
     genai/templates/                  the records the e2e steps copy and fill in
-  Makefile                            must have a `genai-metrics` target (the project writes it)
+  Makefile                            `genai-metrics` target; bare `make` shows help
   tools/genai/thresholds.json         the coverage floors and the e2e ceiling (the project sets these)
   tools/genai/e2e.json                how to recognise the running app (the project sets this)
 
@@ -29,275 +42,173 @@ step 6; this skill installs against that protocol rather than restating it.
   archive/
 ```
 
+Three global binaries sit outside all of it and every round needs them: `fsx` (the engine),
+`openspec` (specs and changes), and `mdxv` (the renderer `genai.arch-decision` writes through, from
+the npm package `mdx-viewer`). Phase 1 checks all three; phase 3 installs whichever the user approved.
+
 The requirements directory is a sibling, and its name is `<repository-directory-name>_genai`.
 **That naming is load-bearing**: gate commands cannot receive graph variables, so they locate
 it as `../$(basename "$PWD")_genai`. A different name breaks two gates silently.
 
-## Steps
-
-**0. Settle what this needs that does not ship with it. Check everything, report once, ask, then
-act — in that order.**
-
-Nothing below is optional at run time: without `fsx` this skill's own step 2 cannot run, and without
-`openspec` four steps of a round have no tool to call. Check them in one pass, because most of the
-time most of it is already there and the user should be agreeing to the one thing missing rather than
-to a list of four.
+## Phase 1 — detect
 
 ```bash
-command -v fsx      >/dev/null || echo "MISSING  fsx        — the graph engine the flow runs on"
-command -v openspec >/dev/null || echo "MISSING  openspec   — the spec and change tool"
-test -d openspec              || echo "MISSING  openspec/   — this project has never been initialised"
+node <skill-dir>/assets/scripts/detect.mjs --target codex
 ```
+
+Resolve `<skill-dir>` from where this SKILL.md was loaded from. The report covers the prerequisites,
+the repository, `.flow/`, the files the project owns, the test toolchain phase 4 needs, and any hint
+of a health endpoint. It writes nothing, so it needs no permission and can be re-run at any point to
+see where an interrupted install stopped.
+
+**Read its last two sections and nothing else matters much.** `DECIDE` is phase 2's agenda.
+`SUGGESTED` is phase 3's command line with everything already-known filled in. A `BLOCKED` section
+means stop: those are conditions no answer can work around.
+
+## Phase 2 — ask, once
+
+Put every open question in **one** exchange. Phase 1 already knows what is missing, so the user
+should be answering a short list rather than being interviewed through ten steps.
+
+1. **The missing prerequisites** — offer three answers, not two: install them now, install them
+   themselves, or stop. Recommend the first. **Stopping is a real answer**: say plainly that the
+   flow cannot be installed without them and leave the project untouched, rather than doing the
+   half that needs no permission.
+2. **A repository, or its first commit**, if phase 1 found either missing. Creating either is the
+   user's call. If they would rather do it themselves, stop here and come back.
+3. **`instruction_language`** — the language of the requirement briefs, *not* the language of
+   whoever is typing. It decides the language of every dispatched instruction, and therefore of the
+   reports and documents executors write back.
+4. **Whether the requirements directory is its own git repository.** It sits outside the code
+   repository, so it has no history and no backup unless it is given one. A deliberate trade, but
+   the user's to make.
+5. **Does the app exist and answer on a URL today?** This decides whether phase 3 writes
+   `tools/genai/e2e.json` at all. A fresh repository usually cannot answer honestly, and that is
+   fine — see phase 4.
+6. **How the coverage floors get set — not the numbers themselves.** The numbers cannot be agreed yet, because
+   nothing has measured this project until phase 4 fills the metrics recipe and runs it. So settle
+   *how* they get set — from what it measures today, or the shipped defaults — and come back with
+   the actual numbers in phase 4.
+
+`instruction_language` **does not translate the step briefs.** Those ship inside this plugin as
+English source and are injected verbatim, so every dispatched instruction is two languages at once:
+an English brief, then a framework-rendered section in the configured language. That is the intended
+split — the brief is read by a model, the artifacts are written for people — but it means the
+language setting is carried only by the second half.
+
+**`mdxv` is in that list because a round dies without it, and the rest of `computer-use` is not.**
+`genai.arch-decision` sends its executor to `mdx-artifact`, which renders through the global `mdxv`
+binary — the npm package is named `mdx-viewer`, which is why `command -v mdx-viewer` finds nothing on
+a machine that has it. Absent, that step fails at the moment it tries to write its document, a long
+way from anything that would explain why, so phase 1 checks it and phase 3 installs it alongside `fsx`
+and `openspec`. If the user declines a global install, `mdx-artifact` still works through
+`npx -p mdx-viewer mdxv doc.mdx` — slower on first use, and worth saying rather than presenting the
+refusal as a dead end.
+
+The **notification consent and the browser stack** remain **`/install-computer-use`**'s, which this
+plugin already declares a dependency on. Run it, or tell the user to. One named binary that blocks a
+step is a dependency; the whole of that skill's list would be a second copy to keep true.
+
+## Phase 3 — apply
+
+**Run phase 1's `SUGGESTED` line**, with phase 2's answers filled in. That line is already
+copy-pasteable and already knows what this project is missing; the shape below is only for reading —
+the square brackets are notation for "optional", not shell syntax, and `--install` takes **only** what
+phase 1 reported missing, never the whole list:
 
 ```bash
-test -f .codex/skills/flow-scratch.md || echo "MISSING  flow-scratch skill — the driving manual"
+node <skill-dir>/assets/scripts/apply.mjs --target codex --lang zh-CN \
+  [--install fsx,openspec,mdxv,skill,openspec-dir] [--git-init|--git-commit] [--e2e] [--sibling-git]
 ```
 
-**Then present what is missing and offer three answers, not two:** install it now, install it
-themselves, or stop. Recommend the first. **Stopping is a real answer** — say plainly that the flow
-cannot be installed without these and leave the project untouched, rather than doing the half that
-needs no permission.
+It installs only what `--install` names, scaffolds `.flow/` and ignores all of it, copies the
+definitions with their evaluators and the whitelist, removes any `genai.*` step that no longer ships,
+edits the three engine defaults in place, gives the project a Makefile whose bare command shows help,
+copies the threshold template, creates the sibling directories, and verifies the shape with
+`fsx check` and `fsx nodes -w genai-sprint`.
 
-If they choose the first, run only the lines for what actually came back missing:
+Two more flags exist and are rarely needed: `--patience` (default 5) and `--budget` (default 50),
+the engine defaults written into `.flow/config.yaml`. Pass them only when the user asks for
+different numbers.
+
+Anything else is refused rather than ignored — a mistyped flag would otherwise go unnoticed and leave
+the log explaining the absence of a file with a reason nobody gave.
+
+Three things to read in its output:
+
+- **`!` lines.** Every one is either a step that did not happen or something the script hands to you
+  rather than judging — `fsx check`'s `problems[]` above all, since a `warning` there leaves `ok`
+  true and is nobody's business but the reader's.
+- **`new in the working tree`.** `openspec init` writes more than `openspec/`: given `--tools` it
+  also drops command and skill files wherever this host keeps them. Those files are the project's,
+  not this flow's — show the user and let them decide what to track.
+- **A non-zero exit.** Either a step it was told to do did not happen, or `fsx check` reported
+  something it calls an **error** rather than a warning. Both need reading before you go on;
+  "already there" exits 0.
+
+Codex plugins cannot bundle agents, so copy them once by hand — `apply.mjs` deliberately does not,
+because the path is outside the skill directory:
 
 ```bash
-npm i -g flow-scratch          && fsx --version        # only if fsx was missing
-npm i -g @fission-ai/openspec  && openspec --version   # only if openspec was missing
+cp <plugin-root>/../agents/genai-*.toml ~/.codex/agents/
 ```
+
+## Phase 4 — what a script cannot do
+
+**1. Fill the two placeholder recipe lines in `genai-metrics`.** Phase 1 reported the runner and the
+coverage tool; the judgement is which **machine-readable** reporter to read (JSON, JUnit, lcov
+summary) and how to turn it into the one marked line. `genai-guideline` carries the protocol.
+
+Do not convert the project's build to make. Whether the suite runs through npm, cargo, pytest or
+gradle is the project's business, and choosing or wiring a test framework is `tdd`'s subject.
+
+Two things the template's own comments spell out, both of which look like details and are not:
+the line that runs the suite takes make's `-` prefix, or a failing test aborts the recipe before it
+prints and the gate reports a broken setup instead of a failing suite; and a coverage tool that only
+reports the files a test loaded needs the target to score an unmentioned source file as zero.
 
 ```bash
-fsx skill install --target codex
-openspec init --tools codex --no-animation      # after step 1 confirms the repository root
-```
-
-Four things to get right, each of which has a way of going wrong quietly:
-
-- **Install only what came back missing. Never re-install one that answered.** A global install
-  replaces whatever was there, including a `npm link` to somebody's local checkout, and nothing warns
-  you — the version you print afterwards looks the same.
-- **`openspec init` is interactive without `--tools`** and will sit waiting for an answer nobody is
-  there to give. `--no-animation` is for the same reason.
-- **`npm i -g` exiting 0 is not the binary answering.** Verify with `--version`, and report what that
-  printed rather than that the install succeeded.
-- **`fsx skill install` refuses to overwrite a copy that has been edited.** That refusal is
-  information: someone customised it. Do not reach for `--force` without showing them the diff.
-- **`openspec init` writes more than `openspec/`.** Given `--tools` it also drops command and skill
-  files wherever this host keeps them, which step 8's baseline commit says nothing about. Show the
-  user what appeared and let them decide what to track — those files are the project's, not this
-  flow's.
-
-**The `computer-use` prerequisites are not this skill's to explain.** `genai.arch-decision` sends its
-executor to the `mdx-artifact` skill, which needs a renderer installed globally — and that, the
-notification config and the browser stack are all settled by **`/install-computer-use`**, which this
-plugin already declares a dependency on. Run it, or tell the user to. Do not restate what it covers
-here; a second copy of that list is a second thing to keep true.
-
-**1. Confirm the working directory is a repository root with a `HEAD`.** Two commands, because
-these are two different failures with two different fixes:
-
-```bash
-git rev-parse --show-toplevel     # is this a repository at all
-git rev-parse HEAD                # does it have any commit
-```
-
-**A greenfield directory is not a repository, and this flow cannot run outside one** — `worktree`,
-the branch-tip comparison, the merge commit and the tag are all git. So `fatal: not a git
-repository` is a fork, not a failure:
-
-```bash
-git init -b main && git commit --allow-empty -m "chore: init"
-```
-
-**Ask a repository with no commits for the second half only.** `git init` without a commit is a
-common way to arrive here, and it passes the first command while failing the second
-(`fatal: ambiguous argument 'HEAD'`):
-
-```bash
-git commit --allow-empty -m "chore: init"
-```
-
-The empty first commit is worth the one line: several gates compare against `HEAD`, and a
-repository with no commits has none — `genai.merge` measures its output at `locator: HEAD`. **Nothing
-earlier catches this**: `check.mjs worktree` reports `clean` on a repository with no commits, because
-`git status --porcelain` is happy there, so a missing `HEAD` stays invisible until the merge.
-
-Ask before running either — creating a repository, or its first commit, is the user's call — and if
-they would rather set one up themselves, stop here and come back.
-
-**2. Scaffold `.flow/` if it is not there, and ignore all of it.**
-
-```bash
-test -d .flow || fsx init
-```
-
-`fsx init` writes a `.gitignore` entry for `.flow/runs/` only — its comment says the definitions
-next to it are hand-written and should be committed. **Widen it to the whole directory:**
-
-```gitignore
-.flow/
-```
-
-That advice is right for definitions a project writes itself. These are not: they are versioned
-in the plugin they ship from, so committing them puts a second copy of an already-versioned
-artifact into every consuming repository.
-
-Ignoring the whole directory also removes three problems at once, all of them real:
-
-- **Switching branches would otherwise change the engine's contract**, since a branch that
-  predates the install has no definitions at all.
-- **Editing a definition would dirty the working tree**, and a commit on a sprint branch
-  invalidates the premise a passed review was recorded against — which cannot be re-recorded,
-  because a passed step cannot be re-run.
-- **Merging would conflict on the whitelist** whenever two branches installed different versions.
-
-What the project does own stays tracked: the `Makefile`, `tools/genai/thresholds.json`,
-`tools/genai/e2e.json`, and everything under `openspec/`.
-
-**3. Copy the step definitions and the workflow.** They ship in this skill's own directory
-under `assets/flow/`. Resolve that path from where this SKILL.md was loaded from.
-
-```bash
-cp -R <skill-dir>/assets/flow/nodes/. .flow/nodes/
-cp -R <skill-dir>/assets/flow/genai/. .flow/genai/
-cp <skill-dir>/assets/flow/workflows/genai-sprint.yaml .flow/workflows/
-```
-
-`.flow/genai/` holds the gate evaluators the definitions call by path, and the record templates the
-e2e steps copy from. **Copy it whenever the definitions are copied** — a definition without its
-evaluator gates every attempt to `unexecutable`, and a step without its template starts transcribing
-a format from memory. Nothing under `.flow/nodes/` may be a directory without a `node.yaml`, which is
-why the shared tools sit beside it rather than inside it.
-
-**4. Set the engine defaults** in `.flow/config.yaml`. This one is an **edit, not a copy** — `fsx init`
-wrote that file with its own explanatory comments and it may gain keys in a later version, so
-overwriting it with a template of ours would quietly delete both. Change three values in place:
-
-```yaml
-defaults:
-  patience: 5
-  instruction_language: zh-CN   # match the language the requirement briefs are written in
-  graph_budget: 50
-```
-
-`instruction_language` decides the language of the instruction handed to executors, and
-therefore of the reports and documents they write back. Set it to the language of the
-requirement briefs, not to the language of whoever is typing.
-
-**It does not translate the step briefs.** Those ship inside this plugin as English source and are
-injected verbatim, so every dispatched instruction is two languages at once: an English brief, then
-a framework-rendered section in the configured language. That is the intended split — the brief is
-read by a model, the artifacts are written for people — but it means the language setting is
-carried only by the second half. Tell the executor which half is the language baseline if it has to
-ask.
-
-**5. Create the requirements directory** if it is not there:
-
-```bash
-mkdir -p "../$(basename "$PWD")_genai/backlogs" "../$(basename "$PWD")_genai/archive"
-```
-
-Decide with the user whether that directory should be its own git repository. It is outside
-the code repository, so it has no history and no backup unless it is given one. This is a
-deliberate trade, not an oversight — but it is the user's call, so raise it once here.
-
-**6. Give the project a `genai-metrics` make target, and its thresholds.** Both ship as templates
-in this skill's `assets/project/`; copy, then edit. `genai-guideline` carries the protocol in full —
-follow it there rather than from memory.
-
-```bash
-cat <skill-dir>/assets/project/genai-metrics.mk >> Makefile      # create the Makefile if there is none
-mkdir -p tools/genai && cp <skill-dir>/assets/project/thresholds.json tools/genai/
-```
-
-The target's template carries the protocol as comments and two placeholder recipe lines. **Replace
-those two lines and nothing else** — in particular do not convert the project's build to make.
-Whether the suite runs through npm, cargo, pytest or gradle is the project's business, and choosing
-or wiring a test framework is `tdd`'s subject, not this one's.
-
-`thresholds.json` arrives with the floors a project starting from nothing should have. For a project
-that already has code, **agree the numbers with the user against what it actually measures today.**
-The round may not edit this file, so a floor above where the project stands rejects every round with
-nothing able to fix it. A floor of `null` opts that dimension out — the only way out, and visible in
-the file. Its `e2e` block is the ceiling on how much of a round may go unscripted; leave it at the
-shipped values unless the user has a reason, and note that **omitting it does not opt out** the way
-an omitted floor does.
-
-Then prove both halves work, here, before moving on:
-
-```bash
-make genai-metrics                     # must print a genai-metrics: line with real numbers
+make genai-metrics                     # must print one genai-metrics: line with real numbers
 node .flow/genai/check.mjs metrics     # the gate itself, reading that line
 ```
 
-**What has to be true at install time is the shape, not the verdict.** The second command must
-come back with a label about the numbers — and on a project that has no tests yet that label is
-`no_tests`, which is the **expected** answer here. `satisfied` is not reachable until something
-passes a test, and getting there is `genai.implement`'s job, not this step's.
-
-What would be a broken install is any of the three setup labels: `metrics_missing` (no marked line
-came through), `metrics_unreadable` (one did and does not satisfy the protocol), or
-`thresholds_missing`. Those three are this step's business; fix them here.
-
-**A target that parses human-readable output has not been tested by this.** The check runs on an
-empty project, where column widths, table alignment and summary lines all differ from what they
-will be once there are real source files — so a fragile reporter passes here and fails later, with
-the gate blaming the code. If the target scrapes formatted text rather than a machine-readable
-reporter, say so to the user now and re-run both commands after the first real source file exists.
-`genai-guideline` has the reasoning.
+**What has to be true here is the shape, not the verdict.** On a project with no tests the expected
+label is `no_tests`. `satisfied` is not reachable until something passes a test, and getting there is
+`genai.implement`'s job. The three labels that mean a broken install are `metrics_missing`,
+`metrics_unreadable` and `thresholds_missing` — those are this phase's business.
 
 A `satisfied` reached with fabricated numbers is the one failure no command here can catch, so read
-what the target actually runs.
+what the target actually runs. And **a target that parses human-readable output has not been tested
+by this**: see [references/troubleshooting.md](references/troubleshooting.md).
 
-**7. Tell the flow how to recognise the running app — if the project can say yet.**
+**2. Set the floors in `tools/genai/thresholds.json`** by whichever policy phase 2 settled on — and
+**in that order: read the numbers step 1 printed, then write the floors.** Setting them from a sense
+of what a project like this should manage is how a floor lands above what it measures, and the
+number that catches it is one you had already been shown. A round may not edit this
+file, so a floor above where the project stands rejects every round with nothing able to fix it. A
+floor of `null` opts that dimension out — the only way out, and visible in the file. Its `e2e` block
+is the ceiling on how much of a round may go unscripted; leave it at the shipped values unless the
+user has a reason, and note that **omitting it does not opt out** the way an omitted floor does.
 
-`tools/genai/e2e.json` is how `genai.e2e` tells this project's app from everything else listening on a
-developer's machine. An open port proves nothing about *which* app answered, so the project declares a
-marker only its own response carries. The template is in `assets/project/` beside the other two:
+**3. Fill `tools/genai/e2e.json`, if phase 3 wrote it.** `url` is an endpoint of this project's app;
+`contains` is something specific to **this service** — the name in a health payload, a version
+string, the title a known route renders. `ok`, `healthy` and `200` are not markers: every other
+process on the machine says those too. Add `status` when the endpoint does not answer 200.
 
 ```bash
-cp <skill-dir>/assets/project/e2e.json tools/genai/
+node .flow/genai/check.mjs app-identity     # identified — anything else names what to fix
 ```
 
-Then replace both values. `url` is an endpoint of this project's app; `contains` is something specific
-to **this service** — the name in a health payload, a version string, the title a known route renders.
-`ok`, `healthy` and `200` are not markers: every other process on the machine says those too. Add
-`status` when the endpoint does not answer 200.
+`unreachable` means the app is not up, which is fine at install time. `wrong_service` is not: the
+marker does not appear, so the URL points at something else.
 
-The shipped `contains` is a placeholder that deliberately cannot match anything, so a copy left unedited
-reports `wrong_service` rather than passing on a coincidence.
+If the app does not exist yet, **tell the user in one sentence** what will be needed before the
+round's acceptance step can start: a URL and a marker only this app returns. Nothing earlier in a
+round touches it, and `genai.e2e` then refuses to start with `config_missing`, which spends no
+verdict, no patience and no attempt. **Say when it may be committed, too — the window is narrow**,
+and [references/troubleshooting.md](references/troubleshooting.md) has it.
 
-**Write it only if the project can answer honestly today.** This is the one piece a fresh repository
-often cannot: no port, no health endpoint, nothing in a response worth matching on. **Do not invent a
-URL for an app nobody has written yet** — a file that validates and describes nothing is worse than an
-absent one, because the absent one says so.
-
-So there are two correct outcomes here:
-
-- **The app exists.** Write the file and prove it, with the app running:
-
-  ```bash
-  node .flow/genai/check.mjs app-identity     # identified — anything else names what to fix
-  ```
-
-  `unreachable` means the app is not up, which is fine at install time. `wrong_service` is not: the
-  marker does not appear, so the URL points at something else. Fix that here.
-
-- **The app does not exist yet.** Leave the file out, and **tell the user in one sentence** what will be
-  needed before the round's acceptance step can start: a URL and a marker only this app returns. Nothing
-  earlier in a round touches it — design, implementation, review and the e2e suite all proceed without
-  it — and `genai.e2e` then refuses to start with `config_missing`, which spends no verdict, no patience
-  and no attempt.
-
-  **Say when it may be committed, too, because the window is narrow.** Committing it moves the branch
-  tip, and `genai.merge` refuses to enter if the tip moved after the code review approved it — a review
-  that has passed cannot be re-run. So the file is either committed **before `genai.code-review` is
-  dispatched**, or left untracked for `genai.merge` to pick up with the other records. Landing it
-  between those two is the one order that strands the round.
-
-Either way it is a file **the project owns and a round may not write**, for the reason the coverage
-floors are: `contains: "e"` matches nearly any response, and a marker that loose is the check removed.
-
-**8. Commit the project's baseline.** Everything the project now owns is untracked, and leaving it
+**4. Commit the project's baseline.** Everything the project now owns is untracked, and leaving it
 that way pushes a first commit of it into the middle of a round:
 
 ```bash
@@ -305,64 +216,21 @@ git add Makefile tools/genai openspec/config.yaml .gitignore   # whichever of th
 git commit -m "chore: genai flow baseline"
 ```
 
-**Do this here, not later.** `genai.implement` is forbidden to commit anything under `openspec/**` —
-three steps of a round deliberately keep the specs and review records out of the history, because a
-commit during a review invalidates the verdict being recorded. But a developer facing a branch where
-`make genai-metrics` cannot run has a real reason to commit the baseline anyway, and then the gate
-files show up inside the diff a code review is scoped to. That review is right to flag it and the
-developer cannot fix it. Committing the baseline now removes the whole situation.
-
-Add paths explicitly. `git add -A` here sweeps in whatever else is lying around the working directory.
-
-**9. Verify — with both commands, not just the first.**
-
-```bash
-fsx check
-fsx nodes -w genai-sprint
-```
-
-**`fsx nodes -w genai-sprint` is the judgement, and what it must return is one entry per
-`genai.*` directory step 3 copied into `.flow/nodes/`.** Compare those two, rather than either
-against a number written here — a number in this document is wrong the first time a step is added
-or removed, and neither the listing nor the directory ever is. A step missing from the listing is a
-broken install, not something to work around.
-
-**Do not judge by `fsx check`'s counts either.** It counts every definition on disk, and `fsx init`
-in step 2 scaffolded a template node of its own (`.flow/nodes/task/`) plus `workflows/default.yaml`
-— neither of which step 3 removes, so its totals always come out higher than this workflow's. That
-is normal. What `fsx check` is for here is `problems[]`.
-
-**`ok` and the exit code answer only for errors.** Problems come in two severities, and a
-`warning` leaves both green — so `fsx check && ...` passing is not the same as a clean report.
-Read `problems[]` even when `ok` is true, and treat anything there as a question to answer
-rather than noise to skip.
-
-**Run the second one even when the first says all clear.** They answer different questions —
-whether the definitions satisfy their contract, and whether they can actually be loaded and
-resolved against the whitelist — and a workspace where the first passes while the second fails
-is a real state, not a hypothetical. On a case-insensitive filesystem a whitelist entry
-differing from its directory only in case has produced exactly that: `check` clean, `nodes`
-dead. **A green check is not proof the steps can be used.**
-
-## Codex only: install the agents by hand
-
-Codex plugins cannot bundle agents. Copy them once:
-
-```bash
-cp <plugin-root>/../agents/genai-*.toml ~/.codex/agents/
-```
-
-Claude users skip this — the same agents ship inside the plugin.
+Add paths explicitly. `git add -A` here sweeps in whatever else is lying around the working
+directory. Why it has to be now rather than later is in the troubleshooting reference.
 
 ## Upgrading
 
-Re-run steps 3 and 7. Definitions and evaluators are replaced wholesale; nothing merges.
-**Copy `.flow/genai/` too** — an evaluator left at an older version than the definition that
-calls it fails in whichever direction the two disagree.
+```bash
+node <skill-dir>/assets/scripts/apply.mjs --target codex --upgrade
+```
 
-**Do not upgrade while a graph is running.** A graph's identity is its workflow, variables,
-nodes and edges; changing a definition under a live run leaves the run measuring against a
-contract it was not created with. Finish or abort the round first.
+Definitions and evaluators are replaced wholesale; nothing merges, and nothing the project owns is
+touched. A `genai.*` step that no longer ships is **removed** — left behind it would keep being
+counted by `fsx check`, and one that disagrees with its own directory name holds the whole check at
+`ok: false` with no later upgrade ever touching it. Only `genai.*` is removed: fsx's own `task/` and
+anything the project wrote itself share that directory. **It refuses while a graph is live** — changing a definition under a live run leaves the run
+measuring against a contract it was not created with. Finish or abort the round first.
 
 ## What this does not do
 
