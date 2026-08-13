@@ -287,11 +287,14 @@ integration branch too, not only on a feature branch.
 
 ### The project reports; the gate decides
 
-**The target never says pass or fail.** It prints one line, beginning `genai-metrics: `, followed
-by one JSON object:
+**The target never says pass or fail.** It prints **one line per module**, each beginning
+`genai-metrics: `, followed by one JSON object naming the module it is about. A project of one module
+may leave `module` out; with several declared it is required, since an unlabelled line would put one
+module's numbers against another's floors.
 
 ```
-genai-metrics: {"tests":{"passed":131,"skipped":0,"failed":2},"coverage":{"lines":0.93,"branches":0.91,"functions":1.0}}
+genai-metrics: {"module":"server","tests":{"passed":131,"skipped":0,"failed":0},"coverage":{"lines":0.93}}
+genai-metrics: {"module":"web","tests":{"passed":12,"skipped":0,"failed":0}}
 ```
 
 Everything else the target prints is ignored, **and so is its exit code.** A failing suite is
@@ -321,8 +324,9 @@ it is the worse of the two and not merely unnecessary.
 
 | Field | Required | Value |
 |---|---|---|
+| `module` | when the project has several | the module this line reports on, as `tools/genai/modules.json` names it |
 | `tests.passed` / `skipped` / `failed` | yes | non-negative integers. **The total is computed from these**, never read — one less number that can disagree with itself |
-| `coverage.lines` / `branches` / `functions` | no | a fraction in `[0,1]`. Omit or null a dimension the project's tooling does not report |
+| `coverage.lines` / `branches` / `functions` | no | a fraction in `[0,1]`. Report what this module's tooling measures and leave the rest out |
 
 A coverage value outside `[0,1]` is refused rather than interpreted. Passing `93` for 93% is the
 easy mistake, and guessing which was meant would build a gate that passes on a typo.
@@ -339,42 +343,35 @@ What it decides, and where each rule comes from:
 | no test may fail | `check.mjs` | Universal. Not a ratio on purpose — a tolerance for failing tests never gets closed once opened |
 | at least one test ran | `check.mjs` | Universal. This is what makes an empty suite impossible to pass |
 | at most a tenth skipped | `check.mjs` | Universal. Otherwise marking a failure as skipped walks straight past the rule above |
-| coverage floors: lines, branches, functions | `tools/genai/thresholds.json` | **Cannot be universal.** One number for a greenfield project and a decade-old one is either meaningless or unreachable |
+| coverage floors, per module and per dimension | `tools/genai/thresholds.json` | **Cannot be universal.** One number for a greenfield project and a decade-old one is either meaningless or unreachable — and one number for a Go service and the client in front of it is both at once |
 
-`90 / 90 / 100` are the defaults for a project starting from nothing. For a project that already
-has code, agree the numbers with whoever owns it: **the round may not edit that file**, so a floor
-above where the project stands rejects every round with nothing able to fix it.
+`90 / 90 / 100` are the defaults for a module starting from nothing. For a project that already has
+code, agree the numbers with whoever owns it: **the round may not edit that file**, so a floor above
+where the project stands rejects every round with nothing able to fix it.
 
-A floor of `null` opts that dimension out — the only way out, and visible in the file. A floor
-with no measurement behind it counts as below it: declaring a floor is a claim that the number
-gets measured.
+Coverage is measured over each module, not over the diff. Patch coverage would aim better at the
+failure below, and it was deliberately not built: it needs a merge base, a diff, and an intersection
+with the coverage report inside every project's own target.
 
-Coverage is measured over the whole project, not over the diff. Patch coverage would aim better
-at the failure below, and it was deliberately not built: it needs a merge base, a diff, and an
-intersection with the coverage report inside every project's own target.
+**A repository of several modules had the same hole one size larger**, and closing it is why the
+floors are keyed by module: one repository-wide figure forced every module onto the lowest common
+denominator, and a module with no unit tests either vanished from the number — its absence reading as
+coverage — or went into the denominator and dragged the rest below a floor nobody could reach.
 
-**"The whole project" is the project's claim, and some coverage tools quietly narrow it.** Several —
-Node's built-in `--experimental-test-coverage` among them — report only the files a test actually
-loaded, so a module nobody imports does not appear in the report at all and therefore **cannot pull any
-dimension down**. An entire unimplemented file is then invisible to this gate. If the project's tool
-works that way, its target has to close the gap itself: enumerate the source files, and score a file the
-report never mentions as zero. Choosing a machine-readable reporter fixes whether the format drifts; it
-says nothing about whether the scope is complete.
+```json
+{ "coverage": { "server": { "lines": 0.8 }, "core": { "lines": 0.9, "branches": 0.85 } } }
+```
 
-**A repository of several modules has the same hole one size larger, and it opens without any tool
-behaving oddly.** A module with no test runner produces no report, so it contributes nothing to the
-numerator and nothing to the denominator — its code cannot lower any dimension, and its absence reads
-as coverage. It does not trip `no_tests` either: the other modules already satisfy "at least one test
-ran". `tools/genai/modules.json` is where such a module is visible, as a `targets.test` of `null`, and
-the recipe has to count its source files **into the denominator** for the number to mean what it says.
-Aggregating across languages needs the same care one level down — sum covered and total counts, never
-average the per-tool percentages, and mind that merged coverage profiles can list the same block twice
-(`go test -coverpkg=./...` does, and summing them naively reports roughly half the real figure).
+A module left out is **not coverage-checked** — how a client covered by its e2e suite is declared,
+and it sits in `thresholds.json` rather than `modules.json` because a round may edit that file and
+may not edit this one. A dimension left out of an entry is not checked for that module, which is how
+a Go module says its cover reports statements and nothing else. A module that **is** listed reports
+tests, or the gate reads `no_tests`: listing it claims its numbers get measured, and a floor with no
+measurement behind it counts as below.
 
-Which dimensions are reportable is a toolchain fact, not a policy: Go's cover has statements and
-nothing else, so a project measuring Go cannot report `branches` or `functions` for that part. Set
-those floors to `null` rather than leaving them at the shipped defaults — a floor with no measurement
-behind it counts as below it, and rejects every round with nothing able to fix it.
+Aggregating **within** one module still needs care where its report spans tools — sum covered and
+total counts rather than averaging percentages, and mind that merged profiles can list the same block
+twice (`go test -coverpkg=./...` does, and summing naively reports about half the real figure).
 
 ### A broken setup rejects; it never passes
 
@@ -386,33 +383,23 @@ which is where a broken setup belongs.
 
 ### Do not scrape the suite's human-readable output
 
-The target has to end up with numbers, and the cheapest-looking route is a regex over whatever the
-test runner prints for people. **That route breaks on content, not on code.** A coverage summary
-pads its filename column to the widest path, so a run with no source files and a run with
-`src/parse-duration.mjs` in it produce different spacing on the same line — and a regex written
-against the first silently matches nothing against the second. Every dimension comes through
-`null`, the gate reads that as below the floor, and it rejects a round whose real coverage was
-100%. The rejection message blames the code, which is the expensive part: nothing points at the
-reporter.
+A regex over what the runner prints for people **breaks on content, not on code**: a coverage summary
+pads its filename column to the widest path, so a regex written against an empty project silently
+matches nothing once real files land, every dimension arrives absent, and the gate rejects a round
+whose real coverage was 100% — blaming the code, which is the expensive part.
 
-Two consequences worth taking seriously:
-
-- **Prefer a machine-readable reporter** — a JSON or LCOV summary, `--reporter=json`, a coverage
-  tool's own data file. A format with a contract does not move when the content does.
-- **When there is no choice but to parse text, the install-time check proves nothing.** It runs on
-  an empty project, which is exactly the layout the real one will not have. Re-run
-  `make genai-metrics` and the atom after the first real source file lands, and compare the numbers
-  against what the suite actually reported.
-
-Nothing here can be made to pass by leaving something out, which is the property worth keeping:
-**the gate demands numbers, so silence is a rejection.** Still, silence is not the only way to be
-wrong — a target printing plausible numbers it never measured passes, and no check can see that.
-So read what the target actually runs, and run both halves before trusting either:
+Prefer a machine-readable reporter, and treat the install-time check as proving nothing when there
+was no choice but to parse text. **The gate demands numbers, so silence is a rejection** — but a
+target printing plausible numbers it never measured passes, and no check can see that, so read what
+it actually runs:
 
 ```bash
-make genai-metrics                     # a genai-metrics: line with real numbers
+make genai-metrics                     # one genai-metrics: line per module, with real numbers
 node .flow/genai/check.mjs metrics     # {"result":"satisfied", ...}
 ```
+
+Reporter choice, scope and cross-tool aggregation are in
+[references/reporters.md](references/reporters.md).
 
 ### Who may change it
 

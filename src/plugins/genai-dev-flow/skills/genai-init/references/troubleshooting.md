@@ -181,12 +181,19 @@ Labels, and which are this install's business:
 
 | Label | Means |
 |---|---|
-| `no_tests` | the **expected** answer on a project with no tests yet |
+| `no_tests` | the **expected** answer on a project with no tests yet. It also fires when a module *with declared floors* reports none — listing a module claims its numbers get measured |
 | `satisfied` | not reachable until something passes a test — `genai.implement`'s job |
-| `tests_failing`, `too_many_skipped`, `coverage_below_floor` | the numbers are real and short; not an install problem |
+| `tests_failing`, `too_many_skipped`, `coverage_below_floor` | the numbers are real and short; not an install problem. The facts name the module |
 | `metrics_missing` | no marked line came through — **fix at install time** |
-| `metrics_unreadable` | a line came and does not satisfy the protocol — **fix at install time** |
-| `thresholds_missing` | `tools/genai/thresholds.json` is absent or unreadable — **fix at install time** |
+| `metrics_unreadable` | a line came and does not satisfy the protocol — **fix at install time**. On a project of several modules this is also what an unlabelled line gets: add `"module": "<name>"` |
+| `thresholds_missing` | `tools/genai/thresholds.json` is absent, unreadable, still keyed by dimension rather than by module, or names a module `modules.json` does not — **fix at install time** |
+
+**The floors are per module**, which is what lets a client covered by its e2e suite go
+coverage-unchecked while the service behind it is held to a number. A module absent from
+`thresholds.json` is not checked at all; a dimension absent from a module's entry is not checked for
+that module. Both live in the file a round may **not** edit, so an exemption is a decision somebody
+recorded rather than one a round awards itself — which is exactly why it does not live in
+`modules.json`, the one project file a round may rewrite.
 
 ## The build target, and the two labels for the two new files
 

@@ -1,8 +1,11 @@
 {
+  "_comment": "Coverage floors, per module. A module named here is checked; a module left out is not checked at all - that is how a client covered by its e2e suite says so, and it lives here rather than in modules.json because a round may edit that file and may not edit this one. A dimension left out of a module's entry is not checked for that module, which is how a toolchain that reports statements and nothing else says so. Replace the example below with this project's own modules, and delete this line.",
   "coverage": {
-    "lines": 0.9,
-    "branches": 0.9,
-    "functions": 1.0
+    "REPLACE-WITH-A-MODULE-NAME": {
+      "lines": 0.9,
+      "branches": 0.9,
+      "functions": 1.0
+    }
   },
   "e2e": {
     "max_non_scripted": 5,

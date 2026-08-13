@@ -145,7 +145,7 @@ gates:
         message: "More than a tenth of the merged suite is skipped. A conflict settled by skipping a test is not a settled conflict"
       coverage_below_floor:
         verdict: reject
-        message: "Coverage on the merged tree is below the floor this project declared. Dropping a test while resolving a conflict is the usual cause; which dimensions fell short is in the gate facts"
+        message: "Coverage on the merged tree is below a floor this project declared. Dropping a test while resolving a conflict is the usual cause; the gate facts name the module and dimension"
 
       # Three ways the setup is broken. If the same target worked on the branch, the merge changed
       # it — and that is a scope problem, not something to fix by editing it again.

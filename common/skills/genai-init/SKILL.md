@@ -346,12 +346,30 @@ exists it says so; pass `--command` to point it at whatever the project runs its
 take that answer as an estimate.
 
 Set each floor at or below what came out. **A round may not edit this file**, so a floor the project
-already clears is what keeps a round fixable. Write `null` for a dimension the toolchain leaves
-unreported — Go's cover has statements and nothing else — since `null` is how a dimension opts out
-and it stays visible in the file. In a repository of several modules, the `targets.test: null` entries
-are the modules the number cannot see, so count their source files into the denominator. Leave the
-`e2e` block at the shipped values unless the user has a reason; it is the ceiling on how much of a
-round may go unscripted, and it takes an explicit value to change.
+already clears is what keeps a round fixable.
+
+**The floors are per module**, because coverage is not one number:
+
+```json
+{
+  "coverage": {
+    "server": { "lines": 0.8 },
+    "core":   { "lines": 0.9, "branches": 0.85 }
+  }
+}
+```
+
+- **A module left out is not coverage-checked at all.** That is how a browser client covered by its
+  e2e suite is declared, and it lives here rather than in `modules.json` because a round may edit
+  that file and may not edit this one — so an exemption is a decision somebody made rather than one a
+  round awards itself.
+- **A dimension left out of a module's entry is not checked for that module.** That is how Go says
+  what it can measure: its cover reports statements and nothing else.
+- **A module that is listed reports tests**, or the gate reads it as `no_tests`. Listing a module is
+  a claim that its numbers get measured.
+
+Leave the `e2e` block at the shipped values unless the user has a reason; it is the ceiling on how
+much of a round may go unscripted, and it takes an explicit value to change.
 
 **What has to hold here is the shape.** On a project with no tests, `no_tests` is the answer to
 expect; `satisfied` becomes reachable once something passes a test, which is `genai.implement`'s job.

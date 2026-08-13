@@ -132,13 +132,13 @@ gates:
         message: "Tests are failing. The counts are in the gate facts — fix the code, and do not delete or skip a test to get past this"
       no_tests:
         verdict: reject
-        message: "The suite reported no tests at all. Work that adds behaviour adds a test that would fail without it"
+        message: "No tests ran where the floors say they should. Either nothing ran at all, or a module with declared floors reported none — the gate facts say which. Work that adds behaviour adds a test that would fail without it"
       too_many_skipped:
         verdict: reject
         message: "More than a tenth of the suite is skipped. A skipped test is not a passing test — unskip them or stop counting them"
       coverage_below_floor:
         verdict: reject
-        message: "Coverage is below the floor this project declared. Cover what this round changed; which dimensions fell short, and by how much, is in the gate facts"
+        message: "Coverage is below a floor this project declared. The gate facts name the module, the dimension, the floor and what was measured — cover what this round changed in that module"
 
       # Three ways the setup is broken. The round is allowed to fix none of them, so retrying
       # cannot help — say so plainly and let the suspension hand it to a person.
