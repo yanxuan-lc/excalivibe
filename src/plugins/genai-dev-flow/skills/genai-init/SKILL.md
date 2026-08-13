@@ -22,7 +22,7 @@ app is recognised. The scripts own the first and refuse the second.
 |---|---|---|
 | 1 · route | `detect.mjs` | greenfield, brownfield or upgrade — decided by what is missing |
 | 2 · consent | you, asking | automatic, manual, or stop |
-| 3 · ask | you, asking | one pass over everything the route step could not answer |
+| 3 · ask | you, asking | three rounds of at most four, over what the route step could not answer |
 | 4 · scaffold | `apply.mjs` | nothing — every branch arrived as a flag |
 | 5 · build-out | you, doing | the route: a walking skeleton, or a derivation from what exists |
 | 6 · prove | `check.mjs`, `make` | the project's own commands, run for real |
@@ -136,34 +136,56 @@ Offer three, and recommend the first:
 On the upgrade route this is also where you ask whether to upgrade at all; the route step already
 read the version and said whether anything differs.
 
-## Step 3 — ask, once
+## Step 3 — ask, in three rounds
 
-Put every open question in **one** exchange. The route step already knows what is missing, so the
-user should be answering a short list rather than being interviewed through ten steps. It only lists
-what is not already settled on disk, so a re-run does not walk anyone back through decisions they
-have made.
+**Ask in rounds of at most four, in the order the route step prints them.** Four is what the host's
+question tool shows at once, and a greenfield project raises eight — so batching everything into one
+call cannot work, and trying to either drops the tail without saying so or crams several decisions
+into one question. What rounds are *not* is an interview: the route step already knows what is
+missing, so each round is a short list the user answers at a glance, not one question per step with a
+paragraph of reading in between. It also lists only what is not already settled on disk, so a re-run
+does not walk anyone back through decisions they have made.
 
-Common to both forks:
+| Round | What it settles | Why here |
+|---|---|---|
+| 1 · permission and access | consent, the missing prerequisites, the repository and its first commit | a refusal ends the procedure, so nothing else is worth asking first |
+| 2 · what this project is | `instruction_language`, the requirements directory, and **the module shape and stack** (greenfield) or **the module reading** (brownfield) | everything downstream is written against these answers |
+| 3 · policy | coverage policy, and whether the app answers today | it rides on the shape settled in round 2 |
 
-1. **The missing prerequisites** — install them now, the user installs them, or stop.
-2. **A repository, or its first commit**, if either is missing. The user's call.
-3. **`instruction_language`** — the language of the requirement briefs, *not* the language of whoever
+The route step's `DECIDE` section is already grouped this way and flags any round that has outgrown
+four. Follow its grouping rather than re-deriving one.
+
+The questions themselves, by round:
+
+**Round 1 — permission and access.** Ask nothing else until these are answered.
+
+1. **Consent** — automatic, manual, or stop. Step 2 has the wording.
+2. **The missing prerequisites** — install them now, the user installs them, or stop.
+3. **A repository, or its first commit**, if either is missing. The user's call.
+
+**Round 2 — what this project is.** These are what everything downstream is written against.
+
+1. **`instruction_language`** — the language of the requirement briefs, *not* the language of whoever
    is typing. It decides the language of every dispatched instruction, and therefore of the reports
    and documents executors write back.
-4. **Whether the requirements directory is its own git repository.** It sits outside the code
+2. **Whether the requirements directory is its own git repository.** It sits outside the code
    repository, so it has no history and no backup unless it is given one.
-5. **Does the app exist and answer on a URL today?** This decides whether step 4 writes
-   `tools/genai/e2e.json` at all. A fresh repository usually cannot answer honestly, and that is fine.
-6. **Coverage policy — which dimensions apply, and which modules are allowed no tests.** Not the
+3. **The modules** — and this is the one question the two routes ask differently.
+   - *Greenfield:* **one module or several**, and what each is for. Nothing on disk can answer it, so
+     it has to be asked; a file listing settles nothing in an empty directory.
+   - *Brownfield:* **confirmation rather than preference.** The route step listed the manifest
+     directories, the runners and the commands this project already runs. Ask whether that reading is
+     right, and **which existing command** each module's build, lint and test should point at — the
+     map names Makefile targets, so those names have to come from something real.
+4. **The technology stack** (greenfield only) — language and runtime per module. Step 5 writes code,
+   and `tdd` needs this to wire a test framework.
+
+**Round 3 — policy.** It rides on what round 2 settled.
+
+1. **Coverage policy — which dimensions apply, and which modules are allowed no tests.** Not the
    numbers. **The numbers come from step 6, after something has measured them**, on both routes.
-
-Greenfield adds: **the module shape** (one module or several, and what each is for) and **the
-technology stack**, since step 5 has to write code and neither can be inferred from an empty
-directory.
-
-Brownfield adds: **confirmation rather than preference** — the route step listed the manifest
-directories, the runners, and the commands this project already runs. Ask whether that reading is
-right, and which existing command each module's build, lint and test should point at.
+2. **Does the app exist and answer on a URL today?** This decides whether step 4 writes
+   `tools/genai/e2e.json` at all. A fresh repository usually cannot answer honestly, and that is fine.
 
 `instruction_language` **does not translate the step briefs.** Those ship inside this plugin as
 English source and are injected verbatim, so every dispatched instruction is two languages at once:

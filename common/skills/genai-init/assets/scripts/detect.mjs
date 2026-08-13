@@ -92,7 +92,19 @@ const out = (text = "") => lines.push(text);
 const section = (title) => { out(); out(title); out("─".repeat(title.length)); };
 const item = (label, value) => out(`  ${label.padEnd(28)} ${value}`);
 
-const decide = [];   // what the ask step has to cover
+// What the ask step has to cover, as [round, question].
+//
+// Rounds, not one exchange. The host tool shows at most FOUR questions at a time, and a greenfield
+// project raises eight — so "ask everything in one pass" cannot be carried out, and an executor
+// trying to obey it either drops questions silently or crams several decisions into one. What the
+// original instruction was actually against is the version that asked one thing per step with a
+// paragraph of reading in between; batching into as few rounds as the tool allows keeps that.
+//
+// The grouping is not arbitrary: permission first, because a refusal there ends the procedure and
+// everything asked afterwards would have been wasted; then the shape of the project; then the
+// policy that rides on the shape.
+const ROUNDS = ["permission and access", "what this project is", "policy"];
+const decide = [];
 const blocked = [];  // what makes the install impossible until it is fixed
 
 // ───────────────────────── 1. tooling ─────────────────────────
@@ -133,7 +145,7 @@ const missing = [
   !foundSkill.some(([end]) => end === target) && "skill",
   !isDir("openspec") && "openspec-dir",
 ].filter(Boolean);
-if (missing.length) decide.push(`install what is missing (${missing.join(", ")}) — offer: install now / user installs / stop`);
+if (missing.length) decide.push([1, `install what is missing (${missing.join(", ")}) — offer: install now / user installs / stop`]);
 
 // ───────────────────────── 2. repository ─────────────────────────
 
@@ -145,8 +157,8 @@ const atRoot = top.ok && resolve(top.out) === resolve(process.cwd());
 item("git repository", top.ok ? (atRoot ? `yes, and this is its root` : `yes, but the root is ${top.out}`) : "no — not a repository");
 item("HEAD", head.ok ? head.out.slice(0, 12) : "MISSING — no commit yet");
 
-if (!top.ok) decide.push("create the repository (git init -b main + an empty first commit) — the user's call");
-else if (!head.ok) decide.push("create the first commit (git commit --allow-empty) — the user's call");
+if (!top.ok) decide.push([1, "create the repository (git init -b main + an empty first commit) — the user's call"]);
+else if (!head.ok) decide.push([1, "create the first commit (git commit --allow-empty) — the user's call"]);
 if (top.ok && !atRoot) blocked.push(`run this from the repository root (${top.out}), not from a subdirectory`);
 
 const ignore = read(".gitignore") ?? "";
@@ -220,7 +232,7 @@ const lang = config === null ? null : configValue("instruction_language");
 item("config: language", lang ?? "not set");
 // Only ask what is not already settled on disk. This script is the agenda for the ask step, and a re-run —
 // which is also the upgrade path — must not walk the user back through decisions they already made.
-if (!lang) decide.push("instruction_language — the language the requirement briefs are written in, not the language of whoever is typing");
+if (!lang) decide.push([2, "instruction_language — the language the requirement briefs are written in, not the language of whoever is typing"]);
 
 // ───────────────────────── 4. what the project owns ─────────────────────────
 
@@ -298,7 +310,7 @@ const siblingState = isDir(sibling)
   ? `present${isDir(join(sibling, ".git")) ? ", its own git repository" : ", not a git repository"}`
   : "absent — apply.mjs creates it";
 item("requirements directory", `${sibling}  ${siblingState}`);
-if (!isDir(sibling)) decide.push(`whether ${sibling} should be its own git repository — it sits outside this repo, so it has no history unless given one`);
+if (!isDir(sibling)) decide.push([2, `whether ${sibling} should be its own git repository — it sits outside this repo, so it has no history unless given one`]);
 
 // ───────────────────────── 5. the modules and their toolchains ─────────────────────────
 // This is what the executor needs to write modules.json and to fill the two recipes, and it is why
@@ -412,15 +424,15 @@ if (route === "greenfield" && mapUnfilled) {
   // Nothing here can be inferred, which is the whole of why it gets asked. Both answers feed the
   // build-out step directly: the shape decides how many modules the skeleton has, and the stack
   // decides which skill gets delegated to for wiring the test framework.
-  decide.push("the module shape — ONE module or several? If several, name each, say what it is for, and which of them consume another's contract. Nothing on disk can answer this yet");
-  decide.push("the technology stack — language and runtime per module. The build-out step writes code, and `tdd` needs it to wire a test framework");
+  decide.push([2, "the module shape — ONE module or several? If several, name each, say what it is for, and which of them consume another's contract. Nothing on disk can answer this yet"]);
+  decide.push([2, "the technology stack — language and runtime per module. The build-out step writes code, and `tdd` needs it to wire a test framework"]);
 } else if (route === "brownfield" && mapUnfilled) {
   // `.` is a real entry in that list and reads as punctuation in a sentence, so name it.
   const named = moduleDirs.map((d) => (d === "." ? "the repository root" : d));
   const reading = named.length === 0 ? "no manifest was found at all, so say what this repository is made of"
     : named.length === 1 ? `${named[0]} looks like the only module`
     : `${named.join(", ")} each look like one module`;
-  decide.push(`the module reading — ${reading}. Confirm it, say what each is for and which consume another's contract, and name WHICH EXISTING command builds, lints and tests each: the map names Makefile targets, so those names have to come from something real`);
+  decide.push([2, `the module reading — ${reading}. Confirm it, say what each is for and which consume another's contract, and name WHICH EXISTING command builds, lints and tests each: the map names Makefile targets, so those names have to come from something real`]);
 }
 
 // Policy now; numbers after something has measured them. The two are separated on purpose: the
@@ -428,12 +440,12 @@ if (route === "greenfield" && mapUnfilled) {
 // sense of what a project like this should manage is how one lands above what it measures.
 if (!thresholdsUnagreed) { /* the project has set them, and neither a round nor this install may */ }
 else {
-  decide.push(
+  decide.push([3,
     "coverage POLICY, not the numbers — which dimensions this toolchain can even report, and which modules are allowed to have no tests. "
     + (route === "brownfield" && testFiles.length
       ? "This project already has tests, so the numbers come from measure.mjs reading what they cover TODAY — never from what they ought to be"
       : "The numbers come from measure.mjs once the recipe exists and has run once"),
-  );
+  ]);
 }
 
 // ───────────────────────── 6. what this project already runs ─────────────────────────
@@ -516,7 +528,7 @@ const health = files.filter((f) => SCANNABLE.test(f) && small(f)).filter((f) => 
 item("health-ish routes in", health.length ? `${health.slice(0, 5).join(", ")}${health.length > 5 ? ` (+${health.length - 5} more)` : ""}` : "nothing found");
 // Only the first of these is a question. The template case is a fact about the file, and it is already
 // reported above — DECIDE is the list the ask step works through, so a statement in it gets asked.
-if (e2e === null) decide.push("does this project's app exist and answer on a URL today? If not, leave tools/genai/e2e.json out — an invented URL is worse than an absent file");
+if (e2e === null) decide.push([3, "does this project's app exist and answer on a URL today? If not, leave tools/genai/e2e.json out — an invented URL is worse than an absent file"]);
 
 // ───────────────────────── the three sections that get read ─────────────────────────
 
@@ -547,10 +559,27 @@ if (route === "greenfield") {
   item("  what this means", "measure before writing the floors. Run measure.mjs for the numbers, then set them at or below what came out");
 }
 
-section("DECIDE — asked in one pass, after the consent question");
-if (decide.length) decide.forEach((q, i) => out(`  ${i + 1}. ${q}`));
-else out("  Nothing. Every decision this install needs is already on disk — go straight to apply.mjs,");
-if (!decide.length) out("  which will only refresh the definitions, or skip it if nothing needs upgrading.");
+// Four is the host tool's ceiling on questions shown at once, so a round that exceeds it would have
+// its tail dropped without saying so. Stating the number here means a later question added to a
+// round announces the problem instead of silently costing an answer.
+const PER_ROUND = 4;
+section(`DECIDE — ask these in rounds, at most ${PER_ROUND} at a time, in this order`);
+if (!decide.length) {
+  out("  Nothing. Every decision this install needs is already on disk — go straight to apply.mjs,");
+  out("  which will only refresh the definitions, or skip it if nothing needs upgrading.");
+} else {
+  ROUNDS.forEach((title, index) => {
+    const asked = decide.filter(([round]) => round === index + 1).map(([, text]) => text);
+    if (!asked.length) return;
+    out();
+    out(`  round ${index + 1} — ${title}`);
+    asked.forEach((question, i) => out(`    ${i + 1}. ${question}`));
+    if (asked.length > PER_ROUND) out(`    ! ${asked.length} questions here and the tool shows ${PER_ROUND}. Split this round rather than dropping the tail`);
+  });
+  out();
+  out("  The consent question — automatic / manual / stop — rides with round 1. A refusal there ends");
+  out("  the procedure, which is why nothing else is asked before it.");
+}
 
 if (blocked.length) {
   section("BLOCKED — fix these before apply.mjs");
