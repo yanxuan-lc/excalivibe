@@ -379,12 +379,15 @@ for (const dir of moduleDirs) {
   }
 }
 
-// Only asked when the split is not already written down. One module needs no confirming; several do,
-// because which directories are modules and what each one's targets are called is the project's
-// intent, not something a file listing settles.
-if ((declaredModules === null || declaredModules.length === 0) && moduleDirs.length > 1) {
-  decide.push(`the module split — ${moduleDirs.join(", ")} each look like one. Confirm the list, what each is for, which of them consume another's contract, and the Makefile target that builds, lints and tests each`);
-}
+// The module question is asked on every route where the map is not already filled in — but it is a
+// DIFFERENT question each time, so the route has to be known before it can be worded.
+//
+// This used to be conditioned on `moduleDirs.length > 1`, which was right when the only project this
+// installed into was an existing one: there, one manifest needs no confirming. It is exactly wrong on
+// a greenfield project, which has NO manifest and therefore has to be asked precisely because a file
+// listing cannot settle it. That condition silently dropped the question on the one route that most
+// needs it.
+const mapUnfilled = declaredModules === null || declaredModules.length === 0;
 
 // Whether any test exists decides which metrics label is the expected one at install time — with no
 // tests, `no_tests` is correct and `satisfied` is not reachable — and which question the ask step asks
@@ -398,9 +401,40 @@ const TEST_NAME = /(^|\/)(tests?|specs?|__tests__)\/|\.(test|spec)\.[a-z]+$|(^|\
 const testFiles = files.filter((f) => CODE.test(f) && TEST_NAME.test(f));
 item("test files", testFiles.length ? `${testFiles.length} — e.g. ${testFiles.slice(0, 3).join(", ")}` : "none — `no_tests` is the expected metrics label here");
 if (truncated) item("  NOTE", `the scan stopped at ${files.length} files or ${MAX_DEPTH} levels — anything past that is unread, so treat "none" here as "not found", not as "not there"`);
+// ───────────────────────── the route, and the questions only it can word ─────────────────────────
+// Computed here rather than beside the ROUTE section below, because everything it reads is now in
+// hand and the questions it selects have to reach DECIDE. Its inputs: `installed` (section 3), `head`
+// (section 2), `moduleDirs` and `testFiles` (section 5).
+
+const route = installed.length ? "upgrade" : (!moduleDirs.length && !head.ok && !testFiles.length) ? "greenfield" : "brownfield";
+
+if (route === "greenfield" && mapUnfilled) {
+  // Nothing here can be inferred, which is the whole of why it gets asked. Both answers feed the
+  // build-out step directly: the shape decides how many modules the skeleton has, and the stack
+  // decides which skill gets delegated to for wiring the test framework.
+  decide.push("the module shape — ONE module or several? If several, name each, say what it is for, and which of them consume another's contract. Nothing on disk can answer this yet");
+  decide.push("the technology stack — language and runtime per module. The build-out step writes code, and `tdd` needs it to wire a test framework");
+} else if (route === "brownfield" && mapUnfilled) {
+  // `.` is a real entry in that list and reads as punctuation in a sentence, so name it.
+  const named = moduleDirs.map((d) => (d === "." ? "the repository root" : d));
+  const reading = named.length === 0 ? "no manifest was found at all, so say what this repository is made of"
+    : named.length === 1 ? `${named[0]} looks like the only module`
+    : `${named.join(", ")} each look like one module`;
+  decide.push(`the module reading — ${reading}. Confirm it, say what each is for and which consume another's contract, and name WHICH EXISTING command builds, lints and tests each: the map names Makefile targets, so those names have to come from something real`);
+}
+
+// Policy now; numbers after something has measured them. The two are separated on purpose: the
+// numbers cannot be agreed before the metrics recipe exists and has run once, and a floor set from a
+// sense of what a project like this should manage is how one lands above what it measures.
 if (!thresholdsUnagreed) { /* the project has set them, and neither a round nor this install may */ }
-else if (testFiles.length) decide.push("the coverage floors: measure what the project does today, then set floors at or below it — a floor above reality rejects every round with nothing able to fix it");
-else decide.push("the coverage floors: the shipped defaults are right for a project with no tests yet");
+else {
+  decide.push(
+    "coverage POLICY, not the numbers — which dimensions this toolchain can even report, and which modules are allowed to have no tests. "
+    + (route === "brownfield" && testFiles.length
+      ? "This project already has tests, so the numbers come from measure.mjs reading what they cover TODAY — never from what they ought to be"
+      : "The numbers come from measure.mjs once the recipe exists and has run once"),
+  );
+}
 
 // ───────────────────────── 6. what this project already runs ─────────────────────────
 // The first rule on an existing project is to wrap the commands it already has rather than build a
@@ -496,7 +530,8 @@ if (e2e === null) decide.push("does this project's app exist and answer on a URL
 // here is enough and no flag carries it into apply.mjs.
 section("ROUTE");
 
-const route = installed.length ? "upgrade" : (!moduleDirs.length && !head.ok && !testFiles.length) ? "greenfield" : "brownfield";
+// `route` itself is decided further up, as soon as its inputs are in hand, because the questions it
+// selects have to reach DECIDE. All that is left here is saying it out loud.
 const why = {
   upgrade: `${installed.length} genai.* definitions are already installed${record === null ? ", though nothing recorded which version" : behind ? " and they differ from what ships now" : " and they match what ships now"}`,
   greenfield: "no manifest, no commit and no test file — there is nothing here to describe yet",
