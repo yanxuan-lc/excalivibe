@@ -7,9 +7,10 @@
 //
 // It exists because the ten things below used to be ten separate commands with a model reading a
 // paragraph of documentation between each one. Every branch here is decided by code; what comes out
-// is already a conclusion. The report ends with the three sections that matter to whoever reads it:
-// ROUTE, which of greenfield / brownfield / upgrade this project is; DECIDE, the questions this
-// cannot answer for itself; and SUGGESTED, the apply.mjs line that carries the answers back.
+// is already a conclusion. The report ends with the four sections that matter to whoever reads it:
+// ROUTE, which of greenfield / brownfield / upgrade this project is; MODULES, a block to put in
+// front of the user as it stands; DECIDE, the questions this cannot answer for itself; and
+// SUGGESTED, the apply.mjs line that carries the answers back.
 //
 // It exits 0 for everything it finds. "This project has nothing installed" is a finding, not a failure
 // — and a non-zero exit for one would be indistinguishable from the script itself being broken. The
@@ -94,9 +95,9 @@ const item = (label, value) => out(`  ${label.padEnd(28)} ${value}`);
 
 // What the ask step has to cover, as [round, question].
 //
-// Rounds, not one exchange. The host tool shows at most FOUR questions at a time, and a greenfield
-// project raises eight — so "ask everything in one pass" cannot be carried out, and an executor
-// trying to obey it either drops questions silently or crams several decisions into one. What the
+// Rounds, not one exchange. The host tool shows at most FOUR questions at a time, and this raises
+// more than four — so "ask everything in one pass" cannot be carried out, and an executor trying to
+// obey it either drops questions silently or crams several decisions into one. What the
 // original instruction was actually against is the version that asked one thing per step with a
 // paragraph of reading in between; batching into as few rounds as the tool allows keeps that.
 //
@@ -365,11 +366,44 @@ if (pkg === null && existsSync("package.json")) item("package.json", "UNREADABLE
 item("manifests found in", moduleDirs.length ? `${moduleDirs.length} director${moduleDirs.length === 1 ? "y" : "ies"}` : "none found");
 if (moduleDirs.length > 1) item("  NOTE", "more than one module — modules.json needs an entry each, and the metrics recipe has to aggregate across them");
 
+// Module directory → a one-line stack, the way a person would say it: "Go + Gin",
+// "TypeScript + Vite". It feeds the draft the user corrects, so the bar is recognisable rather than
+// exhaustive — an unrecognised framework leaves just the language, which is still worth saying.
+const stacks = new Map();
+const FRAMEWORKS = {
+  "package.json": [["next", "Next.js"], ["vite", "Vite"], ["react", "React"], ["vue", "Vue"], ["svelte", "Svelte"], ["@angular/core", "Angular"], ["nest", "NestJS"], ["express", "Express"], ["fastify", "Fastify"], ["astro", "Astro"]],
+  "go.mod": [["gin-gonic/gin", "Gin"], ["labstack/echo", "Echo"], ["gofiber/fiber", "Fiber"], ["go-chi/chi", "chi"], ["gorilla/mux", "gorilla/mux"]],
+  "Cargo.toml": [["axum", "Axum"], ["actix-web", "Actix"], ["rocket", "Rocket"], ["tauri", "Tauri"]],
+  python: [["fastapi", "FastAPI"], ["django", "Django"], ["flask", "Flask"]],
+  jvm: [["springframework", "Spring"], ["quarkus", "Quarkus"]],
+};
+
 for (const dir of moduleDirs) {
   const kinds = [...byDir.get(dir)].sort();
   item(dir === "." ? "  . (repository root)" : `  ${dir}`, kinds.join(", "));
 
   const at = (name) => (dir === "." ? name : join(dir, name));
+
+  // The stack line, before the per-toolchain detail below.
+  const parts = [];
+  for (const kind of kinds) {
+    const sources = {
+      "package.json": [at("package.json")],
+      "go.mod": [at("go.mod")],
+      "Cargo.toml": [at("Cargo.toml")],
+      python: ["pyproject.toml", "requirements.txt", "setup.cfg"].map(at),
+      jvm: ["pom.xml", "build.gradle", "build.gradle.kts"].map(at),
+    }[kind] ?? [];
+    const text = sources.map((f) => read(f) ?? "").join("\n");
+    const language = kind === "package.json"
+      ? (existsSync(at("tsconfig.json")) || /"typescript"/.test(text) ? "TypeScript" : "JavaScript")
+      : { "go.mod": "Go", "Cargo.toml": "Rust", python: "Python", jvm: "Java/Kotlin", Gemfile: "Ruby", "composer.json": "PHP", "mix.exs": "Elixir" }[kind] ?? kind;
+    const found = (FRAMEWORKS[kind] ?? []).filter(([needle]) => text.includes(needle)).map(([, label]) => label);
+    parts.push([language, ...found].join(" + "));
+  }
+  stacks.set(dir, parts.join(", "));
+  item("      stack", stacks.get(dir));
+
   if (kinds.includes("package.json")) {
     const parsed = json(at("package.json"));
     if (parsed === null) item("      package.json", "UNREADABLE");
@@ -431,19 +465,13 @@ if (truncated) item("  NOTE", `the scan stopped at ${files.length} files or ${MA
 
 const route = installed.length ? "upgrade" : (!moduleDirs.length && !head.ok && !testFiles.length) ? "greenfield" : "brownfield";
 
-if (route === "greenfield" && mapUnfilled) {
-  // Nothing here can be inferred, which is the whole of why it gets asked. Both answers feed the
-  // build-out step directly: the shape decides how many modules the skeleton has, and the stack
-  // decides which skill gets delegated to for wiring the test framework.
-  decide.push([2, "the module shape — ONE module or several? If several, name each, say what it is for, and which of them consume another's contract. Nothing on disk can answer this yet"]);
-  decide.push([2, "the technology stack — language and runtime per module. The build-out step writes code, and `tdd` needs it to wire a test framework"]);
-} else if (route === "brownfield" && mapUnfilled) {
-  // `.` is a real entry in that list and reads as punctuation in a sentence, so name it.
-  const named = moduleDirs.map((d) => (d === "." ? "the repository root" : d));
-  const reading = named.length === 0 ? "no manifest was found at all, so say what this repository is made of"
-    : named.length === 1 ? `${named[0]} looks like the only module`
-    : `${named.join(", ")} each look like one module`;
-  decide.push([2, `the module reading — ${reading}. Confirm it, say what each is for and which consume another's contract, and name WHICH EXISTING command builds, lints and tests each: the map names Makefile targets, so those names have to come from something real`]);
+// One line per module, and only the three things a person actually holds: its name, what it is for,
+// and what it is built with. Everything else in `modules.json` is derived — the path from the name,
+// the target names from the name, the docs path by convention, the versions from the toolchain — so
+// asking for any of it spends a user's attention on something the install can work out and the
+// `modules-map` check will verify against make anyway.
+if (mapUnfilled && route !== "upgrade") {
+  decide.push([2, "the modules, one line each: `- <name>: <what it is for>, <stack>` — e.g. `- web: the browser client, TypeScript + Vite`. One line is a single-module project. See the MODULES section below for the exact prompt to put in front of the user"]);
 }
 
 // Policy now; numbers after something has measured them. The two are separated on purpose: the
@@ -541,7 +569,7 @@ item("health-ish routes in", health.length ? `${health.slice(0, 5).join(", ")}${
 // reported above — DECIDE is the list the ask step works through, so a statement in it gets asked.
 if (e2e === null) decide.push([3, "does this project's app exist and answer on a URL today? If not, leave tools/genai/e2e.json out — an invented URL is worse than an absent file"]);
 
-// ───────────────────────── the three sections that get read ─────────────────────────
+// ───────────────────────── the sections that get read ─────────────────────────
 
 // Which of the three routes this project is on. Decided by what is MISSING, never by what the
 // project looks like: "greenfield" is not a kind of project, it is the absence of the three things
@@ -568,6 +596,44 @@ if (route === "greenfield") {
   item("  what this means", "the executor writes a walking skeleton — one module, one passing test, one build that exits 0, one thing that answers — BEFORE the floors can be verified");
 } else if (route === "brownfield") {
   item("  what this means", "measure before writing the floors. Run measure.mjs for the numbers, then set them at or below what came out");
+}
+
+// ───────────────────────── the modules prompt, ready to put in front of a person ─────────────────
+// A free-text answer rather than a set of options: a module list is a table, and the two or three
+// choices a picker can hold would flatten it to "one module or several", which answers nothing.
+//
+// Greenfield gets the blank form; brownfield gets what was detected, so the user corrects a draft
+// instead of filling one. The script writes the draft because it is the one that has the data —
+// leaving the executor to assemble it from the sections above is where a module quietly goes
+// missing. Render it in the user's language when putting it in front of them.
+
+if (mapUnfilled && route !== "upgrade") {
+  section("MODULES — put this in front of the user, and take the reply as free text");
+  if (route === "greenfield") {
+    out("  Which modules does this project have? One line each:");
+    out();
+    out("    - <name>: <what it is for>, <stack>");
+    out();
+    out("  For example:");
+    out("    - web: the browser client, TypeScript + Shadcn + Vite");
+    out("    - server: the HTTP API behind it, Go + Gin");
+    out();
+    out("  A single-module project is one line.");
+  } else {
+    out("  This is what the code says. Correct anything wrong and fill in what each one is for:");
+    out();
+    for (const dir of moduleDirs) out(`    - ${dir === "." ? basename(process.cwd()) : dir}: <what it is for?>, ${stacks.get(dir)}`);
+    if (!moduleDirs.length) out("    (no manifest was found anywhere, so say what this repository is made of)");
+    if (targets.length) {
+      out();
+      out(`  Commands it already runs: ${targets.slice(0, 12).map((t) => t.name).join(", ")}`);
+    }
+  }
+  out();
+  out("  Everything else is derived: the path from the name, the make targets from the name, the docs");
+  out("  path by convention, the versions from the toolchain, and the dependencies from what the roles");
+  out("  and the code imply. All of it lands in tools/genai/modules.json, where `modules-map` checks it");
+  out("  against make — so a wrong guess surfaces at the prove step rather than in the first round.");
 }
 
 // Four is the host tool's ceiling on questions shown at once, so a round that exceeds it would have

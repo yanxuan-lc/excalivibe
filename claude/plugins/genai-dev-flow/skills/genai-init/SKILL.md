@@ -103,8 +103,9 @@ node <skill-dir>/assets/scripts/detect.mjs --target claude
 Resolve `<skill-dir>` from where this SKILL.md was loaded from. It is read-only, so it runs without
 permission and can be re-run at any point to see where an interrupted install stopped.
 
-**Read its last three sections.** `ROUTE` decides which fork step 4 takes. `DECIDE` is step 2's
-agenda, already grouped into rounds. `SUGGESTED` is step 3's command line with everything
+**Read its last four sections.** `ROUTE` decides which fork step 4 takes. `MODULES` is a block to put
+in front of the user verbatim — blank on greenfield, filled in from the code on brownfield. `DECIDE`
+is step 2's agenda, already grouped into rounds. `SUGGESTED` is step 3's command line with everything
 already-known filled in. A `BLOCKED` section lists conditions to fix first.
 
 The route is decided by **what is missing**:
@@ -132,7 +133,7 @@ unsettled on disk, so a re-run leaves decided things decided.
 | Round | What it settles | Why here |
 |---|---|---|
 | 1 · permission and access | consent, and the missing global binaries | a refusal ends the procedure, so it comes first |
-| 2 · what this project is | `instruction_language`, and **the module shape and stack** (greenfield) or **the module reading** (brownfield) | everything downstream is written against these |
+| 2 · what this project is | `instruction_language`, picked; and **the module list**, written out | everything downstream is written against these |
 | 3 · policy | coverage policy, and whether the app answers today | it rides on the shape settled in round 2 |
 
 Follow the `DECIDE` grouping as printed; it flags any round that has outgrown four.
@@ -149,20 +150,43 @@ Follow the `DECIDE` grouping as printed; it flags any round that has outgrown fo
 On the upgrade route, round 1 also asks whether to upgrade; the route step has already said whether
 anything differs.
 
-**Round 2 — what this project is.**
+**Round 2 — what this project is.** One picked answer and one written one.
 
 1. **`instruction_language`** — the language of the requirement briefs, which is the language of
    whoever wrote them rather than of whoever is typing now. It sets the language of every dispatched
-   instruction, and so of the reports and documents executors write back.
-2. **The modules** — the one question the two routes ask differently.
-   - *Greenfield:* **one module or several**, and what each is for. Ask it outright; an empty
-     directory has nothing to read.
-   - *Brownfield:* **confirm the reading.** The route step listed the manifest directories, the
-     runners and the commands this project already runs. Ask whether that reading is right, and
-     **which existing command** each module's build, lint and test should point at — the map names
-     Makefile targets, so those names come from something real.
-3. **The technology stack** (greenfield only) — language and runtime per module. Step 4 writes code,
-   and `tdd` needs this to wire a test framework.
+   instruction, and so of the reports and documents executors write back. A short choice, so it suits
+   a picker.
+2. **The modules** — **put the route step's `MODULES` block in front of the user and take free text
+   back.** A module list is a table, and the two or three choices a picker holds would flatten it to
+   "one module or several", which settles nothing.
+
+   Ask for one line each, carrying the three things only a person holds:
+
+   ```
+   - <name>: <what it is for>, <stack>
+   ```
+   ```
+   - web: the browser client, TypeScript + Shadcn + Vite
+   - server: the HTTP API behind it, Go + Gin
+   ```
+
+   A single-module project is one line. On the brownfield route the block arrives **already filled in
+   from the code**, so the user corrects a draft and supplies what each module is for. Render it in
+   the user's language when you present it.
+
+**Derive the rest.** Only the name, the role and the stack are asked for; everything else in
+`modules.json` comes from them:
+
+| Field | Where it comes from |
+|---|---|
+| `path` | the module name as a directory; `.` for a single-module project |
+| versions | the current stable release of that toolchain |
+| `targets` | the module name — `web-build`, `web-lint`, `web-test`; on brownfield, mapped to the commands the route step listed |
+| `docs` | the conventional README path |
+| `depends_on` | what the roles and the code imply |
+
+All of it lands in `modules.json`, where step 5's `modules-map` check reads it back against make — so
+a wrong guess shows up at the prove step, with the user able to see it in the file.
 
 **Round 3 — policy.**
 
