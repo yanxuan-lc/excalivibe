@@ -159,3 +159,32 @@ gates:
       unexecutable:
         verdict: reject
         message: "The gate evaluator could not run at all. Re-install with genai-init, and confirm node is on PATH"
+
+  # Separate from the metrics gate above, and it earns its place in a way that is easy to miss in a
+  # single-language repository: there, running the suite compiles the code, so a build gate would be
+  # a slower copy of `checks`. In a repository of several modules it is not. A module with no tests
+  # is never compiled by the suite, and it does not trip `no_tests` either — the other modules
+  # already satisfy "at least one test ran" — so its code can stop compiling and every gate here
+  # stays green. This is the gate that notices, and it is also the only one that sees a contract
+  # changed on one side of a language boundary and not the other.
+  - rule_id: build
+    checker:
+      type: command
+      command: node .flow/genai/check.mjs build-ok
+      timeout_ms: 900000
+      label_from: result
+      values: [built, build_failed, target_missing]
+    on_result:
+      built: { verdict: pass }
+      build_failed:
+        verdict: reject
+        message: "The project does not build. What make printed before it stopped is in the gate facts — read that rather than working from this line. A compiler or type-check error is the round's to fix"
+      target_missing:
+        verdict: reject
+        message: "Nothing proves the code still compiles — either there is no `genai-build` target, or it still holds the placeholder recipe the install wrote. The gate facts say which. Setup problem — stop and hand it to a person"
+      failed:
+        verdict: reject
+        message: "The gate evaluator exited non-zero. That is a bug in the installed step definitions, not in the code under test"
+      unexecutable:
+        verdict: reject
+        message: "The gate evaluator could not run at all. Re-install with genai-init, and confirm node is on PATH"

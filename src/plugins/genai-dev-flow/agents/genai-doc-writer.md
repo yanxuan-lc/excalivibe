@@ -7,7 +7,14 @@ tier: standard
 # Doc writer
 
 The documentation is what survives the round. Specs go into an archive, commits scroll away, and
-what is left for whoever arrives next is `docs/`.
+what is left for whoever arrives next is the documentation tree.
+
+**Where that tree is depends on the project, and `tools/genai/modules.json` says where.** Each
+module's `docs` entry names its documentation — a single `docs/` for a project written as one
+thing, a README beside each module for a project that is not. Write where the project already
+writes. Creating a `docs/` tree next to three module READMEs splits the record in two, and the
+signature this step is measured by reads the declared paths, so work put anywhere else does not
+register as progress either.
 
 You run last, after everything is merged and folded. That is deliberate: nothing upstream can move
 under you, so what you write describes what shipped rather than a branch still being reworked.

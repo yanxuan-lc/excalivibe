@@ -206,6 +206,7 @@ section("project-owned files");
 
 const makefile = read("Makefile");
 const hasMetrics = /^genai-metrics:/m.test(makefile ?? "");
+const hasBuild = /^genai-build:/m.test(makefile ?? "");
 const declaredGoal = makefile?.match(/^\s*\.DEFAULT_GOAL\s*:=\s*(\S+)/m)?.[1];
 // With no .DEFAULT_GOAL, make runs the first target in the file — so that name is what the bare
 // command does today, and it is the thing this used to get wrong.
@@ -218,6 +219,13 @@ if (makefile !== null) {
   if (hasMetrics) {
     // The placeholder recipe lines carry make's `-` prefix, so match with and without it.
     const placeholder = /^\t-?@</m.test(makefile.slice(makefile.search(/^genai-metrics:/m)));
+    item("  its recipe", placeholder ? "STILL THE PLACEHOLDER — phase 4 fills it" : "filled in");
+  }
+  item("  genai-build target", hasBuild ? "present" : "absent — apply.mjs appends the skeleton");
+  if (hasBuild) {
+    // This placeholder announces itself by sentinel rather than by shape: it has to exit non-zero so
+    // an unwritten build never reports green, which makes it look like a real recipe from the outside.
+    const placeholder = makefile.slice(makefile.search(/^genai-build:/m)).includes("GENAI-BUILD-PLACEHOLDER");
     item("  its recipe", placeholder ? "STILL THE PLACEHOLDER — phase 4 fills it" : "filled in");
   }
 }
@@ -233,12 +241,31 @@ item(
     ? `${JSON.stringify(thresholds.coverage ?? {})}${thresholdsUnagreed ? "  (still the shipped defaults — nobody has agreed them)" : ""}`
     : existsSync("tools/genai/thresholds.json") ? "UNREADABLE" : "absent — apply.mjs copies the template",
 );
+// Unlike every other project-owned file here, this one is the round's to keep current — it declares
+// structure and no gate judges by it. So "unfilled" is reported as a state to fix now, and "filled"
+// is left entirely alone rather than compared against the template.
+const modulesMap = json("tools/genai/modules.json");
+const declaredModules = modulesMap && typeof modulesMap.modules === "object" && !Array.isArray(modulesMap.modules)
+  ? Object.keys(modulesMap.modules)
+  : null;
+item(
+  "tools/genai/modules.json",
+  modulesMap === null
+    ? existsSync("tools/genai/modules.json") ? "UNREADABLE — it exists and does not parse" : "absent — apply.mjs copies the template"
+    : declaredModules === null ? "MALFORMED — no `modules` object; genai.spec refuses to start"
+    : declaredModules.length === 0 ? "TEMPLATE, no modules declared — phase 4 fills it, and genai.spec refuses to start until it does"
+    : `${declaredModules.length} module(s): ${declaredModules.join(", ")}`,
+);
+
 const e2e = json("tools/genai/e2e.json");
 const e2eTemplate = e2e !== null && String(e2e.contains).startsWith("REPLACE-");
 // Either shape reads back the way it was declared; a project with a `command` would otherwise be
 // reported as `undefined contains "…"`.
-const e2eShape = e2e?.url ? `url ${e2e.url}` : e2e?.command ? `command ${JSON.stringify(e2e.command)}` : "NEITHER url NOR command — the gate reads that as config_malformed";
-item("tools/genai/e2e.json", e2e ? (e2eTemplate ? "TEMPLATE, unedited — phase 4 fills it" : `${e2eShape}, contains ${JSON.stringify(e2e.contains)}`) : "absent");
+const oneShape = (t) => (t?.url ? `url ${t.url}` : t?.command ? `command ${JSON.stringify(t.command)}` : "NEITHER url NOR command — the gate reads that as config_malformed");
+const e2eShape = Array.isArray(e2e?.targets)
+  ? `${e2e.targets.length} target(s): ${e2e.targets.map((t) => `${t?.name ?? "UNNAMED"} → ${oneShape(t)}, contains ${JSON.stringify(t?.contains)}`).join(" | ")}`
+  : `${oneShape(e2e)}, contains ${JSON.stringify(e2e?.contains)}`;
+item("tools/genai/e2e.json", e2e ? (e2eTemplate ? "TEMPLATE, unedited — phase 4 fills it" : e2eShape) : "absent");
 
 const sibling = `../${basename(process.cwd())}_genai`;
 const siblingState = isDir(sibling)
@@ -247,50 +274,90 @@ const siblingState = isDir(sibling)
 item("requirements directory", `${sibling}  ${siblingState}`);
 if (!isDir(sibling)) decide.push(`whether ${sibling} should be its own git repository — it sits outside this repo, so it has no history unless given one`);
 
-// ───────────────────────── 5. the test toolchain ─────────────────────────
-// This is what phase 4 needs to fill the genai-metrics recipe, and it is why detect.mjs looks at
-// more than the flow's own files: a model that has already been told the runner and the reporter
-// does not have to go reading build files to find them.
+// ───────────────────────── 5. the modules and their toolchains ─────────────────────────
+// This is what phase 4 needs to write modules.json and to fill the two recipes, and it is why
+// detect.mjs looks at more than the flow's own files: a model that has already been told the split,
+// the runners and the reporters does not have to go reading build files to find them.
+//
+// **Every depth, not just the root.** A manifest one level down is entirely ordinary — it is what a
+// repository of several modules looks like — and a root-only scan reports the most interesting
+// project it will ever meet as having no toolchain at all.
 
-section("test toolchain (input for the genai-metrics recipe)");
+section("modules and toolchains (input for modules.json and the two recipes)");
 
+// One manifest names one module. `python` and `jvm` collapse several filenames into one name
+// because the distinction between pyproject.toml and setup.cfg does not change what phase 4 writes.
+const MANIFESTS = [
+  ["package.json", "package.json"],
+  ["go.mod", "go.mod"],
+  ["Cargo.toml", "Cargo.toml"],
+  ["pyproject.toml", "python"], ["pytest.ini", "python"], ["setup.cfg", "python"],
+  ["pom.xml", "jvm"], ["build.gradle", "jvm"], ["build.gradle.kts", "jvm"],
+  ["Gemfile", "Gemfile"], ["composer.json", "composer.json"], ["mix.exs", "mix.exs"],
+];
+const MANIFEST_NAMES = new Map(MANIFESTS);
+
+// Directory → the manifest kinds found in it. `.` for the root, so a single-module project reads
+// the way it always did.
+const byDir = new Map();
+for (const file of files) {
+  const name = basename(file);
+  if (!MANIFEST_NAMES.has(name)) continue;
+  const dir = dirname(file) === "." ? "." : dirname(file);
+  if (!byDir.has(dir)) byDir.set(dir, new Set());
+  byDir.get(dir).add(MANIFEST_NAMES.get(name));
+}
+const moduleDirs = [...byDir.keys()].sort();
 const pkg = json("package.json");
 // A manifest that exists and does not parse is not the same as no manifest: phase 4 reads this one to
 // choose a reporter, so an unreadable one is a finding rather than a silence.
 if (pkg === null && existsSync("package.json")) item("package.json", "UNREADABLE — it exists and does not parse");
-const manifests = [
-  pkg && "package.json",
-  existsSync("Cargo.toml") && "Cargo.toml",
-  (existsSync("pyproject.toml") || existsSync("pytest.ini") || existsSync("setup.cfg")) && "python",
-  existsSync("go.mod") && "go.mod",
-  (existsSync("pom.xml") || existsSync("build.gradle") || existsSync("build.gradle.kts")) && "jvm",
-  existsSync("Gemfile") && "Gemfile",
-  existsSync("composer.json") && "composer.json",
-  existsSync("mix.exs") && "mix.exs",
-].filter(Boolean);
-item("manifests", manifests.length ? manifests.join(", ") : "none found");
 
-// Python and Rust declare their runner in a manifest too, and phase 4 needs it for the same reason
-// it needs npm's: to pick a machine-readable reporter without going and reading build files first.
-const pyConfig = ["pyproject.toml", "pytest.ini", "tox.ini", "setup.cfg"].filter((f) => existsSync(f));
-if (pyConfig.length) {
-  const text = pyConfig.map((f) => read(f) ?? "").join("\n");
-  const opts = text.match(/^\s*addopts\s*=\s*(.+)$/m)?.[1]?.trim();
-  const tools = ["pytest-cov", "pytest", "coverage", "unittest", "nose"].filter((t) => text.includes(t));
-  item("  python test config", `${pyConfig.join(", ")}${opts ? ` — addopts ${opts}` : ""}${tools.length ? ` — mentions ${tools.join(", ")}` : ""}`);
-}
-if (existsSync("Cargo.toml")) {
-  const cargo = read("Cargo.toml") ?? "";
-  const tools = ["tarpaulin", "llvm-cov", "nextest", "grcov"].filter((t) => cargo.includes(t));
-  item("  cargo coverage tools", tools.length ? tools.join(", ") : "none declared — `cargo test` reports no coverage on its own");
+item("manifests found in", moduleDirs.length ? `${moduleDirs.length} director${moduleDirs.length === 1 ? "y" : "ies"}` : "none found");
+if (moduleDirs.length > 1) item("  NOTE", "more than one module — modules.json needs an entry each, and the metrics recipe has to aggregate across them");
+
+for (const dir of moduleDirs) {
+  const kinds = [...byDir.get(dir)].sort();
+  item(dir === "." ? "  . (repository root)" : `  ${dir}`, kinds.join(", "));
+
+  const at = (name) => (dir === "." ? name : join(dir, name));
+  if (kinds.includes("package.json")) {
+    const parsed = json(at("package.json"));
+    if (parsed === null) item("      package.json", "UNREADABLE");
+    else {
+      const scripts = Object.entries(parsed.scripts ?? {}).filter(([n]) => /^(test|coverage|cov|build|lint|typecheck|tsc)/.test(n));
+      item("      scripts", scripts.length ? scripts.map(([n, v]) => `${n}: ${v}`).join(" | ") : "none of test/build/lint/typecheck");
+      const deps = { ...parsed.dependencies, ...parsed.devDependencies };
+      const runners = ["vitest", "jest", "mocha", "ava", "tap", "node:test", "c8", "nyc", "@vitest/coverage-v8", "playwright", "@playwright/test"].filter((d) => deps?.[d]);
+      item("      runners / coverage", runners.length ? runners.join(", ") : "none declared — this module has no test runner, so nothing here compiles it either");
+    }
+  }
+  // Python and Rust declare their runner in a manifest too, and phase 4 needs it for the same reason
+  // it needs npm's: to pick a machine-readable reporter without going and reading build files first.
+  if (kinds.includes("python")) {
+    const configs = ["pyproject.toml", "pytest.ini", "tox.ini", "setup.cfg"].filter((f) => existsSync(at(f)));
+    const text = configs.map((f) => read(at(f)) ?? "").join("\n");
+    const opts = text.match(/^\s*addopts\s*=\s*(.+)$/m)?.[1]?.trim();
+    const tools = ["pytest-cov", "pytest", "coverage", "unittest", "nose", "mypy", "ruff"].filter((t) => text.includes(t));
+    item("      python", `${configs.join(", ")}${opts ? ` — addopts ${opts}` : ""}${tools.length ? ` — mentions ${tools.join(", ")}` : ""}`);
+  }
+  if (kinds.includes("Cargo.toml")) {
+    const cargo = read(at("Cargo.toml")) ?? "";
+    const tools = ["tarpaulin", "llvm-cov", "nextest", "grcov"].filter((t) => cargo.includes(t));
+    item("      cargo coverage", tools.length ? tools.join(", ") : "none declared — `cargo test` reports no coverage on its own");
+  }
+  if (kinds.includes("go.mod")) {
+    // Worth stating rather than leaving phase 4 to discover: go's cover has statements and nothing
+    // else, so a project whose only coverage comes from go cannot report two of the three dimensions.
+    item("      go", "`go test -cover` reports STATEMENTS only — no branch and no function dimension");
+  }
 }
 
-if (pkg) {
-  const scripts = Object.entries(pkg.scripts ?? {}).filter(([n]) => /^(test|coverage|cov)/.test(n));
-  item("  npm test scripts", scripts.length ? scripts.map(([n, v]) => `${n}: ${v}`).join(" | ") : "none");
-  const deps = { ...pkg.dependencies, ...pkg.devDependencies };
-  const runners = ["vitest", "jest", "mocha", "ava", "tap", "node:test", "c8", "nyc", "@vitest/coverage-v8", "playwright", "@playwright/test"].filter((d) => deps?.[d]);
-  item("  runners / coverage", runners.length ? runners.join(", ") : "none declared");
+// Only asked when the split is not already written down. One module needs no confirming; several do,
+// because which directories are modules and what each one's targets are called is the project's
+// intent, not something a file listing settles.
+if ((declaredModules === null || declaredModules.length === 0) && moduleDirs.length > 1) {
+  decide.push(`the module split — ${moduleDirs.join(", ")} each look like one. Confirm the list, what each is for, which of them consume another's contract, and the Makefile target that builds, lints and tests each`);
 }
 
 // Whether any test exists decides which metrics label is the expected one at install time — with no

@@ -32,6 +32,11 @@ and appear nowhere in the change.
 A requirement that states what is out of scope has been violated if that thing was built.
 Scope creep is a gap in the other direction and it counts.
 
+`tools/genai/modules.json` tells you what the project is made of, which is what makes "was this
+built anywhere" answerable. A requirement satisfied in one module and not in the module that has
+to consume it is not satisfied, and it is the gap most easily missed — the half that exists
+demonstrates well.
+
 ## Verdicts
 
 - **approve** — every requirement satisfied, evidence recorded for each

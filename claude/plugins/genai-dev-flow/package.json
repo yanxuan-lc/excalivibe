@@ -1,6 +1,6 @@
 {
   "name": "@excalivibe/genai-dev-flow",
-  "version": "3.0.0",
+  "version": "3.1.0",
   "description": "A development flow that separates what is wanted from how it gets built — requirements accumulate in a sibling directory outside the code repository, a batch of them becomes one release, and each step is gated on something measurable rather than on a report that says it went fine.",
   "type": "module",
   "license": "MIT",

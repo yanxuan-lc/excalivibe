@@ -19,6 +19,11 @@ Cover at least:
 - **Correctness** — including the edge cases the spec calls out, and the ones it implies
 - **Maintainability** — is the next change to this area easier or harder now
 - **Scope** — do the edits stay inside what this change is about
+- **Both sides of a contract** — `tools/genai/modules.json` says which modules consume which. If
+  this diff changes something a dependent module reads — a response shape, a schema, a signature
+  — check that the dependent changed too. Across a language boundary nothing else will: the
+  producer's tests pass, the consumer is never compiled by them, and the two disagree from the
+  merge onward
 - **Whether the project's gate reaches this** — the tests were written by whoever wrote the
   code, so a green gate proves only that they pass
 
@@ -34,11 +39,20 @@ that is a finding — say what the gate should also cover. **Do not edit that ta
 floors**, and treat an edit to either in the diff as an out-of-scope finding: a change may not
 widen the gate it is being measured by.
 
+The same applies to the `genai-build` target: a change may not narrow what has to compile.
+
 The one exception is a commit carrying a `Genai-Setup-Fix:` trailer — a person repairing a metrics
-setup that was rejecting every attempt. Record it as `info`, and read the diff before you do: a
-lowered floor, a newly skipped test or a narrowed command is a blocker whatever the trailer says.
-Absent the trailer there is no exception, and the author field never distinguishes a person from
-the agent they are driving.
+or build setup that was rejecting every attempt. Record it as `info`, and read the diff before you
+do: a lowered floor, a newly skipped test or a narrowed command is a blocker whatever the trailer
+says. Absent the trailer there is no exception, and the author field never distinguishes a person
+from the agent they are driving.
+
+**`tools/genai/modules.json` is not one of these files, and this is the distinction to get right.**
+It declares structure and no gate judges by it, so a round that adds, removes or renames a module
+**should** update it — an unchanged map beside a structural change is itself a finding. What it may
+not do is quietly shrink: a module dropped from the map, or a `targets` entry turned to `null`,
+takes that module out of `genai-build` and out of every step's view of the project. Unless the
+module really was deleted, that is a blocker.
 
 ## Scope is the criterion that gets skipped
 

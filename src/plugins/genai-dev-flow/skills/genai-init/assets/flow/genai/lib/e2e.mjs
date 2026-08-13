@@ -299,9 +299,19 @@ export function judgeReport() {
  *
  * Two shapes, one meaning. `url` covers anything that listens; `command` covers everything that never
  * will — a CLI, a library, a batch job — where the same argument holds with the nouns changed: a
- * binary on PATH proves nothing about *which* build answered. Exactly one of the two, because two
- * ways to identify the same app is two things that can disagree.
+ * binary on PATH proves nothing about *which* build answered. Exactly one of the two per target,
+ * because two ways to identify the same thing is two things that can disagree.
+ *
+ * **A project may have more than one face**, and then one target cannot express it: a browser client
+ * and the API behind it, a CLI and the server it talks to. `targets` is a list of the shape above,
+ * each with its own `name`, and it is a CONJUNCTION — every one has to be identified. That makes it
+ * strictly stronger than a single target, so there is nothing to loosen here. What it must not become
+ * is a general readiness check: this rule answers "is the thing I am about to test the right thing",
+ * and a database that falls over mid-run is `infra_failure` in the report, which routes to a person
+ * rather than to "start it and dispatch again".
  */
+const MAX_TARGETS = 4;
+
 export async function probeApp() {
   if (!existsSync(APP_CONFIG)) return { label: "config_missing", facts: { file: APP_CONFIG } };
 
@@ -311,26 +321,105 @@ export async function probeApp() {
   } catch (cause) {
     return { label: "config_malformed", facts: { file: APP_CONFIG, reason: String(cause?.message ?? cause) } };
   }
-  const url = config?.url;
-  const command = config?.command;
-  const contains = config?.contains;
-  const declared = [typeof url === "string" && url !== "", typeof command === "string" && command !== ""].filter(Boolean).length;
-  if (typeof contains !== "string" || contains === "") {
-    return { label: "config_malformed", facts: { file: APP_CONFIG, reason: "`contains` is required — without a marker there is nothing to identify the app by" } };
+
+  const listed = config?.targets;
+  const single = config?.url !== undefined || config?.command !== undefined || config?.contains !== undefined;
+  if (listed !== undefined) {
+    if (!Array.isArray(listed) || listed.length === 0) {
+      return { label: "config_malformed", facts: { file: APP_CONFIG, reason: "`targets` must be a non-empty array, one entry per face of this project" } };
+    }
+    // The same argument the url/command pair gets, one level up: a project that declares both shapes
+    // has said the same thing twice, and the two can drift apart.
+    if (single) {
+      return { label: "config_malformed", facts: { file: APP_CONFIG, reason: "declare either `targets` or a single `url`/`command`, not both. Two ways to say what this project is, is two things that can disagree" } };
+    }
+    // A bound rather than a silent queue: each target gets its own 5s, so an unbounded list can
+    // outlast the gate's own timeout — and that comes back as `failed`, whose message says the
+    // installed definitions are buggy. A wrong accusation is worse than a plain refusal.
+    if (listed.length > MAX_TARGETS) {
+      return { label: "config_malformed", facts: { file: APP_CONFIG, declared: listed.length, max: MAX_TARGETS, reason: `at most ${MAX_TARGETS} targets — beyond that the probe outlasts the rule's own timeout and the refusal stops being legible` } };
+    }
+    const names = new Set();
+    for (const [index, target] of listed.entries()) {
+      if (target === null || typeof target !== "object" || Array.isArray(target)) {
+        return { label: "config_malformed", facts: { file: APP_CONFIG, index, reason: "each entry in `targets` must be an object" } };
+      }
+      // Required, and not cosmetic: a refusal has to say which face is not up. "target 2 of 3" sends
+      // the reader back to the file to find out what that was.
+      if (typeof target.name !== "string" || target.name === "") {
+        return { label: "config_malformed", facts: { file: APP_CONFIG, index, reason: "each target needs a `name` — the refusal names the face that is not up, and an index is not a name" } };
+      }
+      if (names.has(target.name)) {
+        return { label: "config_malformed", facts: { file: APP_CONFIG, name: target.name, reason: "two targets share a name, so a refusal cannot say which one it means" } };
+      }
+      names.add(target.name);
+      const shape = shapeOf(target, target.name);
+      if (shape !== null) return shape;
+    }
+    return await probeAll(listed);
+  }
+
+  const shape = shapeOf(config, null);
+  if (shape !== null) return shape;
+  return config.url ? await probeUrl(config.url, config.contains, config.status ?? 200) : probeCommand(config.command, config.contains);
+}
+
+/** The url/command/contains contract, shared by the single shape and by every entry in `targets`. */
+function shapeOf(target, name) {
+  const where = name === null ? { file: APP_CONFIG } : { file: APP_CONFIG, target: name };
+  const declared = [typeof target?.url === "string" && target.url !== "", typeof target?.command === "string" && target.command !== ""].filter(Boolean).length;
+  if (typeof target?.contains !== "string" || target.contains === "") {
+    return { label: "config_malformed", facts: { ...where, reason: "`contains` is required — without a marker there is nothing to identify the app by" } };
   }
   if (declared !== 1) {
     return {
       label: "config_malformed",
       facts: {
-        file: APP_CONFIG,
+        ...where,
         reason: declared === 0
           ? "declare exactly one of `url` (something answers over HTTP) or `command` (something answers on stdout or stderr). A project with no runtime surface at all has nothing for this step to accept"
           : "`url` and `command` are alternatives, not a pair. Two ways to identify the app is two things that can disagree",
       },
     };
   }
+  return null;
+}
 
-  return url ? await probeUrl(url, contains, config?.status ?? 200) : probeCommand(command, contains);
+/**
+ * Every target, and one label for the lot.
+ *
+ * Nothing short-circuits. The whole value of a list is that one refusal describes every face at
+ * once — "web up, service is the wrong build, cli not built" is a sentence someone can act on,
+ * where "web up, then I stopped looking" is another round trip.
+ *
+ * The url probes run concurrently because they are already async and independent; the commands run
+ * one after another because `spawnSync` is what reads both of a process's streams. So the worst case
+ * is one 5s window for all the urls plus 5s per command — inside the rule's own timeout at four
+ * targets, which is what the cap above is for.
+ *
+ * Precedence puts `wrong_service` ahead of `unreachable`, and that order is deliberate. Unreachable
+ * is the ordinary state — start it and dispatch again. Wrong service is the alarming one: something
+ * else is on that port, or the command found an older build on PATH. Reporting the ordinary one when
+ * both are present sends the reader to start a service and walk into the other wall.
+ */
+async function probeAll(targets) {
+  const urls = targets.filter((t) => typeof t.url === "string" && t.url !== "");
+  const commands = targets.filter((t) => !(typeof t.url === "string" && t.url !== ""));
+
+  const results = new Map();
+  const settled = await Promise.all(urls.map(async (t) => [t.name, await probeUrl(t.url, t.contains, t.status ?? 200)]));
+  for (const [name, result] of settled) results.set(name, result);
+  for (const t of commands) results.set(t.name, probeCommand(t.command, t.contains));
+
+  const facts = {
+    file: APP_CONFIG,
+    targets: targets.map((t) => ({ name: t.name, ...results.get(t.name).facts, result: results.get(t.name).label })),
+  };
+  for (const label of ["config_malformed", "wrong_service", "unreachable"]) {
+    const hit = targets.filter((t) => results.get(t.name).label === label).map((t) => t.name);
+    if (hit.length > 0) return { label, facts: { ...facts, [label]: hit } };
+  }
+  return { label: "identified", facts };
 }
 
 /** HTTP: the shape for anything that listens on a port. */

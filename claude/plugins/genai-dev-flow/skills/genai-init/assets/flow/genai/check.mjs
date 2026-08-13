@@ -22,6 +22,8 @@
 //   metrics                      satisfied | tests_failing | no_tests | too_many_skipped
 //                                | coverage_below_floor | metrics_missing | metrics_unreadable
 //                                | thresholds_missing
+//   build-ok                     built | build_failed | target_missing
+//   modules-map                  consistent | map_missing | map_malformed | target_missing
 //   spec-scenarios               unique | unnumbered | duplicated | count_mismatch | unreadable
 //   arch-doc                     complete | no_decisions | decision_incomplete | external_reference
 //                                | background_over_ceiling | unreadable
@@ -41,8 +43,10 @@ import { execFileSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import { archived, backlogRoot, items } from "./lib/backlog.mjs";
 import { changeFiles, openChanges, specDeltas } from "./lib/changes.mjs";
+import { judgeBuild } from "./lib/build.mjs";
 import { judgeDocs } from "./lib/decision.mjs";
 import { treeSignature } from "./lib/docs.mjs";
+import { judgeMap } from "./lib/modules.mjs";
 import { judgeManifest, judgeMapping, judgeReport, judgeScenarios, probeApp, suiteSignature } from "./lib/e2e.mjs";
 import { judge } from "./lib/metrics.mjs";
 import { validate } from "./lib/openspec.mjs";
@@ -60,6 +64,8 @@ const atoms = {
   worktree,
   "openspec-valid": openspecValid,
   metrics: metricsAtom,
+  "build-ok": buildOk,
+  "modules-map": modulesMap,
   "spec-scenarios": specScenarios,
   "arch-doc": archDoc,
   "e2e-manifest": e2eManifest,
@@ -138,6 +144,19 @@ function openspecValid() {
 
 function metricsAtom() {
   const { label, facts } = judge();
+  say(label, facts);
+}
+
+function buildOk() {
+  const { label, facts } = judgeBuild();
+  say(label, facts);
+}
+
+// Separate from build-ok on purpose. This one asks whether the map still describes the Makefile;
+// that one asks whether the project builds. Folding them together would report a renamed target and
+// a broken compile as the same fact, and they are neither the same problem nor the same person's.
+function modulesMap() {
+  const { label, facts } = judgeMap();
   say(label, facts);
 }
 

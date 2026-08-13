@@ -50,6 +50,41 @@ ready:
         ready: false
         reason: "The check could not run at all. Re-install with genai-init, and confirm node is on PATH"
 
+  # Checked here, at the front of the round, and nowhere in the implementation loop. Every step
+  # downstream reads this map to know what the project is made of — which module a requirement lands
+  # in, which side of a contract has another side, where a module's documentation lives — so
+  # designing against a stale one produces a spec that is wrong in a way no later gate looks for.
+  # Once per round is also all it is worth: the check forks make once per declared target, and
+  # nothing inside a round renames a target.
+  #
+  # No `when: first_attempt`, unlike the rule above. That one is scoped because claiming an item
+  # moves it out of `ready` and a second attempt would refuse on its own success. Nothing here
+  # changes state, so re-entry should see a repair.
+  - rule_id: modules-declared
+    checker:
+      type: command
+      command: node .flow/genai/check.mjs modules-map
+      timeout_ms: 120000
+      label_from: result
+      values: [consistent, map_missing, map_malformed, target_missing]
+    on_result:
+      consistent: { ready: true }
+      map_missing:
+        ready: false
+        reason: "tools/genai/modules.json is not there, so no step knows how this repository is divided. Re-install with genai-init, or write it: one entry per module, `path` `.` for a project that is one module"
+      map_malformed:
+        ready: false
+        reason: "tools/genai/modules.json does not satisfy its contract; the reason names the field. A freshly installed map declares no modules at all and reports this until genai-init's last phase fills it in"
+      target_missing:
+        ready: false
+        reason: "The map names a Makefile target that make does not have. Either the target was renamed and the map was not, or the map names one that never existed — the facts say which module and which target. This is a person's one-line fix, not a round's"
+      failed:
+        ready: false
+        reason: "The check itself exited non-zero. That is a bug in the installed step definitions"
+      unexecutable:
+        ready: false
+        reason: "The check could not run at all. Re-install with genai-init, and confirm node is on PATH"
+
 # Rules run in declaration order and the first non-pass concludes, so the cheap prerequisites
 # come first and the expensive ones last.
 gates:

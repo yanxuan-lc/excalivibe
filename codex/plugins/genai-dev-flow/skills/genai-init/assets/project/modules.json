@@ -1,0 +1,22 @@
+{
+  "_comment": "How this repository is divided. Every step reads it, no gate judges by it, and a round that changes the structure updates it. Fill `modules` in and delete both `_comment` and `_example`. A single-module project declares one module whose `path` is `.`. `targets` names Makefile TARGETS, not commands, and `null` means this module has no target of that kind — which is also how a module with no tests says so.",
+  "_example": {
+    "web": {
+      "path": "web",
+      "language": "typescript",
+      "role": "the browser client - what a user sees",
+      "depends_on": ["service"],
+      "docs": ["web/README.md"],
+      "targets": { "build": "web-build", "lint": "web-lint", "test": null }
+    },
+    "service": {
+      "path": "service",
+      "language": "go",
+      "role": "the HTTP API every client talks to",
+      "depends_on": [],
+      "docs": ["service/README.md"],
+      "targets": { "build": "service-build", "lint": "service-lint", "test": "service-test" }
+    }
+  },
+  "modules": {}
+}

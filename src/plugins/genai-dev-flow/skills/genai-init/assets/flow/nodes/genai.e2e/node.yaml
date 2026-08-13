@@ -34,6 +34,12 @@ ready:
   # library or a batch job able to finish a round at all — genai.merge premises on this step, so a
   # shape this check cannot express is a shape that can never merge.
   #
+  # A project with several faces — a client and the API behind it, a CLI and its server — declares
+  # `targets`, and every one of them has to be identified. The list is a conjunction, so it is
+  # strictly stronger than one target and there is nothing here to loosen. It is still identity and
+  # not readiness: a database that falls over mid-run is `infra_failure` in the report, which goes to
+  # a person, not a refusal that costs nothing and invites another dispatch.
+  #
   # Safe on the default `always`: this step does not start, stop or deploy the app, so nothing it does
   # can make the rule false. A refusal here consumes nothing at all — no verdict, no patience, no
   # attempt — which is exactly the right shape for "the app is not up yet": start it and dispatch
@@ -49,16 +55,16 @@ ready:
       identified: { ready: true }
       wrong_service:
         ready: false
-        reason: "Something answered and it is not this project's app — the marker the project declared is not in what came back. For a `url`, point it at the right port or start the right service; for a `command`, check it runs this build rather than one on PATH"
+        reason: "Something answered and it is not this project's app — a marker the project declared is not in what came back. The facts name which target, and every other target's state alongside it. For a `url`, point it at the right port or start the right service; for a `command`, check it runs this build rather than one on PATH"
       unreachable:
         ready: false
-        reason: "The app under test is not reachable. Start it with the project's own command; this step validates a running system and never boots one"
+        reason: "The app under test is not reachable. The facts name which target, so a project with several faces sees which of them is down. Start it with the project's own command; this step validates a running system and never boots one"
       config_missing:
         ready: false
         reason: "tools/genai/e2e.json is not there, so there is no way to tell this app from anything else listening. A project often cannot write it until the app exists, which is why nothing earlier in the round asked for it — get the URL — or, for something that never listens on a port, the command — and a marker only this app returns from a person, rather than guessing either. genai-init has the shape. If it is being added now, mind the commit window: before genai.code-review is dispatched, or left untracked for genai.merge to collect — a commit after the review approved the tip strands the merge"
       config_malformed:
         ready: false
-        reason: "tools/genai/e2e.json does not satisfy its contract; the reason names the field. Exactly one of `url` or `command` is required, and `contains` always — without a marker there is nothing to identify the app by"
+        reason: "tools/genai/e2e.json does not satisfy its contract; the reason names the field, and the target when there is more than one. Per target: exactly one of `url` or `command`, and `contains` always — without a marker there is nothing to identify the app by. A project with several faces declares `targets`, a list of exactly that shape with a `name` each, and never both forms at once"
       failed:
         ready: false
         reason: "The check itself exited non-zero. That is a bug in the installed step definitions"

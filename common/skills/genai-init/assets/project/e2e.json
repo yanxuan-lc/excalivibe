@@ -1,5 +1,10 @@
 {
-  "_comment": "Exactly one of `url` (it listens on a port) or `command` (it does not: a CLI, a library, a batch job). Replace `contains` with a marker only this project's own output carries — ok / healthy / 200 are not markers. Delete this line.",
+  "_comment": "One face: keep the two lines below. Several faces - a client and the API behind it, a CLI and its server - delete them and use the `targets` list instead, one entry per face, each with a `name`, exactly one of `url` (it listens on a port) or `command` (it does not), and its own `contains`. Never both forms at once, at most 4 targets, and every one has to be identified. Replace `contains` with a marker only this project's own output carries - ok / healthy / 200 are not markers. Delete this line.",
+  "_example_targets": [
+    { "name": "web", "url": "http://127.0.0.1:5173/", "contains": "<title>widget" },
+    { "name": "api", "url": "http://127.0.0.1:8080/healthz", "contains": "widget-api", "status": 200 },
+    { "name": "cli", "command": "./bin/widget --version", "contains": "widget/1." }
+  ],
   "url": "http://127.0.0.1:5173/healthz",
   "contains": "REPLACE-WITH-A-MARKER-ONLY-THIS-APP-RETURNS"
 }

@@ -28,6 +28,11 @@ The tests operate the real interface — clicks, taps, requests — through what
 takes. Importing a module and calling a function is a unit test wearing an e2e label, and it binds
 the assertion to a signature that refactoring will change without changing behaviour.
 
+Which interface that is, in a project of several modules, comes from `tools/genai/modules.json`:
+drive the outermost one a user or caller actually reaches, and let it reach the rest. A scenario
+exercised against the module the change happened to touch proves that module and nothing about the
+path through it.
+
 Assert what the interface shows **and** what reaches the database. A scenario's database expectation
 is part of what was agreed; a suite that only checks the screen leaves the half that matters
 unverified.

@@ -40,6 +40,13 @@ Reproducing a scripted failure by hand is legitimate **to work out which of the 
 never a way to overturn the result: a red test stays red until someone changes code, and a manual
 retry that happens to pass is not evidence.
 
+## What has to be running
+
+`tools/genai/e2e.json` says how to tell this project's own app from anything else answering, and
+`tools/genai/modules.json` says what the project is made of — which is how you know a run against
+one module and a run against the system are different runs. Start every face a scenario's path goes
+through, not only the one whose code changed.
+
 ## What cannot be reached is a blocker, not a result
 
 An unreachable app, a lost device, a database you cannot query — report it as that. Never infer a

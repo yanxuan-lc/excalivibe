@@ -17,6 +17,13 @@ Look for requirements that touch the same capability, share a data shape, or wou
 force two changes to edit the same spec file. Fold those together. Keep the rest apart —
 merging unrelated work into one change makes it impossible to review or revert independently.
 
+**Read `tools/genai/modules.json` first.** It names the modules, what each is for, and which of
+them consume another's contract. Two judgements depend on it: which module a requirement lands in,
+and whether it lands in more than one. A requirement that changes something a dependent module
+reads is work on both sides, and saying so in the spec is what stops the second side being
+discovered at merge — in a repository of several languages, nothing the first side runs will find
+it. If the design adds or removes a module, say that in the change too.
+
 ## Write the delta, not the world
 
 A change carries the delta against the current spec, and a proposal that says why. Do not

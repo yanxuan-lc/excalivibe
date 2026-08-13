@@ -125,12 +125,21 @@ project satisfies it:
 
 ```
 make genai-metrics             runs the suite, prints the numbers
+make genai-build               proves the code still compiles; the exit code is the answer
 tools/genai/thresholds.json    the floors those numbers are judged against, and the e2e ceiling
 tools/genai/e2e.json           how to recognise this project's own app when it is running
+tools/genai/modules.json       what this repository is made of - read by every step, judged by none
 ```
 
-All three ship as templates under `genai-init`'s `assets/project/`, so a project starts from a copy
+All five ship as templates under `genai-init`'s `assets/project/`, so a project starts from a copy
 rather than from a transcription — the shapes live there and are not repeated here.
+
+The last one is the odd one out and the difference matters: **it is the only one a round may edit.**
+The other four are what the round is measured by, so a round that could change them would have no
+gate. `modules.json` decides nothing — it describes — and a description that may not follow the code
+it describes goes stale by design. What guards it is the reviewer: dropping a module from the map
+does not drop it from `genai-build`, and an unchanged map beside a structural change is a finding
+of its own.
 
 `e2e.json` exists because "is the app up" is not a question a port can answer. On a developer's
 machine several projects' services are usually listening at once, so a TCP connect — or even a 200 —
@@ -150,6 +159,25 @@ things that can disagree.
 **start** without an identified app — so before `command` existed, a project with no HTTP surface
 could complete every other step of a round and never merge. A shape this check cannot express is a
 shape that cannot ship.
+
+**A project with several faces declares `targets`** — a list of exactly the shape above, each entry
+carrying its own `name`, and never alongside a top-level `url`/`command`. A browser client and the
+API behind it, a CLI and the server it talks to: one target cannot say that, and picking whichever
+face the round happened to touch checks the wrong thing on the next round. The list is a
+**conjunction** — every target has to be identified — so it is strictly stronger than a single one
+and there is nothing in it to loosen. At most four, because each gets its own five-second window and
+a longer probe outlasts the rule's own timeout, which comes back as "the step definitions are buggy".
+
+One refusal describes every face at once (`web` up, `api` answering as the wrong build, `cli` not
+started), because nothing short-circuits. When faces disagree, `wrong_service` is reported over
+`unreachable`: not being up is the ordinary state and is fixed by starting something, while something
+else on the port is the one that wastes a second attempt if it stays hidden behind the first.
+
+**It is identity, not readiness.** This rule answers whether the thing about to be tested is the
+right thing. Whether the database is seeded, whether fixtures loaded, whether the suite can run —
+none of that is here, and a system that falls over mid-run is `infra_failure` in the report, which
+goes to a person. A refusal here costs nothing and invites another dispatch, which is the right shape
+for "not started yet" and the wrong one for "the environment is broken".
 
 Refusing to start, rather than failing afterwards, is what keeps this cheap: nothing is consumed — no
 verdict, no patience, no attempt.
@@ -196,6 +224,58 @@ Which test framework, which coverage tool, how the target is wired — none of t
 subject. Choosing and running a test setup is what `tdd` is for; this flow only states what has
 to come out the other end. A future step needing its own project-supplied gate gets its own
 `genai-<step>` target under the same rule.
+
+### `modules.json` — what the project is made of
+
+Every step reads it and no gate judges by it. It is a briefing, and each field is there because
+some step is worse without it: `path` / `language` / `role` give every agent a project sense that a
+directory listing does not; `depends_on` tells the spec reviewer which way the arrows point and
+tells the code reviewer that a contract has another side; `docs` says where documentation lives, so
+a repository with a README per module is measured on those rather than on a `docs/` it does not
+have; `targets` names the Makefile targets that build, lint and test each module.
+
+`targets` names **targets, never commands.** A command here would be a second way to build the same
+module, and two ways to do one thing is one thing that can disagree with itself. The project's
+commands already live in its Makefile; this file points at them. What keeps the two honest is the
+`modules-map` check at the front of every round: it asks make itself whether each named target
+exists, which is the only form of the question that does not drift — a grep for `^web-build:` misses
+`$(MODULES:%=%-build)` and every other way a target gets generated.
+
+The check runs at `genai.spec` and nowhere in the implementation loop. Designing against a stale map
+produces a spec that is wrong in a way no later gate looks for, and once a round is under way nothing
+renames a target.
+
+### `genai-build` — whether the code still compiles
+
+One target, and **the exit code is the whole verdict.** That is the opposite of `genai-metrics`,
+where the exit code is ignored because a failing suite is data and the numbers still have to come
+through. Here there are no numbers.
+
+The same difference decides how the two recipes are written, and getting it backwards breaks each of
+them in its own way:
+
+| | `genai-metrics` | `genai-build` |
+|---|---|---|
+| make's `-` prefix | **required** on the line that runs the suite | **never** — stopping at the failing line is the result |
+| exit code | ignored | is the verdict |
+| what a wrong choice does | a red suite reports `metrics_missing` instead of `tests_failing`, and no round can fix a broken setup | a failed compile reports `built`, and the gate passes work that does not build |
+
+**In a single-language project this gate looks redundant, and in a repository of several modules it
+is not.** There, running the suite compiles the code, so a build gate is a slower copy of the metrics
+one. Here a module with no tests is never compiled by the suite — and it does not trip `no_tests`
+either, because the other modules already satisfy "at least one test ran". Its code can stop
+compiling with every gate green. This is the gate that notices, and it is the only one that sees a
+contract changed on one side of a language boundary and not the other.
+
+Like the metrics target it runs twice, at `genai.implement` and again at `genai.merge`, and the
+second run is not a retry: two changes that each compile can fail to compile together.
+
+**Narrowing belongs in the recipe, not in the gate.** A project whose build is genuinely slow should
+narrow it — inside its own target, where the knowledge of how to do that safely already lives, and
+where the toolchain is usually doing it already (`go test` skips packages nothing touched; tsc has
+`--incremental`). A gate that narrowed would have to be right about the module map, the dependency
+graph and the fork point all at once, and being wrong about any of them means silently building
+less — which looks exactly like passing.
 
 **One target, two steps, two trees.** `genai.implement` runs it on the sprint branch and
 `genai.merge` runs it again on the merged tree, against the same floors. The second run is not
@@ -280,6 +360,21 @@ dimension down**. An entire unimplemented file is then invisible to this gate. I
 works that way, its target has to close the gap itself: enumerate the source files, and score a file the
 report never mentions as zero. Choosing a machine-readable reporter fixes whether the format drifts; it
 says nothing about whether the scope is complete.
+
+**A repository of several modules has the same hole one size larger, and it opens without any tool
+behaving oddly.** A module with no test runner produces no report, so it contributes nothing to the
+numerator and nothing to the denominator — its code cannot lower any dimension, and its absence reads
+as coverage. It does not trip `no_tests` either: the other modules already satisfy "at least one test
+ran". `tools/genai/modules.json` is where such a module is visible, as a `targets.test` of `null`, and
+the recipe has to count its source files **into the denominator** for the number to mean what it says.
+Aggregating across languages needs the same care one level down — sum covered and total counts, never
+average the per-tool percentages, and mind that merged coverage profiles can list the same block twice
+(`go test -coverpkg=./...` does, and summing them naively reports roughly half the real figure).
+
+Which dimensions are reportable is a toolchain fact, not a policy: Go's cover has statements and
+nothing else, so a project measuring Go cannot report `branches` or `functions` for that part. Set
+those floors to `null` rather than leaving them at the shipped defaults — a floor with no measurement
+behind it counts as below it, and rejects every round with nothing able to fix it.
 
 ### A broken setup rejects; it never passes
 

@@ -21,7 +21,11 @@ spec that is coherent alone and contradictory alongside its neighbour.
   cheaply undone once it has run somewhere real
 - **New interfaces and contract changes** — who consumes them, whether existing consumers keep
   working, whether the error cases are enumerated rather than implied
-- **Module boundaries** — dependency direction, and whether this introduces a cycle
+- **Module boundaries** — dependency direction, and whether this introduces a cycle.
+  `tools/genai/modules.json` is where the project declares both, so judge against what it says
+  rather than against the directory layout. A design that makes a module depend on one that
+  depends on it, or that quietly reverses an arrow, is the finding; a design that adds a module
+  and does not say so is the same finding one step earlier
 - **Removals** — are the consumers actually enumerated, is the evidence of disuse real, is there
   a way back
 - **Acceptance** — does every requirement have a scenario whose outcome can be judged true or

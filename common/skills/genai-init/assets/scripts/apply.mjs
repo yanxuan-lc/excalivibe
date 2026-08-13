@@ -158,7 +158,7 @@ if (upgrade) {
 // Check this install's own files before touching the project's. A plugin copied incompletely — the
 // scripts present, assets/flow/ missing — otherwise gets as far as scaffolding .flow/ and then dies on
 // a scandir path, leaving a half-installed project and a message about someone else's directory.
-for (const required of [["flow", "nodes"], ["flow", "genai"], ["flow", "workflows", "genai-sprint.yaml"], ["project", "makefile-head.mk"], ["project", "genai-metrics.mk"], ["project", "thresholds.json"], ["project", "e2e.json"]]) {
+for (const required of [["flow", "nodes"], ["flow", "genai"], ["flow", "workflows", "genai-sprint.yaml"], ["project", "makefile-head.mk"], ["project", "genai-metrics.mk"], ["project", "genai-build.mk"], ["project", "thresholds.json"], ["project", "modules.json"], ["project", "e2e.json"]]) {
   const path = join(ASSETS, ...required);
   if (!existsSync(path)) fail(`this install is incomplete: ${path} is missing. Reinstall the plugin rather than working around it.`);
 }
@@ -369,6 +369,11 @@ if (!upgrade) {
     writeFileSync("Makefile", `${read("Makefile")}\n${asset("project", "genai-metrics.mk")}`);
     did("genai-metrics target appended — WITH ITS PLACEHOLDER RECIPE, which phase 4 replaces");
   } else skip("genai-metrics target already present — left as it is, including the project's own recipe");
+
+  if (!/^genai-build:/m.test(read("Makefile") ?? "")) {
+    writeFileSync("Makefile", `${read("Makefile")}\n${asset("project", "genai-build.mk")}`);
+    did("genai-build target appended — ALSO A PLACEHOLDER; note its recipe takes no `-` prefix, unlike the metrics one");
+  } else skip("genai-build target already present — left as it is, including the project's own recipe");
 }
 
 // ───────────────────────── 6. tools/genai/ ─────────────────────────
@@ -380,6 +385,14 @@ if (!upgrade) {
     cpSync(join(ASSETS, "project", "thresholds.json"), "tools/genai/thresholds.json");
     did("thresholds.json copied — the floors a project starting from nothing should have; phase 4 agrees the numbers");
   } else skip("thresholds.json already there — a round may not edit it, so neither does this");
+
+  // The one project-supplied file a round MAY edit — it declares structure and no gate judges by it —
+  // so an existing one is left alone because it is the project's current answer, not because editing
+  // it is forbidden.
+  if (!existsSync("tools/genai/modules.json")) {
+    cpSync(join(ASSETS, "project", "modules.json"), "tools/genai/modules.json");
+    did("modules.json copied — it declares NO modules yet, which the modules-map check reports until phase 4 fills it in");
+  } else skip("modules.json already there — left as the project's own description of itself");
 
   // Report on the file, not on the flag: on a re-run without --e2e the file may already be there and
   // filled in, and "not written" would read as "absent".
@@ -407,7 +420,40 @@ if (!upgrade) {
   }
 }
 
-// ───────────────────────── 8. verify the shape ─────────────────────────
+// ───────────────────────── 8. what an upgrade backfills ─────────────────────────
+// An upgrade refreshes the definitions, and a refreshed definition can gate on something the
+// project has never been asked for. That is what happened when the build gate and the module map
+// arrived: an install from before them would come back with `target_missing` at genai.implement and
+// `map_missing` at genai.spec, on a project whose only mistake was being installed earlier.
+//
+// So an upgrade adds what is absent and touches nothing that is present. Both land as placeholders
+// for the same reason they do on a fresh install — there is no way to guess a project's build
+// command or its module split, and a plausible guess that validates is worse than an empty one that
+// says so.
+
+if (upgrade) {
+  head("upgrade backfill (only what the new definitions require and this project lacks)");
+  let backfilled = 0;
+
+  if (existsSync("Makefile") && !/^genai-build:/m.test(read("Makefile") ?? "")) {
+    writeFileSync("Makefile", `${read("Makefile")}\n${asset("project", "genai-build.mk")}`);
+    did("genai-build target appended as a PLACEHOLDER — the build gate reports target_missing until its recipe is written");
+    backfilled += 1;
+  }
+  if (!existsSync("Makefile")) warn("no Makefile in this project, so neither genai-metrics nor genai-build can be appended. Both gates will report a missing target — install rather than upgrade.");
+
+  if (!existsSync("tools/genai/modules.json")) {
+    ensureDir("tools/genai");
+    cpSync(join(ASSETS, "project", "modules.json"), "tools/genai/modules.json");
+    did("modules.json copied — it declares NO modules, so genai.spec refuses to start until someone describes the project's split");
+    backfilled += 1;
+  }
+
+  if (backfilled === 0) skip("nothing to backfill — this project already has everything the current definitions gate on");
+  else warn("the backfilled files are placeholders. Fill them BEFORE the next round starts, or that round refuses at its first step.");
+}
+
+// ───────────────────────── 9. verify the shape ─────────────────────────
 // Only the shape. Whether the numbers are right is phase 4's question, and it cannot be asked until
 // the metrics recipe exists.
 
@@ -461,15 +507,25 @@ if (appeared.length) {
 }
 
 head("NEXT — phase 4, which needs a model and not a script");
-log.push("  1. Fill the two placeholder lines in the genai-metrics recipe. Read a machine-readable");
-log.push("     reporter (JSON, JUnit, lcov summary), never a human-readable table.");
-log.push("  2. make genai-metrics                     → must print one genai-metrics: line");
+log.push("  1. Describe the project in tools/genai/modules.json — one entry per module, `path` `.` for a");
+log.push("     project that is one module. `targets` names Makefile targets, never commands.");
+log.push("     node .flow/genai/check.mjs modules-map  → `consistent`; target_missing names the target");
+log.push("  2. Fill the genai-build recipe — the compiler, or the type checker where there is no");
+log.push("     compiler. NO `-` prefix on its lines: stopping at the failing one is the result.");
+log.push("     make genai-build                       → exit 0 when the project compiles");
+log.push("     node .flow/genai/check.mjs build-ok    → `built`");
+log.push("  3. Fill the two placeholder lines in the genai-metrics recipe. Read a machine-readable");
+log.push("     reporter (JSON, JUnit, lcov summary), never a human-readable table. This one DOES take");
+log.push("     the `-` prefix on the line that runs the suite — the opposite of genai-build.");
+log.push("     make genai-metrics                     → must print one genai-metrics: line");
 log.push("     node .flow/genai/check.mjs metrics     → `no_tests` is the expected answer with no tests;");
 log.push("     metrics_missing / metrics_unreadable / thresholds_missing are the broken-install labels");
-log.push("  3. Agree the coverage floors against what the project measures today.");
-log.push("  4. If tools/genai/e2e.json was written, fill url + contains and prove it with");
+log.push("  4. Agree the coverage floors against what the project measures today. In a repository of");
+log.push("     several modules, count the source files of a module with no tests INTO the denominator —");
+log.push("     otherwise it cannot pull any dimension down and its absence reads as coverage.");
+log.push("  5. If tools/genai/e2e.json was written, fill url + contains and prove it with");
 log.push("     node .flow/genai/check.mjs app-identity (with the app running).");
-log.push("  5. Commit the baseline explicitly — Makefile, tools/genai, openspec/config.yaml, .gitignore.");
+log.push("  6. Commit the baseline explicitly — Makefile, tools/genai, openspec/config.yaml, .gitignore.");
 log.push("     Not `git add -A`, which sweeps in whatever else is lying around.");
 
 process.stdout.write(`${log.join("\n")}\n`);

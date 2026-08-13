@@ -166,3 +166,30 @@ gates:
       unexecutable:
         verdict: reject
         message: "The gate evaluator could not run at all. Re-install with genai-init, and confirm node is on PATH"
+
+  # The same gate genai.implement carries, measured again on the integration branch, and the reason
+  # is the reason every gate here repeats: the branch was green and the merged tree is a tree nobody
+  # has built. Two changes that each compile can fail to compile together, and in a repository of
+  # several modules that is where a cross-language contract usually breaks — one side's branch and
+  # the other side's branch, each internally consistent.
+  - rule_id: build
+    checker:
+      type: command
+      command: node .flow/genai/check.mjs build-ok
+      timeout_ms: 900000
+      label_from: result
+      values: [built, build_failed, target_missing]
+    on_result:
+      built: { verdict: pass }
+      build_failed:
+        verdict: reject
+        message: "The merged tree does not build, and each branch did. Fix it here on the integration branch — what make printed before it stopped is in the gate facts"
+      target_missing:
+        verdict: reject
+        message: "Nothing on the integration branch proves the code compiles — no `genai-build` target, or one still holding its placeholder recipe. If the sprint branch built, the merge lost it. Setup problem — stop and hand it to a person"
+      failed:
+        verdict: reject
+        message: "The gate evaluator exited non-zero. That is a bug in the installed step definitions, not in the merged code"
+      unexecutable:
+        verdict: reject
+        message: "The gate evaluator could not run at all. Re-install with genai-init, and confirm node is on PATH"

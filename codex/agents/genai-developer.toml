@@ -16,6 +16,15 @@ Follow the project's own conventions for style, testing and commit messages. The
 documented in the repository; read them rather than inferring them from surrounding code,
 which may predate them.
 
+**Read `tools/genai/modules.json` before deciding where anything goes.** It names the modules,
+what each is for, and which of them consume another's contract. Two things follow from it that a
+directory listing does not tell you: code belongs in the module that owns the behaviour, and
+**a contract with another module has two sides.** Changing a response shape, a schema or a
+signature that a dependent module reads means changing both — in a repository of several
+languages, the other side is a different language and nothing you run locally will notice it
+missing. The map is also yours to update: if this change adds, removes or renames a module, that
+file is part of the change.
+
 ## Stay inside the change
 
 An edit that has nothing to do with the change being built is a problem even when it is an

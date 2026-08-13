@@ -59,7 +59,7 @@ the three values in place, and if a key is absent it inserts it and says so rath
 what the new name is. The file may also be deleted entirely — fsx falls back to built-in defaults —
 so a missing file is a legal state, not an error.
 
-## Why the Makefile takes two templates
+## Why the Makefile takes three templates
 
 In a project that has no Makefile, appending is creating: `genai-metrics` would become the file's
 first target and therefore make's default goal, so the bare command would run the test suite, and
@@ -69,6 +69,33 @@ supplies `.DEFAULT_GOAL := help` and a `help` target so the bare command shows h
 
 A project that already has a Makefile keeps its own head untouched — a target appended to the end
 does not change the default goal.
+
+The other two are `genai-metrics.mk` and `genai-build.mk`, and **their recipes are written by
+opposite rules.** The metrics one needs make's `-` prefix on the line that runs the suite, or a red
+test aborts the recipe before the numbers print and the gate reports a broken setup instead of a
+failing suite. The build one must not have it anywhere: there the exit code *is* the verdict, so
+carrying on past a failed compile reports a build that never happened. Copying the prefix from one
+template to the other breaks each of them in its own direction, and neither failure announces itself.
+
+## Why `modules.json` is the one file a round may edit
+
+Every other project-supplied file is what the round is measured by — the floors, the identity
+marker, the two targets — so a round that could change them would have no gate. `modules.json`
+decides nothing: no gate reads it, `build-ok` judges `make genai-build`'s exit code, and the steps
+read the map only to know what the project is made of. A description that may not follow the code it
+describes goes stale by design, so a round that adds, removes or renames a module updates it, and an
+unchanged map beside a structural change is a reviewer's finding.
+
+It is not unguarded, only guarded differently. Dropping a module from the map does not drop it from
+`genai-build`, so shrinking the map buys nothing at the gate — it only blinds the steps. That is why
+the reviewer is told to treat a removed module or a `targets` entry turned to `null` as a blocker
+unless the module really was deleted.
+
+`modules-map` checks the other half: that every target the map names is a target make still has. It
+asks make itself — `make -n <target>` — because a grep for `^web-build:` misses
+`$(MODULES:%=%-build)` and every other generated name. It runs once per round, as an entry rule on
+`genai.spec`, not inside the implementation loop: designing against a stale map produces a spec that
+is wrong in a way no later gate looks for, and nothing inside a round renames a target.
 
 ## Reading the verification
 
@@ -111,6 +138,22 @@ Labels, and which are this install's business:
 | `metrics_missing` | no marked line came through — **fix at install time** |
 | `metrics_unreadable` | a line came and does not satisfy the protocol — **fix at install time** |
 | `thresholds_missing` | `tools/genai/thresholds.json` is absent or unreadable — **fix at install time** |
+
+## The build target, and the two labels for the two new files
+
+| Label | Atom | Means |
+|---|---|---|
+| `built` | `build-ok` | the project compiles |
+| `build_failed` | `build-ok` | it does not; the tail of make's output is in the facts. Not an install problem once the recipe is real |
+| `target_missing` | `build-ok` | no `genai-build` target — **fix at install time** |
+| `consistent` | `modules-map` | every target the map names exists |
+| `map_missing` | `modules-map` | `tools/genai/modules.json` is absent — **fix at install time** |
+| `map_malformed` | `modules-map` | it does not satisfy its contract. A freshly copied template declares no modules and reports this — **that is the state phase 4 clears** |
+| `target_missing` | `modules-map` | the map names a target make does not have; the facts say which module and which |
+
+`build-ok` deliberately does not read `modules.json`, and the separation is worth keeping: a broken
+map and a broken build are different problems with different owners, and folding them into one atom
+would report a renamed target and a failed compile as the same fact.
 
 ## The `e2e.json` commit window is narrow
 

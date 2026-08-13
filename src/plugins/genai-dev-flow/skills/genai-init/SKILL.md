@@ -34,9 +34,10 @@ script — the failure is then fixed for every project, not for this one.
     nodes/genai.*/                    the step definitions (fsx's own nodes/task/ stays alongside)
     genai/*.mjs                       the gate evaluators these definitions call
     genai/templates/                  the records the e2e steps copy and fill in
-  Makefile                            `genai-metrics` target; bare `make` shows help
+  Makefile                            `genai-metrics` and `genai-build`; bare `make` shows help
   tools/genai/thresholds.json         the coverage floors and the e2e ceiling (the project sets these)
   tools/genai/e2e.json                how to recognise the running app (the project sets this)
+  tools/genai/modules.json            what the repository is made of (every step reads it)
 
 <project>_genai/                      a SIBLING of the repository, not inside it
   backlogs/
@@ -180,7 +181,33 @@ cp <plugin-root>/../agents/genai-*.toml ~/.codex/agents/
 
 ## Phase 4 — what a script cannot do
 
-**1. Fill the two placeholder recipe lines in `genai-metrics`.** Phase 1 reported the runner and the
+**1. Describe the project in `tools/genai/modules.json`.** Phase 1 listed every directory holding a
+manifest and what each declares; the judgement is which of those are modules, what each is for, and
+which consume another's contract. A project that is one thing declares one module with `path` `.`.
+
+`targets` names **Makefile targets, not commands** — the project's commands already live in its
+Makefile, and a second copy here is one that can disagree. `null` says this module has no target of
+that kind, which is also how a module with no tests says so, and that is worth writing down: it is
+the module the coverage number cannot see.
+
+```bash
+node .flow/genai/check.mjs modules-map   # `consistent`; target_missing names the module and target
+```
+
+This file is the one project-supplied piece **a round may edit** — it describes rather than judges,
+so it has to be free to follow the code. Every step reads it.
+
+**2. Fill the `genai-build` recipe.** Whatever proves each module's code is still coherent: the
+compiler where there is one, the type checker where there is not. **No `-` prefix on any line** —
+make stopping at the failure is the result here, which is the exact opposite of the metrics recipe
+below. Where per-module targets already exist, list them as prerequisites rather than restating them.
+
+```bash
+make genai-build                       # exit 0 when the project compiles
+node .flow/genai/check.mjs build-ok    # `built`
+```
+
+**3. Fill the two placeholder recipe lines in `genai-metrics`.** Phase 1 reported the runner and the
 coverage tool; the judgement is which **machine-readable** reporter to read (JSON, JUnit, lcov
 summary) and how to turn it into the one marked line. `genai-guideline` carries the protocol.
 
@@ -206,8 +233,8 @@ A `satisfied` reached with fabricated numbers is the one failure no command here
 what the target actually runs. And **a target that parses human-readable output has not been tested
 by this**: see [references/troubleshooting.md](references/troubleshooting.md).
 
-**2. Set the floors in `tools/genai/thresholds.json`** by whichever policy phase 2 settled on — and
-**in that order: read the numbers step 1 printed, then write the floors.** Setting them from a sense
+**4. Set the floors in `tools/genai/thresholds.json`** by whichever policy phase 2 settled on — and
+**in that order: read the numbers step 3 printed, then write the floors.** Setting them from a sense
 of what a project like this should manage is how a floor lands above what it measures, and the
 number that catches it is one you had already been shown. A round may not edit this
 file, so a floor above where the project stands rejects every round with nothing able to fix it. A
@@ -215,13 +242,24 @@ floor of `null` opts that dimension out — the only way out, and visible in the
 is the ceiling on how much of a round may go unscripted; leave it at the shipped values unless the
 user has a reason, and note that **omitting it does not opt out** the way an omitted floor does.
 
-**3. Fill `tools/genai/e2e.json`, if phase 3 wrote it.** Declare **exactly one** of two shapes, and
+Which dimensions are even reportable is a toolchain fact rather than a policy — Go's cover has
+statements and nothing else — so `null` the ones nothing measures instead of leaving the shipped
+defaults on them. In a repository of several modules, step 1's `targets.test: null` entries are the
+modules the number cannot see; their source files belong in the denominator.
+
+**5. Fill `tools/genai/e2e.json`, if phase 3 wrote it.** Declare **exactly one** of two shapes, and
 `contains` either way:
 
 | The project… | Declare | Example |
 |---|---|---|
 | listens on a port | `url` (+ `status` if not 200) | `{"url": "http://127.0.0.1:5173/healthz", "contains": "widget-api"}` |
 | never will — a CLI, a library, a batch job | `command` | `{"command": "node src/cli.js --version", "contains": "lintly 1.2.0"}` |
+| has several faces — a client and its API, a CLI and its server | `targets` | `{"targets": [{"name": "web", "url": "…", "contains": "…"}, {"name": "cli", "command": "…", "contains": "…"}]}` |
+
+`targets` is a list of exactly the two shapes above with a `name` each, at most four, and **never
+beside a top-level `url`/`command`**. Every target has to be identified, so the list only tightens
+the check. One refusal reports all of them, and a face answering as the wrong build is reported over
+a face that is merely down — the second is fixed by starting something, the first is not.
 
 `contains` is something specific to **this** build — the name in a health payload, a version string,
 the title a known route renders, the banner the binary prints. `ok`, `healthy` and `200` are not
@@ -250,7 +288,7 @@ round touches it, and `genai.e2e` then refuses to start with `config_missing`, w
 verdict, no patience and no attempt. **Say when it may be committed, too — the window is narrow**,
 and [references/troubleshooting.md](references/troubleshooting.md) has it.
 
-**4. Commit the project's baseline.** Everything the project now owns is untracked, and leaving it
+**6. Commit the project's baseline.** Everything the project now owns is untracked, and leaving it
 that way pushes a first commit of it into the middle of a round:
 
 ```bash
@@ -283,6 +321,12 @@ counted by `fsx check`, and one that disagrees with its own directory name holds
 `ok: false` with no later upgrade ever touching it. Only `genai.*` is removed: fsx's own `task/` and
 anything the project wrote itself share that directory. **It refuses while a graph is live** — changing a definition under a live run leaves the run
 measuring against a contract it was not created with. Finish or abort the round first.
+
+**The one thing an upgrade does write is what a new definition gates on and the project has never
+been asked for** — the `genai-build` target and `tools/genai/modules.json` arrived that way. Both
+land as placeholders, both are reported, and both have to be filled **before the next round starts**:
+until they are, `genai.spec` refuses at its first rule and `genai.implement` rejects on a missing
+target, on a project whose only mistake was being installed earlier.
 
 ## What this does not do
 
