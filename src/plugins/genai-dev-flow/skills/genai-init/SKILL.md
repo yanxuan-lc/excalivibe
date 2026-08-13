@@ -370,12 +370,30 @@ no verdict, no patience and no attempt.
 ## Step 5 — prove, and set the floors from what it measures
 
 ```bash
-make genai-build                          # exit 0 when the project compiles
-make genai-metrics                        # one genai-metrics: line with real numbers
-node .flow/genai/check.mjs modules-map     # consistent
-node .flow/genai/check.mjs build-ok        # built
-node .flow/genai/check.mjs metrics         # see below
-node .flow/genai/check.mjs app-identity    # identified
+node .flow/genai/check.mjs install-ready   # ready | unfinished | broken
+```
+
+**This is what says the install is done.** It runs the same four evaluators the gates run and applies
+the one thing that used to live only in prose: which of their labels are acceptable *at install time*.
+That matters because a green board is not the criterion — `no_tests` is the **correct** answer on a
+project that has none, `unreachable` is fine while the app is down, and `tests_failing` on an existing
+project belongs to the next round. Read the other way round, half the failures look like success.
+
+| Verdict | Means | What to do |
+|---|---|---|
+| `ready` | a round can start | commit the baseline and report |
+| `unfinished` | something is still to be written | `blocking` names each one — write it and re-run |
+| `broken` | something exists and contradicts itself or reality | look at what is already there: a file that changed shape, a marker pointing at the wrong service |
+
+The individual checks stay available for working out *why*, and they carry the detail:
+
+```bash
+make genai-build                           # exit 0 when the project compiles
+make genai-metrics                         # one genai-metrics: line per module
+node .flow/genai/check.mjs modules-map      # consistent
+node .flow/genai/check.mjs build-ok         # built
+node .flow/genai/check.mjs metrics          # the numbers and the floors behind them
+node .flow/genai/check.mjs app-identity     # identified
 ```
 
 Then the floors — **measure first, write second**, on both routes:
@@ -415,11 +433,11 @@ already clears is what keeps a round fixable.
 Leave the `e2e` block at the shipped values unless the user has a reason; it is the ceiling on how
 much of a round may go unscripted, and it takes an explicit value to change.
 
-**What has to hold here is the shape.** On a project with no tests, `no_tests` is the answer to
-expect; `satisfied` becomes reachable once something passes a test, which is `genai.implement`'s job.
-On an existing project with a red suite, `tests_failing` belongs to the next round — report it and
-carry on. Three labels mean the install itself needs attention: `metrics_missing`,
-`metrics_unreadable` and `thresholds_missing`.
+**What has to hold here is the shape**, and `install-ready` is what encodes that. Worth knowing which
+way two labels fall, because both look alarming and neither is this install's problem: `no_tests` is
+expected before anything is implemented, and `tests_failing` on an existing project is the next
+round's to fix. The one that *is* this install's own mistake is `coverage_below_floor` — floors set
+above what the project measures, which a round may not edit its way out of.
 
 Read what the metrics target actually runs, since numbers that were never measured are the one thing
 these commands take at face value. A target that reads a machine-readable reporter is the one to keep;
@@ -441,9 +459,12 @@ what keeps these files out of a round's first review — the troubleshooting ref
 reason, and **`e2e.json`'s window is narrow**: it goes in before `genai.code-review` is dispatched, or
 stays untracked for `genai.merge` to pick up.
 
-Then report, briefly. Done means done. Anything unfinished means **what the user has to supply**, one
-sentence per item. On a brownfield project, add one line: the existing specs under `docs/` stay where
-they are, so the first round starts from an empty backlog and moving them across is a person's job.
+Then report, briefly, **against `install-ready`'s verdict rather than against an impression**. `ready`
+is what "done" means here, and saying it on anything else is the one report that costs a person a
+whole round to discover. On `unfinished` or `broken`, give **what the user has to supply**, one
+sentence per entry in `blocking`. On a brownfield project, add one line: the existing specs under
+`docs/` stay where they are, so the first round starts from an empty backlog and moving them across is
+a person's job.
 
 ## Upgrading
 

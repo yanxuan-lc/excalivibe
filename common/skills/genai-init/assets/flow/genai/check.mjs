@@ -35,6 +35,8 @@
 //                                | report_malformed | unreadable
 //   app-identity                 identified | wrong_service | unreachable | config_missing
 //                                | config_malformed
+//   install-ready                ready | unfinished | broken  (composes the four above and applies
+//                                the install-time acceptance table; re-judges nothing)
 //   signature-docs               (not a check: prints the documentation tree's signature)
 //   signature-archive            (not a check: prints the archive's signature)
 //   signature-e2e-suite          (not a check: prints the e2e suite's signature)
@@ -72,6 +74,7 @@ const atoms = {
   "e2e-mapping": e2eMapping,
   "e2e-report": e2eReport,
   "app-identity": appIdentity,
+  "install-ready": installReady,
   "signature-docs": signatureDocs,
   "signature-archive": signatureArchive,
   "signature-e2e-suite": signatureE2eSuite,
@@ -188,6 +191,89 @@ function e2eReport() {
 async function appIdentity() {
   const { label, facts } = await probeApp();
   say(label, facts);
+}
+
+// Whether an install is finished — the one thing genai-init could not answer with a command.
+//
+// It used to end by running the four checks below and having a model read the labels against a table
+// written in prose. That table is the hard part, because **a green board is not the criterion**:
+// `no_tests` is the CORRECT answer on a project that has none, `unreachable` is fine while the app is
+// down, and `tests_failing` on an existing project belongs to the next round. Read the other way
+// round, half the failures look like success. A judgement that lives in prose drifts, and the same
+// half-finished project could come back "all set" in one session and "three things missing" in the
+// next.
+//
+// So this atom re-judges nothing: it calls the same four evaluators the gates call, and adds only
+// the mapping the prose used to carry — which of their labels are acceptable AT INSTALL TIME.
+//
+//   ready       a round can start
+//   unfinished  something is still to be written — `blocking` says what
+//   broken      something exists and contradicts itself or reality: a file the install copies that
+//               has gone missing or changed shape, a marker pointing at the wrong service
+//
+// The split is missing-versus-wrong, and it is the useful one: `unfinished` is work outstanding,
+// `broken` needs somebody to look at what is already there.
+
+async function installReady() {
+  const INSTALL_TIME = {
+    "modules-map": {
+      consistent: "ok",
+      map_missing: "broken",         // the install copies this file; absent means it did not run
+      map_malformed: "unfinished",   // overwhelmingly the untouched template — the reason says which
+      target_missing: "unfinished",  // the map names a target make does not have
+    },
+    "build-ok": {
+      built: "ok",
+      build_failed: "unfinished",    // the recipe exists and the project does not compile: a person's
+      target_missing: "unfinished",  // no genai-build target, or still the placeholder
+    },
+    metrics: {
+      satisfied: "ok",
+      no_tests: "ok",                // expected before anything is implemented
+      tests_failing: "ok",           // the next round's problem, not this install's
+      too_many_skipped: "ok",        // likewise fixable by a round
+      coverage_below_floor: "unfinished", // floors set above what the project measures — and a round
+                                          // may not edit them, so only a person can undo this
+      // Nothing this install produces guarantees a `genai-metrics:` line any more: the executor
+      // writes that target. So its absence is work outstanding, not a failed install.
+      metrics_missing: "unfinished",
+      // These two are the other half of the split — a file that exists and contradicts itself. The
+      // install copies thresholds.json, so a missing or wrong-shaped one is not "unwritten".
+      metrics_unreadable: "broken",
+      thresholds_missing: "broken",
+    },
+    "app-identity": {
+      identified: "ok",
+      unreachable: "ok",             // the app is simply not running right now
+      config_missing: "ok",          // deliberately not written when nothing answers yet
+      wrong_service: "broken",       // the marker never appeared: the URL points elsewhere
+      config_malformed: "broken",
+    },
+  };
+
+  const results = {
+    "modules-map": judgeMap(),
+    "build-ok": judgeBuild(),
+    metrics: judge(),
+    "app-identity": await probeApp(),
+  };
+
+  const checks = {};
+  const blocking = [];
+  const broken = [];
+  for (const [name, { label, facts }] of Object.entries(results)) {
+    // An unmapped label is a new one somebody added to an evaluator without deciding what it means
+    // here. Treating it as acceptable would let a new failure mode ship as "ready", so it blocks and
+    // says so — the loud answer is the recoverable one.
+    const verdict = INSTALL_TIME[name][label] ?? "unfinished";
+    checks[name] = { label, verdict, reason: facts?.reason ?? null };
+    if (verdict === "broken") broken.push({ check: name, label, facts });
+    else if (verdict === "unfinished") blocking.push({ check: name, label, facts });
+  }
+
+  if (broken.length) say("broken", { checks, broken, blocking });
+  if (blocking.length) say("unfinished", { checks, blocking });
+  say("ready", { checks });
 }
 
 // Not a check. The documentation step produces the tree rather than a commit, and declaring the

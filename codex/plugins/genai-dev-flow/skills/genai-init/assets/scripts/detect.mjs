@@ -458,19 +458,43 @@ const TEST_NAME = /(^|\/)(tests?|specs?|__tests__)\/|\.(test|spec)\.[a-z]+$|(^|\
 const testFiles = files.filter((f) => CODE.test(f) && TEST_NAME.test(f));
 item("test files", testFiles.length ? `${testFiles.length} — e.g. ${testFiles.slice(0, 3).join(", ")}` : "none — `no_tests` is the expected metrics label here");
 if (truncated) item("  NOTE", `the scan stopped at ${files.length} files or ${MAX_DEPTH} levels — anything past that is unread, so treat "none" here as "not found", not as "not there"`);
-// ───────────────────────── the route, and the questions only it can word ─────────────────────────
-// Computed here rather than beside the ROUTE section below, because everything it reads is now in
-// hand and the questions it selects have to reach DECIDE. Its inputs: `installed` (section 3), `head`
-// (section 2), `moduleDirs` and `testFiles` (section 5).
+// ───────────────────────── two independent facts, not one three-way ──────────────────────────────
+// Computed here rather than beside the ROUTE section below, because everything they read is now in
+// hand and the questions they select have to reach DECIDE.
+//
+// These used to be fused into a single verdict, and fusing them was wrong in a way that only showed
+// up on a re-run: an install interrupted after the components landed but before anyone filled the
+// map came back as "upgrade — nothing to upgrade, re-running is safe", the module question was
+// dropped because it was conditioned on not being an upgrade, and the report cheerfully described a
+// project `genai.spec` would refuse at its first rule.
+//
+//   shape        what the build-out has to do — write a skeleton, or derive from what exists
+//   definitions  whether the installed step definitions are absent, behind, or current
+//
+// `head` is deliberately NOT part of the shape test any more. apply.mjs creates an empty first
+// commit, so a greenfield project became "brownfield" the moment it was installed — the flow was
+// reading its own footprint as evidence about the project. What settles the shape is whether there
+// is anything to derive from: a manifest, or a test.
+const shape = !moduleDirs.length && !testFiles.length ? "greenfield" : "brownfield";
+const definitions = !installed.length ? "absent" : behind ? "behind" : "current";
 
-const route = installed.length ? "upgrade" : (!moduleDirs.length && !head.ok && !testFiles.length) ? "greenfield" : "brownfield";
+// Configuration is a third, orthogonal thing: components can be installed while the project-supplied
+// half is still empty. Anything unfinished here brings its questions back, whatever the definitions
+// say — which is the whole repair.
+const makefileText = makefile ?? "";
+const unfinished = [
+  mapUnfilled && "tools/genai/modules.json declares no modules",
+  !/^genai-build:/m.test(makefileText) && "the Makefile has no genai-build target",
+  !/^genai-metrics:/m.test(makefileText) && "the Makefile has no genai-metrics target",
+  thresholdsUnagreed && "the coverage floors are still the shipped template",
+].filter(Boolean);
 
 // One line per module, and only the three things a person actually holds: its name, what it is for,
 // and what it is built with. Everything else in `modules.json` is derived — the path from the name,
 // the target names from the name, the docs path by convention, the versions from the toolchain — so
 // asking for any of it spends a user's attention on something the install can work out and the
 // `modules-map` check will verify against make anyway.
-if (mapUnfilled && route !== "upgrade") {
+if (mapUnfilled) {
   decide.push([2, "the modules, one line each: `- <name>: <what it is for>, <stack>` — e.g. `- web: the browser client, TypeScript + Vite`. One line is a single-module project. See the MODULES section below for the exact prompt to put in front of the user"]);
 }
 

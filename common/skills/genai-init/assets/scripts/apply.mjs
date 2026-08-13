@@ -581,16 +581,14 @@ log.push("     which is how Go declares that its cover reports statements and no
 log.push("     that IS listed has to report tests, or the gate reads it as no_tests.");
 log.push("  4. If tools/genai/e2e.json was written, fill url or command, plus a `contains` marker only");
 log.push("     this build returns.");
-log.push("  5. Prove it, and treat this as a loop rather than a checklist — a metrics recipe is not");
-log.push("     written right until its output has been read once:");
-log.push("       make genai-build                       → exit 0 when the project compiles");
-log.push("       make genai-metrics                     → one genai-metrics: line with real numbers");
-log.push("       node .flow/genai/check.mjs modules-map  → consistent");
-log.push("       node .flow/genai/check.mjs build-ok     → built");
-log.push("       node .flow/genai/check.mjs metrics      → `no_tests` is expected with no tests;");
-log.push("         metrics_missing / metrics_unreadable / thresholds_missing are the broken-install labels,");
-log.push("         and tests_failing on an existing project is the NEXT round's problem, not this install's");
-log.push("       node .flow/genai/check.mjs app-identity → identified (unreachable is fine while it is down)");
+log.push("  5. Prove it — ONE command says whether this install is done:");
+log.push("       node .flow/genai/check.mjs install-ready  → ready | unfinished | broken");
+log.push("     `ready` is the only verdict that means done. `unfinished` lists what is still to be");
+log.push("     written; `broken` means something already there contradicts itself. A green board is");
+log.push("     NOT the criterion — no_tests and tests_failing are both acceptable at install time,");
+log.push("     and install-ready is what knows that. The individual checks carry the detail:");
+log.push("       make genai-build · make genai-metrics");
+log.push("       check.mjs modules-map · build-ok · metrics · app-identity");
 log.push("  6. Commit the baseline explicitly — Makefile, tools/genai, openspec/config.yaml, .gitignore.");
 log.push("     Not `git add -A`, which sweeps in whatever else is lying around.");
 
