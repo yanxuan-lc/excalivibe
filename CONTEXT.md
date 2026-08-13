@@ -111,10 +111,19 @@ person. Modelling per-scenario human approval would need somewhere for the appro
 command receives no variables — so it would become another file, checked by another rule, to record a
 decision the ceiling already forces someone to make.
 
-**The e2e ceiling's default is the opposite of the coverage floors'.** An omitted coverage dimension
-opts out; an omitted `e2e` block in `thresholds.json` does not — the shipped 5 and 0.2 apply
-(`lib/e2e.mjs`). A floor left out is a statement about tooling; a ceiling left out would be a round
-quietly allowed to waive everything.
+**The e2e ceiling's default is the opposite of the coverage floors'.** An omitted coverage entry opts
+out — a module absent from `thresholds.json` is not coverage-checked, and a dimension absent from a
+module's entry is not checked for that module. An omitted `e2e` block does not: the shipped 5 and 0.2
+apply (`lib/e2e.mjs`). A floor left out is a statement about tooling or about a module covered some
+other way; a ceiling left out would be a round quietly allowed to waive everything.
+
+**Coverage is judged per module, and the exemption lives in the file a round may not edit.** One
+repository-wide figure forced every module onto the lowest common denominator, and a module with no
+unit tests either vanished from the number — its absence reading as coverage — or went into the
+denominator and dragged the rest below a floor nobody could reach. So `genai-metrics` prints one line
+per module and `thresholds.json` keys its floors by module (`lib/metrics.mjs`). The exemption is
+deliberately *not* in `modules.json`, which is the one project file a round may rewrite: an exemption
+is a loosening, so it belongs beside the floors, where only a person can grant it.
 
 **Gates assert an end state, not a delta.** `signature_changed` survives only on `genai.spec` and
 `genai.implement`, where the end state cannot be expressed mechanically. Wherever it can be — nothing
@@ -160,8 +169,9 @@ nothing to drive, and nothing mechanical separates that from a spec that dodged 
 review is the only thing standing there.
 
 **This repository cannot satisfy its own flow.** No tests, no test runner, and no `genai-metrics`
-target in the `Makefile`, so the `genai.implement` and `genai.merge` gates would both return `metrics_missing` here. Either
-add tests, or accept that this is a project whose coverage floors are `null`.
+target in the `Makefile`, so the `genai.implement` and `genai.merge` gates would both return
+`metrics_missing` here. Either add tests, or accept that this is a project whose modules are all
+absent from `thresholds.json` and therefore coverage-checked nowhere.
 
 **`verify-variants` cannot see a registry entry whose file is gone.** Its main loop walks the `.md`
 files that actually exist under `src/` (`scripts/verify-variants.ts`), so an entry in
