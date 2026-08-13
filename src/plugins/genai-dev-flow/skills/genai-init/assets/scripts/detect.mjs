@@ -636,11 +636,12 @@ if (mapUnfilled && route !== "upgrade") {
   out("  against make — so a wrong guess surfaces at the prove step rather than in the first round.");
 }
 
-// Four is the host tool's ceiling on questions shown at once, so a round that exceeds it would have
-// its tail dropped without saying so. Stating the number here means a later question added to a
-// round announces the problem instead of silently costing an answer.
-const PER_ROUND = 4;
-section(`DECIDE — ask these in rounds, at most ${PER_ROUND} at a time, in this order`);
+// Claude caps a question widget at four shown at once, so a fifth would have its answer lost without
+// saying so — which is why the count is checked there and a later addition announces itself. Codex
+// and the neutral end have no such widget: the questions go out as prose, one round per message, and
+// a hard ceiling would be inventing a limit their host does not have.
+const PER_ROUND = target === "claude" ? 4 : null;
+section(PER_ROUND ? `DECIDE — ask these in rounds, at most ${PER_ROUND} at a time, in this order` : "DECIDE — ask these in rounds, one round per message, in this order");
 if (!decide.length) {
   out("  Nothing. Every decision this install needs is already on disk — go straight to apply.mjs,");
   out("  which will only refresh the definitions, or skip it if nothing needs upgrading.");
@@ -651,7 +652,7 @@ if (!decide.length) {
     out();
     out(`  round ${index + 1} — ${title}`);
     asked.forEach((question, i) => out(`    ${i + 1}. ${question}`));
-    if (asked.length > PER_ROUND) out(`    ! ${asked.length} questions here and the tool shows ${PER_ROUND}. Split this round rather than dropping the tail`);
+    if (PER_ROUND && asked.length > PER_ROUND) out(`    ! ${asked.length} questions here and the widget shows ${PER_ROUND}. Split this round rather than dropping the tail`);
   });
 }
 

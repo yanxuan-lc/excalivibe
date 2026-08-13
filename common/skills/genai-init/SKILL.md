@@ -125,18 +125,19 @@ up to date.
 
 ## Step 2 — ask, in three rounds
 
-**Ask in rounds of at most four, in the order the route step prints them.** Four is what the host's
-question tool shows at once, and a greenfield project raises six. Keep each round a short list the
-user answers at a glance — the route step has already worked out what is open, and lists only what is
+**Ask in the rounds the route step prints, in that order.** Keep each round a short list the user
+answers at a glance — the route step has already worked out what is open, and lists only what is
 unsettled on disk, so a re-run leaves decided things decided.
+
+Put one round in one message and wait for the reply. Whether this host offers a question widget is
+unknown here, so ask in plain prose: the rounds are the structure, and asking everything at once is
+what they exist to avoid.
 
 | Round | What it settles | Why here |
 |---|---|---|
 | 1 · permission and access | consent, and the missing global binaries | a refusal ends the procedure, so it comes first |
-| 2 · what this project is | `instruction_language`, picked; and **the module list**, written out | everything downstream is written against these |
+| 2 · what this project is | `instruction_language`, and **the module list** | everything downstream is written against these |
 | 3 · policy | coverage policy, and whether the app answers today | it rides on the shape settled in round 2 |
-
-Follow the `DECIDE` grouping as printed; it flags any round that has outgrown four.
 
 **Round 1 — permission and access.**
 
@@ -150,15 +151,15 @@ Follow the `DECIDE` grouping as printed; it flags any round that has outgrown fo
 On the upgrade route, round 1 also asks whether to upgrade; the route step has already said whether
 anything differs.
 
-**Round 2 — what this project is.** One picked answer and one written one.
+**Round 2 — what this project is.**
 
 1. **`instruction_language`** — the language of the requirement briefs, which is the language of
    whoever wrote them rather than of whoever is typing now. It sets the language of every dispatched
-   instruction, and so of the reports and documents executors write back. A short choice, so it suits
-   a picker.
-2. **The modules** — **put the route step's `MODULES` block in front of the user and take free text
-   back.** A module list is a table, and the two or three choices a picker holds would flatten it to
-   "one module or several", which settles nothing.
+   instruction, and so of the reports and documents executors write back. A short choice, with a
+   handful of answers.
+2. **The modules** — **put the route step's `MODULES` block in front of the user as it stands, and
+   take the answer as free text.** A module list is a table, so it is written out rather than chosen
+   from.
 
    Ask for one line each, carrying the three things only a person holds:
 
