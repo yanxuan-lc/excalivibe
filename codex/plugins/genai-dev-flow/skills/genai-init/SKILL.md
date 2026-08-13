@@ -19,10 +19,10 @@ numbers are, how its app is recognised — you own that.
 
 | Step | Who | What decides it |
 |---|---|---|
-| 1 · route | `detect.mjs` | greenfield, brownfield or upgrade — decided by what is missing |
+| 1 · route | `detect.mjs` | the project's shape and its definitions' state — both from what is missing |
 | 2 · ask | you, asking | three rounds of at most four, over what the route step left open |
 | 3 · scaffold | `apply.mjs` | the answers, arriving as flags |
-| 4 · build-out | you, doing | the route: a walking skeleton, or a derivation from what exists |
+| 4 · build-out | you, doing | the shape: a walking skeleton, or a derivation from what exists |
 | 5 · prove | `make`, `check.mjs`, `measure.mjs` | the project's own commands, run for real |
 | 6 · baseline | you, committing | — |
 
@@ -103,25 +103,32 @@ node <skill-dir>/assets/scripts/detect.mjs --target codex
 Resolve `<skill-dir>` from where this SKILL.md was loaded from. It is read-only, so it runs without
 permission and can be re-run at any point to see where an interrupted install stopped.
 
-**Read its last four sections.** `ROUTE` decides which fork step 4 takes. `MODULES` is a block to put
+**Read its last four sections.** `ROUTE` gives the two axes below. `MODULES` is a block to put
 in front of the user verbatim — blank on greenfield, filled in from the code on brownfield. `DECIDE`
 is step 2's agenda, already grouped into rounds. `SUGGESTED` is step 3's command line with everything
 already-known filled in. A `BLOCKED` section lists conditions to fix first.
 
-The route is decided by **what is missing**:
+`ROUTE` reports **two independent axes**, and keeping them apart matters: an install interrupted
+halfway has current definitions and an empty configuration at the same time, and a single verdict
+would have to lie about one of them.
 
-| Route | When | What it changes |
+| Axis | Values | What it selects |
 |---|---|---|
-| **greenfield** | no manifest, no commit, no test file | step 4 writes a walking skeleton first |
-| **brownfield** | anything else | step 4 derives from what is already there |
-| **upgrade** | `genai.*` definitions are already installed | steps 2 and 4 mostly fall away — see below |
+| **shape** | greenfield · brownfield | what step 4 builds |
+| **definitions** | absent · behind · current | whether an upgrade is due |
 
-Greenfield means the absence of the three things the configuration work reads from: a manifest to
-name a module, a commit to compare against, and a test whose numbers set the floors.
+**Shape** is decided by whether there is anything to derive from — a manifest, or a test. Greenfield
+means neither, so step 4 writes a walking skeleton before anything can be measured. Note what is
+*not* in that test: a commit. Step 3 creates an empty first commit itself, so reading one as evidence
+would flip every greenfield project to brownfield the moment it was installed.
 
-The upgrade route compares a **signature** of what ships against the one in `installed.json`. A
+**Definitions** compares a **signature** of what ships against the one in `installed.json`. A
 signature catches a definition edited between releases, which is the case a version number reports as
 up to date.
+
+Neither axis says the install is finished — that needs the project's own commands run, and step 5's
+`install-ready` is what answers it. What `ROUTE` adds is a `configuration` line flagging whether the
+project-supplied files still look empty, so a re-run does not read as "nothing to do".
 
 ## Step 2 — ask, in three rounds
 
@@ -147,8 +154,8 @@ are the whole of the structure — a wall of every open question at once is what
    - *Stop:* say plainly that the flow needs these pieces, and leave the project exactly as it is.
 2. **The missing global binaries** — install them now, or let the user install them.
 
-On the upgrade route, round 1 also asks whether to upgrade; the route step has already said whether
-anything differs.
+Where the route step reports the definitions as `behind`, round 1 also asks whether to upgrade — it
+has already worked out that they differ.
 
 **Round 2 — what this project is.**
 
@@ -170,7 +177,7 @@ anything differs.
    - server: the HTTP API behind it, Go + Gin
    ```
 
-   A single-module project is one line. On the brownfield route the block arrives **already filled in
+   A single-module project is one line. On a brownfield project the block arrives **already filled in
    from the code**, so the user corrects a draft and supplies what each module is for. Render it in
    the user's language when you present it.
 

@@ -8,9 +8,13 @@
 // It exists because the ten things below used to be ten separate commands with a model reading a
 // paragraph of documentation between each one. Every branch here is decided by code; what comes out
 // is already a conclusion. The report ends with the four sections that matter to whoever reads it:
-// ROUTE, which of greenfield / brownfield / upgrade this project is; MODULES, a block to put in
+// ROUTE, the shape of this project and the state of its definitions; MODULES, a block to put in
 // front of the user as it stands; DECIDE, the questions this cannot answer for itself; and
 // SUGGESTED, the apply.mjs line that carries the answers back.
+//
+// It does NOT say whether an install is finished. That needs the project's own commands run, which
+// costs time and permission this script deliberately does not take — `check.mjs install-ready` is
+// the one that answers it.
 //
 // It exits 0 for everything it finds. "This project has nothing installed" is a finding, not a failure
 // — and a non-zero exit for one would be indistinguishable from the script itself being broken. The
@@ -436,14 +440,15 @@ for (const dir of moduleDirs) {
   }
 }
 
-// The module question is asked on every route where the map is not already filled in — but it is a
-// DIFFERENT question each time, so the route has to be known before it can be worded.
+// The module question is asked wherever the map is not already filled in — but it is a DIFFERENT
+// question on each shape, so the shape has to be known before it can be worded.
 //
 // This used to be conditioned on `moduleDirs.length > 1`, which was right when the only project this
 // installed into was an existing one: there, one manifest needs no confirming. It is exactly wrong on
 // a greenfield project, which has NO manifest and therefore has to be asked precisely because a file
-// listing cannot settle it. That condition silently dropped the question on the one route that most
-// needs it.
+// listing cannot settle it. That condition silently dropped the question on the one shape that most
+// needs it — and a later one dropped it again on any re-run, by asking only when nothing was
+// installed yet.
 const mapUnfilled = declaredModules === null || declaredModules.length === 0;
 
 // Whether any test exists decides which metrics label is the expected one at install time — with no
@@ -478,16 +483,13 @@ if (truncated) item("  NOTE", `the scan stopped at ${files.length} files or ${MA
 const shape = !moduleDirs.length && !testFiles.length ? "greenfield" : "brownfield";
 const definitions = !installed.length ? "absent" : behind ? "behind" : "current";
 
-// Configuration is a third, orthogonal thing: components can be installed while the project-supplied
-// half is still empty. Anything unfinished here brings its questions back, whatever the definitions
-// say — which is the whole repair.
-const makefileText = makefile ?? "";
-const unfinished = [
-  mapUnfilled && "tools/genai/modules.json declares no modules",
-  !/^genai-build:/m.test(makefileText) && "the Makefile has no genai-build target",
-  !/^genai-metrics:/m.test(makefileText) && "the Makefile has no genai-metrics target",
-  thresholdsUnagreed && "the coverage floors are still the shipped template",
-].filter(Boolean);
+// Whether the project-supplied half is finished is a third, orthogonal thing — and this script does
+// NOT decide it. `check.mjs install-ready` does, by running the same evaluators the gates run: a
+// declared `genai-build:` line is not a build that works, and only one of those two is worth calling
+// done. What this reads is the cheap version, and it is used for exactly one purpose — deciding which
+// questions are still open. Anything unanswered brings its question back whatever the definitions
+// say, which is the repair for the re-run bug above.
+const configLooksUnfinished = mapUnfilled || thresholdsUnagreed || !hasBuild || !hasMetrics;
 
 // One line per module, and only the three things a person actually holds: its name, what it is for,
 // and what it is built with. Everything else in `modules.json` is derived — the path from the name,
@@ -505,7 +507,7 @@ if (!thresholdsUnagreed) { /* the project has set them, and neither a round nor 
 else {
   decide.push([3,
     "coverage POLICY, not the numbers — which dimensions this toolchain can even report, and which modules are allowed to have no tests. "
-    + (route === "brownfield" && testFiles.length
+    + (shape === "brownfield" && testFiles.length
       ? "This project already has tests, so the numbers come from measure.mjs reading what they cover TODAY — never from what they ought to be"
       : "The numbers come from measure.mjs once the recipe exists and has run once"),
   ]);
@@ -595,32 +597,44 @@ if (e2e === null) decide.push([3, "does this project's app exist and answer on a
 
 // ───────────────────────── the sections that get read ─────────────────────────
 
-// Which of the three routes this project is on. Decided by what is MISSING, never by what the
-// project looks like: "greenfield" is not a kind of project, it is the absence of the three things
-// the configuration work reads from — a manifest to name a module, a commit to compare against, and
-// a test whose numbers set the floors.
+// Two axes, reported separately, because fusing them into one verdict is what made a half-finished
+// install read as "nothing to do". Neither is a completeness claim — this script cannot make one, and
+// `check.mjs install-ready` is what does.
 //
-// The scripted steps are identical on all three routes. What the route actually selects is which
-// questions get asked and what the executor does with the answers, which is why one line of verdict
-// here is enough and no flag carries it into apply.mjs.
+// The scripted steps are identical whatever comes out here. What the shape selects is which questions
+// get asked and what the executor builds, which is why no flag carries it into apply.mjs.
 section("ROUTE");
 
-// `route` itself is decided further up, as soon as its inputs are in hand, because the questions it
-// selects have to reach DECIDE. All that is left here is saying it out loud.
-const why = {
-  upgrade: `${installed.length} genai.* definitions are already installed${record === null ? ", though nothing recorded which version" : behind ? " and they differ from what ships now" : " and they match what ships now"}`,
-  greenfield: "no manifest, no commit and no test file — there is nothing here to describe yet",
-  brownfield: `${moduleDirs.length} manifest director${moduleDirs.length === 1 ? "y" : "ies"}, ${testFiles.length} test file(s), HEAD ${head.ok ? "present" : "missing"}`,
-};
-item("route", `${route.toUpperCase()} — ${why[route]}`);
-if (route === "upgrade" && !behind && record !== null) {
-  item("  note", "nothing to upgrade. Re-running is still safe and still refreshes the definitions");
-}
-if (route === "greenfield") {
-  item("  what this means", "the executor writes a walking skeleton — one module, one passing test, one build that exits 0, one thing that answers — BEFORE the floors can be verified");
-} else if (route === "brownfield") {
-  item("  what this means", "measure before writing the floors. Run measure.mjs for the numbers, then set them at or below what came out");
-}
+item(
+  "shape",
+  shape === "greenfield"
+    ? "GREENFIELD — no manifest and no test file, so there is nothing here to derive from yet"
+    : `BROWNFIELD — ${moduleDirs.length} manifest director${moduleDirs.length === 1 ? "y" : "ies"}, ${testFiles.length} test file(s)`,
+);
+item(
+  "  what this means",
+  shape === "greenfield"
+    ? "the executor writes a walking skeleton — one module, one passing test, one build that exits 0, one thing that answers"
+    : "wrap the commands this project already runs, and measure before writing the floors",
+);
+
+item(
+  "definitions",
+  definitions === "absent" ? "ABSENT — nothing installed yet"
+    : definitions === "behind" ? "BEHIND — what is installed differs from what this plugin ships; an upgrade is due"
+    : `CURRENT — identical to what ships${record === null ? ", though nothing recorded which version" : ""}`,
+);
+
+// The old version said "nothing to upgrade. Re-running is still safe" here, which was true about the
+// definitions and read as a verdict on the whole install — on a project whose map was still the empty
+// template and whose Makefile had neither target. Say what is actually known, and point at the
+// command that can answer the rest.
+item(
+  "  configuration",
+  configLooksUnfinished
+    ? "NOT finished — see the project-owned files above. `check.mjs install-ready` gives the verdict once .flow/ is in place"
+    : "every project-owned file is filled in. `check.mjs install-ready` is what confirms it holds",
+);
 
 // ───────────────────────── the modules prompt, ready to put in front of a person ─────────────────
 // A free-text answer rather than a set of options: a module list is a table, and the two or three
@@ -631,9 +645,9 @@ if (route === "greenfield") {
 // leaving the executor to assemble it from the sections above is where a module quietly goes
 // missing. Render it in the user's language when putting it in front of them.
 
-if (mapUnfilled && route !== "upgrade") {
+if (mapUnfilled) {
   section("MODULES — put this in front of the user, and take the reply as free text");
-  if (route === "greenfield") {
+  if (shape === "greenfield") {
     out("  Which modules does this project have? One line each:");
     out();
     out("    - <name>: <what it is for>, <stack>");
