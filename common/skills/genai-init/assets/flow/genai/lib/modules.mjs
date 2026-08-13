@@ -55,7 +55,7 @@ export function readMap() {
     return { label: "map_malformed", facts: { file: MAP, reason: "`modules` must be an object keyed by module name", found: typeof declared } };
   }
   const names = Object.keys(declared);
-  // The template ships with none, so this is also what an install that has not reached phase 4 yet
+  // The template ships with none, so this is also what an install whose build-out step has not run yet
   // reports. It is a setup problem either way, and the reason says which.
   if (names.length === 0) {
     return { label: "map_malformed", facts: { file: MAP, reason: "no modules are declared — a single-module project declares one module whose `path` is `.`" } };

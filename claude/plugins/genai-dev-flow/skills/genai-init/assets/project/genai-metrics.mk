@@ -1,5 +1,12 @@
-# The numbers the genai.implement and genai.merge gates judge. Append this target to the
-# project's Makefile, then replace the two placeholder lines below.
+# REFERENCE, not a file that gets copied. The numbers the genai.implement and genai.merge gates
+# judge. The executor writes this target into the project's Makefile, with a real recipe rather than
+# the placeholder at the bottom.
+#
+# Nothing installs it, because the recipe is this project's: which reporter its runner produces, and
+# how a repository of several modules aggregates across them, is not something a template knows. A
+# placeholder written by a script only moves that work later while leaving a target that fails by
+# construction. Keep the placeholder for the one case it is honest — the executor could not
+# determine the command — and say so in the report rather than leaving it silently.
 #
 # The gate reads ONE line out of stdout and ignores everything else — and ignores the exit code
 # too, so a failing suite needs no `|| true` and the test output needs no redirect. Both are

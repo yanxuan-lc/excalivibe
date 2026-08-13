@@ -1,15 +1,15 @@
 #!/usr/bin/env node
-// Phase 1 of genai-init: find out what this project already is. Read-only — it never writes, so it
-// needs no permission and no confirmation, and it can be re-run at any point to see where an
+// The route step of genai-init: find out what this project already is. Read-only — it never writes,
+// so it needs no permission and no confirmation, and it can be re-run at any point to see where an
 // interrupted install stopped.
 //
 //   node <skill-dir>/assets/scripts/detect.mjs --target claude|codex|common
 //
 // It exists because the ten things below used to be ten separate commands with a model reading a
 // paragraph of documentation between each one. Every branch here is decided by code; what comes out
-// is already a conclusion. The report ends with the two sections that matter to whoever reads it:
-// DECIDE, the questions this cannot answer for itself, and SUGGESTED, the apply.mjs line that
-// carries the answers back.
+// is already a conclusion. The report ends with the three sections that matter to whoever reads it:
+// ROUTE, which of greenfield / brownfield / upgrade this project is; DECIDE, the questions this
+// cannot answer for itself; and SUGGESTED, the apply.mjs line that carries the answers back.
 //
 // It exits 0 for everything it finds. "This project has nothing installed" is a finding, not a failure
 // — and a non-zero exit for one would be indistinguishable from the script itself being broken. The
@@ -19,10 +19,12 @@ import { execFileSync } from "node:child_process";
 import { existsSync, lstatSync, readFileSync, readdirSync, statSync } from "node:fs";
 import { basename, dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { signatureOf } from "./lib/signature.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const SKILL = resolve(HERE, "..", "..");           // the skill directory this was loaded from
-const SHIPPED_NODES = join(SKILL, "assets", "flow", "nodes");
+const SHIPPED_FLOW = join(SKILL, "assets", "flow");
+const SHIPPED_NODES = join(SHIPPED_FLOW, "nodes");
 
 const argv = process.argv.slice(2);
 const flag = (name) => {
@@ -58,10 +60,10 @@ const parse = (text) => { try { return JSON.parse(text); } catch { return null; 
 const dir = (path) => { try { return readdirSync(path).sort(); } catch { return null; } };
 const isDir = (path) => { try { return statSync(path).isDirectory(); } catch { return false; } };
 
-// Walk the working tree, not git's index. This phase runs *before* the repository may exist and
+// Walk the working tree, not git's index. This step runs *before* the repository may exist and
 // before anything is added to it, so `git ls-files` and `git grep` both come back empty on a
-// greenfield project that plainly has tests — and an empty answer here sends phase 2 to the wrong
-// question and phase 4 to the wrong expected label.
+// greenfield project that plainly has tests — and an empty answer here sends the ask step to the
+// wrong question and the executor to the wrong expected label.
 const SKIP = new Set(["node_modules", ".git", ".flow", "dist", "build", "out", "coverage", "vendor", "target", ".venv", "venv", "__pycache__", ".next", ".cache", ".idea"]);
 // Depth 12, not 6: `packages/api/src/features/billing/invoice/detail/thing.test.js` is eight deep and
 // entirely ordinary in a monorepo, and missing it reports a project with tests as having none.
@@ -90,7 +92,7 @@ const out = (text = "") => lines.push(text);
 const section = (title) => { out(); out(title); out("─".repeat(title.length)); };
 const item = (label, value) => out(`  ${label.padEnd(28)} ${value}`);
 
-const decide = [];   // what phase 2 has to ask
+const decide = [];   // what the ask step has to cover
 const blocked = [];  // what makes the install impossible until it is fixed
 
 // ───────────────────────── 1. tooling ─────────────────────────
@@ -187,6 +189,26 @@ item("genai.* definitions", `${installed.length} installed / ${shipped.length} s
 item("gate evaluators", existsSync(".flow/genai/check.mjs") ? "present" : "absent — apply.mjs copies .flow/genai/");
 item("workflow whitelist", existsSync(".flow/workflows/genai-sprint.yaml") ? "present" : "absent — apply.mjs copies it");
 
+// What this project recorded at its last install, against what this plugin copy would install now.
+// The comparison is a signature rather than a version, so it also catches a definition edited
+// between releases — the case a version number cannot see. See lib/signature.mjs.
+const record = json(".flow/genai/installed.json");
+const shippedSignature = signatureOf(SHIPPED_FLOW);
+const behind = record !== null && shippedSignature !== null && record.signature !== shippedSignature;
+item(
+  "installed record",
+  record === null
+    ? existsSync(".flow/genai/installed.json") ? "UNREADABLE — it exists and does not parse" : "absent — either never installed, or installed before this record existed"
+    : `${record.version ? `version ${record.version}` : "no version recorded"}, ${record.target ?? "unknown"} end, ${record.installed_at ?? "no timestamp"}`,
+);
+item(
+  "  against what ships now",
+  shippedSignature === null ? "this plugin copy has NO flow assets — nothing can be judged"
+    : record === null ? "no record to compare — treat as a fresh install"
+    : behind ? "DIFFERENT — the definitions here are not the ones this plugin ships. An upgrade is due"
+    : "identical — nothing to upgrade",
+);
+
 const config = read(".flow/config.yaml");
 const configValue = (key) => {
   const hit = config?.match(new RegExp(`^\\s*${key}:\\s*(.+?)\\s*$`, "m"));
@@ -196,7 +218,7 @@ item("config: patience", config === null ? "no config.yaml" : configValue("patie
 item("config: graph_budget", config === null ? "no config.yaml" : configValue("graph_budget") ?? "not set");
 const lang = config === null ? null : configValue("instruction_language");
 item("config: language", lang ?? "not set");
-// Only ask what is not already settled on disk. This script is the agenda for phase 2, and a re-run —
+// Only ask what is not already settled on disk. This script is the agenda for the ask step, and a re-run —
 // which is also the upgrade path — must not walk the user back through decisions they already made.
 if (!lang) decide.push("instruction_language — the language the requirement briefs are written in, not the language of whoever is typing");
 
@@ -211,28 +233,32 @@ const declaredGoal = makefile?.match(/^\s*\.DEFAULT_GOAL\s*:=\s*(\S+)/m)?.[1];
 // With no .DEFAULT_GOAL, make runs the first target in the file — so that name is what the bare
 // command does today, and it is the thing this used to get wrong.
 const firstTarget = makefile?.match(/^([a-zA-Z0-9_][a-zA-Z0-9_./-]*):(?!=)/m)?.[1];
-item("Makefile", makefile === null ? "absent — apply.mjs writes the head + the target skeleton" : "present");
+// No script writes this file. Both genai targets describe THIS project — on several modules the
+// build recipe IS that project's module list — and appending to somebody's existing Makefile
+// collides with their includes, their variables and their default goal. So everything below is
+// reported for an executor to act on, never as something an install is about to do.
+item("Makefile", makefile === null ? "absent — the executor writes one, head included" : "present");
 if (makefile !== null) {
   item("  bare `make` runs", declaredGoal ? `${declaredGoal} (.DEFAULT_GOAL)` : firstTarget ? `${firstTarget} (first target — no .DEFAULT_GOAL)` : "nothing");
   item("  help target", /^help:/m.test(makefile) ? "yes" : "no");
-  item("  genai-metrics target", hasMetrics ? "present" : "absent — apply.mjs appends the skeleton");
+  item("  genai-metrics target", hasMetrics ? "present" : "absent — the executor writes it");
   if (hasMetrics) {
     // The placeholder recipe lines carry make's `-` prefix, so match with and without it.
     const placeholder = /^\t-?@</m.test(makefile.slice(makefile.search(/^genai-metrics:/m)));
-    item("  its recipe", placeholder ? "STILL THE PLACEHOLDER — phase 4 fills it" : "filled in");
+    item("  its recipe", placeholder ? "STILL THE PLACEHOLDER — the executor replaces it" : "filled in");
   }
-  item("  genai-build target", hasBuild ? "present" : "absent — apply.mjs appends the skeleton");
+  item("  genai-build target", hasBuild ? "present" : "absent — the executor writes it");
   if (hasBuild) {
     // This placeholder announces itself by sentinel rather than by shape: it has to exit non-zero so
     // an unwritten build never reports green, which makes it look like a real recipe from the outside.
     const placeholder = makefile.slice(makefile.search(/^genai-build:/m)).includes("GENAI-BUILD-PLACEHOLDER");
-    item("  its recipe", placeholder ? "STILL THE PLACEHOLDER — phase 4 fills it" : "filled in");
+    item("  its recipe", placeholder ? "STILL THE PLACEHOLDER — the executor replaces it" : "filled in");
   }
 }
 
 const thresholds = json("tools/genai/thresholds.json");
 // Byte-identical to the shipped template means nobody has agreed these numbers yet, which is a
-// different state from "the project set them" and asks a different question in phase 2.
+// different state from "the project set them" and asks a different question when the time comes to ask.
 const shippedThresholds = read(join(SKILL, "assets", "project", "thresholds.json"));
 const thresholdsUnagreed = !existsSync("tools/genai/thresholds.json") || read("tools/genai/thresholds.json") === shippedThresholds;
 item(
@@ -253,7 +279,7 @@ item(
   modulesMap === null
     ? existsSync("tools/genai/modules.json") ? "UNREADABLE — it exists and does not parse" : "absent — apply.mjs copies the template"
     : declaredModules === null ? "MALFORMED — no `modules` object; genai.spec refuses to start"
-    : declaredModules.length === 0 ? "TEMPLATE, no modules declared — phase 4 fills it, and genai.spec refuses to start until it does"
+    : declaredModules.length === 0 ? "TEMPLATE, no modules declared — the executor fills it, and genai.spec refuses to start until it does"
     : `${declaredModules.length} module(s): ${declaredModules.join(", ")}`,
 );
 
@@ -265,7 +291,7 @@ const oneShape = (t) => (t?.url ? `url ${t.url}` : t?.command ? `command ${JSON.
 const e2eShape = Array.isArray(e2e?.targets)
   ? `${e2e.targets.length} target(s): ${e2e.targets.map((t) => `${t?.name ?? "UNNAMED"} → ${oneShape(t)}, contains ${JSON.stringify(t?.contains)}`).join(" | ")}`
   : `${oneShape(e2e)}, contains ${JSON.stringify(e2e?.contains)}`;
-item("tools/genai/e2e.json", e2e ? (e2eTemplate ? "TEMPLATE, unedited — phase 4 fills it" : e2eShape) : "absent");
+item("tools/genai/e2e.json", e2e ? (e2eTemplate ? "TEMPLATE, unedited — the executor fills it" : e2eShape) : "absent");
 
 const sibling = `../${basename(process.cwd())}_genai`;
 const siblingState = isDir(sibling)
@@ -275,7 +301,7 @@ item("requirements directory", `${sibling}  ${siblingState}`);
 if (!isDir(sibling)) decide.push(`whether ${sibling} should be its own git repository — it sits outside this repo, so it has no history unless given one`);
 
 // ───────────────────────── 5. the modules and their toolchains ─────────────────────────
-// This is what phase 4 needs to write modules.json and to fill the two recipes, and it is why
+// This is what the executor needs to write modules.json and to fill the two recipes, and it is why
 // detect.mjs looks at more than the flow's own files: a model that has already been told the split,
 // the runners and the reporters does not have to go reading build files to find them.
 //
@@ -286,7 +312,7 @@ if (!isDir(sibling)) decide.push(`whether ${sibling} should be its own git repos
 section("modules and toolchains (input for modules.json and the two recipes)");
 
 // One manifest names one module. `python` and `jvm` collapse several filenames into one name
-// because the distinction between pyproject.toml and setup.cfg does not change what phase 4 writes.
+// because the distinction between pyproject.toml and setup.cfg does not change what the executor writes.
 const MANIFESTS = [
   ["package.json", "package.json"],
   ["go.mod", "go.mod"],
@@ -309,7 +335,7 @@ for (const file of files) {
 }
 const moduleDirs = [...byDir.keys()].sort();
 const pkg = json("package.json");
-// A manifest that exists and does not parse is not the same as no manifest: phase 4 reads this one to
+// A manifest that exists and does not parse is not the same as no manifest: the executor reads this one to
 // choose a reporter, so an unreadable one is a finding rather than a silence.
 if (pkg === null && existsSync("package.json")) item("package.json", "UNREADABLE — it exists and does not parse");
 
@@ -332,7 +358,7 @@ for (const dir of moduleDirs) {
       item("      runners / coverage", runners.length ? runners.join(", ") : "none declared — this module has no test runner, so nothing here compiles it either");
     }
   }
-  // Python and Rust declare their runner in a manifest too, and phase 4 needs it for the same reason
+  // Python and Rust declare their runner in a manifest too, and the executor needs it for the same reason
   // it needs npm's: to pick a machine-readable reporter without going and reading build files first.
   if (kinds.includes("python")) {
     const configs = ["pyproject.toml", "pytest.ini", "tox.ini", "setup.cfg"].filter((f) => existsSync(at(f)));
@@ -347,7 +373,7 @@ for (const dir of moduleDirs) {
     item("      cargo coverage", tools.length ? tools.join(", ") : "none declared — `cargo test` reports no coverage on its own");
   }
   if (kinds.includes("go.mod")) {
-    // Worth stating rather than leaving phase 4 to discover: go's cover has statements and nothing
+    // Worth stating rather than leaving the executor to discover: go's cover has statements and nothing
     // else, so a project whose only coverage comes from go cannot report two of the three dimensions.
     item("      go", "`go test -cover` reports STATEMENTS only — no branch and no function dimension");
   }
@@ -361,7 +387,7 @@ if ((declaredModules === null || declaredModules.length === 0) && moduleDirs.len
 }
 
 // Whether any test exists decides which metrics label is the expected one at install time — with no
-// tests, `no_tests` is correct and `satisfied` is not reachable — and which question phase 2 asks
+// tests, `no_tests` is correct and `satisfied` is not reachable — and which question the ask step asks
 // about the floors. So a test has to be code: matching on the name alone counts
 // `flutter-integration-test.md` in a docs-heavy repository, and this count is not decorative.
 const CODE = /\.(js|mjs|cjs|jsx|ts|tsx|py|go|rs|rb|php|java|kt|kts|swift|dart|ex|exs|scala|cs|m|mm|c|cc|cpp|h|hpp|sh|bash)$/i;
@@ -376,7 +402,63 @@ if (!thresholdsUnagreed) { /* the project has set them, and neither a round nor 
 else if (testFiles.length) decide.push("the coverage floors: measure what the project does today, then set floors at or below it — a floor above reality rejects every round with nothing able to fix it");
 else decide.push("the coverage floors: the shipped defaults are right for a project with no tests yet");
 
-// ───────────────────────── 6. app identity hints ─────────────────────────
+// ───────────────────────── 6. what this project already runs ─────────────────────────
+// The first rule on an existing project is to wrap the commands it already has rather than build a
+// second set beside them: a project with working lint, test and coverage does not need this install
+// to invent any of the three, and a second definition of how to build something is one that can
+// disagree with the first. So the two genai recipes are written FROM this listing.
+//
+// It is also the answer to "which Makefile target does this module's `targets` point at" — that
+// field names targets, not commands, so the names have to come from somewhere real.
+
+section("commands this project already runs (wrap these; do not rebuild them)");
+
+// Targets with their `## ` description where there is one, since that is what the project itself
+// says each one is for. Skip .PHONY and pattern rules — neither is something to point a map at.
+//
+// Split rather than dumped. A mature repository has thirty targets and this section exists to
+// nominate candidates for `targets` and the two recipes; printing all thirty with their full
+// descriptions buries the four that matter under the ones that publish and tag.
+const targets = [...(makefile ?? "").matchAll(/^([a-zA-Z0-9_][a-zA-Z0-9_./-]*):(?!=)[^\n]*?(?:##\s*(.*))?$/gm)]
+  .map((hit) => ({ name: hit[1], note: hit[2]?.trim() }))
+  .filter((t) => !t.name.startsWith("."));
+const RELEVANT = /(^|-)(build|compile|test|tests|lint|check|verify|typecheck|tsc|fmt|format|cover|coverage|ci)($|-)/i;
+const relevant = targets.filter((t) => RELEVANT.test(t.name));
+const rest = targets.filter((t) => !RELEVANT.test(t.name));
+const brief = (note) => (note && note.length > 48 ? `${note.slice(0, 47)}…` : note);
+if (makefile === null) item("Makefile targets", "no Makefile");
+else if (!targets.length) item("Makefile targets", "none declared");
+else {
+  item("  build/test/lint-ish", relevant.length ? relevant.map((t) => `${t.name}${t.note ? ` (${brief(t.note)})` : ""}`).join(", ") : "none — every target here is something else");
+  if (rest.length) item("  everything else", `${rest.slice(0, 20).map((t) => t.name).join(", ")}${rest.length > 20 ? ` (+${rest.length - 20} more)` : ""}`);
+}
+
+const rootScripts = Object.entries(pkg?.scripts ?? {}).filter(([n]) => /^(test|coverage|cov|build|lint|typecheck|tsc|check|verify|ci)/.test(n));
+item("root package.json scripts", existsSync("package.json") ? (rootScripts.length ? rootScripts.map(([n, v]) => `${n}: ${v}`).join(" | ") : "none that look like build/test/lint") : "no root package.json");
+
+// CI is where a project's real commands are already written down, and it is the listing least likely
+// to be out of date — it has to work or the pipeline goes red. Take the command lines and nothing
+// else; a whole workflow file dumped here would bury the four lines that matter.
+const CI_FILES = [".github/workflows", ".gitlab-ci.yml", ".circleci/config.yml", "Jenkinsfile", ".travis.yml", "azure-pipelines.yml"];
+const ciPaths = CI_FILES.flatMap((path) => (isDir(path) ? (dir(path) ?? []).map((f) => join(path, f)) : existsSync(path) ? [path] : []));
+if (!ciPaths.length) item("CI configuration", "none found");
+else {
+  item("CI configuration", ciPaths.join(", "));
+  // `run:` (GitHub Actions), `- ` under script: (GitLab/Travis), `sh '…'` (Jenkins). One regex per
+  // shape would be four regexes that each miss the other three; matching command-ish lines and
+  // de-duplicating gets the same answer for the purpose this serves, which is naming candidates.
+  const commands = new Set();
+  for (const path of ciPaths.slice(0, 8)) {
+    for (const line of (read(path) ?? "").split("\n")) {
+      const hit = line.match(/^\s*(?:-\s*)?(?:run:|sh\s+['"]|- )\s*(.+?)\s*$/);
+      const command = hit?.[1]?.replace(/['"]$/, "");
+      if (command && /^(make|npm|pnpm|yarn|go|cargo|python|pytest|poetry|uv|mvn|gradle|dotnet|bundle|composer|mix|swift|flutter|dart|tox|just|task)\b/.test(command)) commands.add(command);
+    }
+  }
+  item("  commands it runs", commands.size ? [...commands].slice(0, 12).join(" | ") : "none recognised — read the files themselves");
+}
+
+// ───────────────────────── 7. app identity hints ─────────────────────────
 
 section("app identity hints (input for tools/genai/e2e.json)");
 
@@ -399,14 +481,40 @@ const ROUTE = /(["'`]|:\s*)\/(healthz|health|readyz|ping|status)\b/;
 const health = files.filter((f) => SCANNABLE.test(f) && small(f)).filter((f) => ROUTE.test(read(f) ?? ""));
 item("health-ish routes in", health.length ? `${health.slice(0, 5).join(", ")}${health.length > 5 ? ` (+${health.length - 5} more)` : ""}` : "nothing found");
 // Only the first of these is a question. The template case is a fact about the file, and it is already
-// reported above — DECIDE is the list phase 2 works through, so a statement in it gets asked.
+// reported above — DECIDE is the list the ask step works through, so a statement in it gets asked.
 if (e2e === null) decide.push("does this project's app exist and answer on a URL today? If not, leave tools/genai/e2e.json out — an invented URL is worse than an absent file");
 
-// ───────────────────────── the two sections that get read ─────────────────────────
+// ───────────────────────── the three sections that get read ─────────────────────────
 
-section("DECIDE — phase 2 asks these, in one pass");
+// Which of the three routes this project is on. Decided by what is MISSING, never by what the
+// project looks like: "greenfield" is not a kind of project, it is the absence of the three things
+// the configuration work reads from — a manifest to name a module, a commit to compare against, and
+// a test whose numbers set the floors.
+//
+// The scripted steps are identical on all three routes. What the route actually selects is which
+// questions get asked and what the executor does with the answers, which is why one line of verdict
+// here is enough and no flag carries it into apply.mjs.
+section("ROUTE");
+
+const route = installed.length ? "upgrade" : (!moduleDirs.length && !head.ok && !testFiles.length) ? "greenfield" : "brownfield";
+const why = {
+  upgrade: `${installed.length} genai.* definitions are already installed${record === null ? ", though nothing recorded which version" : behind ? " and they differ from what ships now" : " and they match what ships now"}`,
+  greenfield: "no manifest, no commit and no test file — there is nothing here to describe yet",
+  brownfield: `${moduleDirs.length} manifest director${moduleDirs.length === 1 ? "y" : "ies"}, ${testFiles.length} test file(s), HEAD ${head.ok ? "present" : "missing"}`,
+};
+item("route", `${route.toUpperCase()} — ${why[route]}`);
+if (route === "upgrade" && !behind && record !== null) {
+  item("  note", "nothing to upgrade. Re-running is still safe and still refreshes the definitions");
+}
+if (route === "greenfield") {
+  item("  what this means", "the executor writes a walking skeleton — one module, one passing test, one build that exits 0, one thing that answers — BEFORE the floors can be verified");
+} else if (route === "brownfield") {
+  item("  what this means", "measure before writing the floors. Run measure.mjs for the numbers, then set them at or below what came out");
+}
+
+section("DECIDE — asked in one pass, after the consent question");
 if (decide.length) decide.forEach((q, i) => out(`  ${i + 1}. ${q}`));
-else out("  Nothing. Every decision this install needs is already on disk — go straight to phase 3,");
+else out("  Nothing. Every decision this install needs is already on disk — go straight to apply.mjs,");
 if (!decide.length) out("  which will only refresh the definitions, or skip it if nothing needs upgrading.");
 
 if (blocked.length) {
@@ -414,7 +522,7 @@ if (blocked.length) {
   blocked.forEach((b) => out(`  · ${b}`));
 }
 
-section("SUGGESTED — phase 3, once the answers are in");
+section("SUGGESTED — the apply line, once the answers are in");
 const suggestion = [
   `node ${join(HERE, "apply.mjs")}`,
   `--target ${target}`,
@@ -429,7 +537,7 @@ const suggestion = [
 out(`  ${suggestion}`);
 out();
 if (suggestion.includes("[")) {
-  out("  Square brackets are the ones phase 2 decides. Drop --install for anything the user installs");
+  out("  Square brackets are the ones the ask step decides. Drop --install for anything the user installs");
   out("  themselves, and re-run this script rather than assuming it worked.");
 } else if (!lang) out("  Replace ZH-CN-OR-EN-US with the language the requirement briefs are written in.");
 else out("  Nothing to fill in — that line is ready as it stands. Re-run this script afterwards rather");

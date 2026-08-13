@@ -1,9 +1,13 @@
-# The head of a project's Makefile — write this ONLY when the project has none. It exists so that
-# the bare command shows help instead of running whatever target happens to come first, and so the
-# `## ` description each target carries has something that renders it.
+# REFERENCE, not a file that gets copied. Nothing installs this — the executor writes the project's
+# Makefile and reads this for the shape.
 #
-# A project that already has a Makefile keeps its own head. Appending a target to the end of a file
-# does not change its default goal, so nothing here is needed to append `genai-metrics` safely.
+# Use it ONLY when the project has no Makefile at all. It exists so that the bare command shows help
+# instead of running whatever target happens to come first, and so the `## ` description each target
+# carries has something that renders it.
+#
+# A project that already has a Makefile keeps its own head and its own default goal. Do not retrofit
+# either — devops-guideline wants help as the default goal, but that file belongs to the project;
+# raise it with them rather than changing it during an install.
 .DEFAULT_GOAL := help
 
 # Capture this makefile's path BEFORE any `-include`, so `help` greps only it: an include appends

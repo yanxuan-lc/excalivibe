@@ -1,0 +1,3 @@
+{
+  "_generated": "The compiler replaces this file's whole contents with { plugin, version } taken from the plugin's plugin.json. Do not write a version here — plugin.json is the one place a version exists, and `make bump` is the only way to change it. This placeholder is what the source carries so the file has somewhere to come from; it is never what ships."
+}

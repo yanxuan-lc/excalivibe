@@ -245,6 +245,16 @@ for (const p of PLUGINS) {
     const targets: readonly End[] = only ? [only] : ENDS;
     const name = path.basename(outRel);
 
+    // plugin-version.json: the compiler stamps it, so a skill can read its own version at run time
+    // on **every** end. Claude and Codex each ship a manifest a script could walk up to and read;
+    // the common end ships a bare `skills/<name>/` with no manifest anywhere above it, so without
+    // this a common-end skill simply cannot know which release it is. `plugin.json` stays the one
+    // place a version is written — this is a copy the compiler makes, never a second source.
+    if (name === 'plugin-version.json') {
+      for (const end of targets) emit(skillPath(end, p, outRel), json({ plugin: m.name, version: m.version }), from);
+      continue;
+    }
+
     // realization.json: the source carries a key per end; each end takes only its own half
     if (name === 'realization.json') {
       const r = JSON.parse(fs.readFileSync(f, 'utf8')) as Record<string, unknown>;

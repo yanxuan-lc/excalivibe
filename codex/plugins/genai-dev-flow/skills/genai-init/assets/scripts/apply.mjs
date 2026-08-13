@@ -1,8 +1,8 @@
 #!/usr/bin/env node
-// Phase 3 of genai-init: do the file work. Every branch this takes was decided before it ran —
-// by detect.mjs finding a file present or absent, or by the user answering phase 2 and that answer
+// The scaffold step of genai-init: do the file work. Every branch this takes was decided before it ran —
+// by detect.mjs finding a file present or absent, or by the user answering the one round of questions and
 // arriving here as a flag. It makes no judgement of its own, which is the point: the parts of this
-// install that need judgement are the two placeholders it deliberately leaves for phase 4.
+// install that need judgement it deliberately leaves to the executor.
 //
 //   node <skill-dir>/assets/scripts/apply.mjs --target claude|codex|common --lang zh-CN [flags]
 //
@@ -27,6 +27,7 @@ import { execFileSync } from "node:child_process";
 import { accessSync, constants, cpSync, existsSync, mkdirSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { basename, dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { signatureOf } from "./lib/signature.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const SKILL = resolve(HERE, "..", "..");
@@ -102,13 +103,28 @@ const isDir = (path) => { try { return statSync(path).isDirectory(); } catch { r
 const dirList = (path) => { try { return readdirSync(path); } catch { return null; } };
 const tracked = () => { const r = run("git", ["status", "--porcelain"], { allowFail: true }); return r.ok ? new Set(r.out.split("\n").filter(Boolean).map((l) => l.slice(3))) : new Set(); };
 
-/** A shipped template, or a stop. read() returning null would otherwise put the string "null" into a
- *  project's Makefile, which is silent corruption where an error belongs. */
-function asset(...parts) {
-  const path = join(ASSETS, ...parts);
-  const body = read(path);
-  if (body === null) fail(`cannot read ${path} — this install's own template is missing or unreadable.`);
-  return body;
+/** The plugin version this copy ships.
+ *
+ *  `assets/plugin-version.json` is stamped by the compiler, so it answers on every end — including
+ *  `common`, which ships a bare `skills/<name>/` with no manifest anywhere above it and could
+ *  otherwise only report a hash. The manifest walk behind it is for running straight out of `src/`,
+ *  where the file still holds its uncompiled placeholder.
+ *
+ *  Either way the version is an annotation, not the upgrade decision: that rests on the signature. */
+function shippedVersion() {
+  try {
+    const stamped = JSON.parse(readFileSync(join(ASSETS, "plugin-version.json"), "utf8")).version;
+    if (stamped) return stamped;
+  } catch { /* fall through to the manifests */ }
+  for (const candidate of [
+    join(SKILL, "..", "..", ".claude-plugin", "plugin.json"),
+    join(SKILL, "..", "..", ".codex-plugin", "plugin.json"),
+    join(SKILL, "..", "..", "plugin.json"),
+    join(SKILL, "..", "..", "package.json"),
+  ]) {
+    try { return JSON.parse(readFileSync(candidate, "utf8")).version ?? null; } catch { /* try the next */ }
+  }
+  return null;
 }
 
 /** mkdir -p, but say which existing file is in the way rather than raising ENOTDIR from three frames down. */
@@ -148,7 +164,7 @@ if (status.ok) {
 
 // --upgrade replaces what is already there and deliberately skips everything else — the Makefile, the
 // thresholds, the engine defaults, the requirements directory. Run on a project with no install, that
-// leaves definitions sitting in a `.flow/` with none of the rest, and reports success while the phase 4
+// leaves definitions sitting in a `.flow/` with none of the rest, and reports success while the executor
 // list it prints refers to a make target that does not exist.
 if (upgrade) {
   const already = (dirList(".flow/nodes") ?? []).filter((n) => n.startsWith("genai."));
@@ -269,6 +285,27 @@ for (const retired of (dirList(".flow/nodes") ?? []).filter((n) => n.startsWith(
   did(`${retired} removed — it no longer ships with this plugin`);
 }
 
+// What was just installed, so a later run can tell whether this project is behind without diffing
+// two trees. It has to be written AFTER the copy above: `.flow/genai/` is replaced wholesale, so a
+// record written first is a record the next upgrade deletes.
+//
+// Not `.flow/config.yaml`. Both of fsx's config schemas are strict objects, so an unrecognised key
+// there comes back from `fsx check` as `config_invalid` — an error rather than a warning, which
+// takes `ok` to false, which section 9 below reads as a failed install. The record would make every
+// run from then on report a break whose only cause is the record itself.
+//
+// A whole-file rewrite rather than an edit: fixed schema, no user content to preserve, so being
+// idempotent costs nothing here.
+const installedRecord = {
+  signature: signatureOf(join(ASSETS, "flow")),
+  version: shippedVersion(),
+  target,
+  nodes: shipped.slice().sort(),
+  installed_at: new Date().toISOString(),
+};
+writeFileSync(".flow/genai/installed.json", `${JSON.stringify(installedRecord, null, 2)}\n`);
+did(`.flow/genai/installed.json records signature ${installedRecord.signature?.slice(0, 19) ?? "NONE — this plugin copy has no flow assets"}…${installedRecord.version ? ` (version ${installedRecord.version})` : " (no version — running from an uncompiled source tree)"}`);
+
 if (!upgrade) {
   // fsx writes an ignore for .flow/runs/ only, and its comment is right for definitions a project
   // wrote itself. These were not: they are versioned in the plugin that installs them, so committing
@@ -338,42 +375,32 @@ if (!upgrade) {
   }
 }
 
-// ───────────────────────── 5. the Makefile ─────────────────────────
+// ───────────────────────── 5. the Makefile, which this script deliberately does not write ─────────────────────────
+// It used to append two targets here. It no longer writes this file at all, for two reasons that
+// turned out to be the same reason.
+//
+// The recipes need judgement. `genai-build` on a repository of several modules is a list of that
+// project's own module targets, and `genai-metrics` has to read whatever machine-readable reporter
+// this project's runner happens to produce. Neither is something a template knows. Appending a
+// placeholder only moved the work later while leaving two targets that fail by construction.
+//
+// And appending to an existing Makefile is not safe in general. A project's own file has includes,
+// variables, `.PHONY` conventions, a default goal, sometimes already a target of that name — and
+// every one of those collides quietly. A script may only touch a file it can modify idempotently or
+// detect its way around first; this one is neither, so it goes to the executor that can read it.
+//
+// The three .mk files under assets/project/ stay where they are and change role: they are the
+// reference the executor writes from, not something copied into place.
 
 if (!upgrade) {
   head("Makefile");
-  if (!existsSync("Makefile")) {
-    // Appending to nothing is not the same as appending: genai-metrics would become the file's first
-    // target and therefore make's default goal, so the bare command would run the test suite, and
-    // the `## ` description the target carries would have nothing that renders it.
-    writeFileSync("Makefile", asset("project", "makefile-head.mk"));
-    did("Makefile created with .DEFAULT_GOAL := help and a help target — the bare command shows help");
-  } else {
-    skip("Makefile exists — its own head is left alone, an appended target does not change the default goal");
-    // Left alone is right: it is the project's file. But then the bare command may still run a build,
-    // and saying nothing would leave the install claiming a front door it did not give the project.
+  if (existsSync("Makefile")) {
     const existing = read("Makefile") ?? "";
-    const goal = existing.match(/^\s*\.DEFAULT_GOAL\s*:=\s*(\S+)/m)?.[1];
-    const first = existing.match(/^([a-zA-Z0-9_][a-zA-Z0-9_./-]*):(?!=)/m)?.[1];
-    if (!goal && first && first !== "help") {
-      warn(`bare \`make\` in this project runs \`${first}\`, not help — devops-guideline wants help as the default goal, but this Makefile belongs to the project. Raise it with them; do not edit it here.`);
-    } else if (!goal && !first) {
-      warn("this Makefile declares no targets, so genai-metrics is about to become the first one and therefore what the bare command runs. Give it a .DEFAULT_GOAL, or a help target — the file is the project's, so this is theirs to decide.");
-    }
-    if (!/^help:/m.test(existing)) {
-      warn("this Makefile has no `help` target, so the `## ` description on genai-metrics renders nowhere. Also the project's call, not this install's.");
-    }
+    const have = ["genai-build", "genai-metrics"].filter((t) => new RegExp(`^${t}:`, "m").test(existing));
+    skip(`Makefile exists and is untouched — ${have.length ? `it already declares ${have.join(" and ")}` : "neither genai target is declared yet"}. Writing them is the executor's step, from assets/project/*.mk`);
+  } else {
+    skip("no Makefile — the executor writes one, head included, from assets/project/makefile-head.mk");
   }
-
-  if (!/^genai-metrics:/m.test(read("Makefile") ?? "")) {
-    writeFileSync("Makefile", `${read("Makefile")}\n${asset("project", "genai-metrics.mk")}`);
-    did("genai-metrics target appended — WITH ITS PLACEHOLDER RECIPE, which phase 4 replaces");
-  } else skip("genai-metrics target already present — left as it is, including the project's own recipe");
-
-  if (!/^genai-build:/m.test(read("Makefile") ?? "")) {
-    writeFileSync("Makefile", `${read("Makefile")}\n${asset("project", "genai-build.mk")}`);
-    did("genai-build target appended — ALSO A PLACEHOLDER; note its recipe takes no `-` prefix, unlike the metrics one");
-  } else skip("genai-build target already present — left as it is, including the project's own recipe");
 }
 
 // ───────────────────────── 6. tools/genai/ ─────────────────────────
@@ -383,7 +410,7 @@ if (!upgrade) {
   ensureDir("tools/genai");
   if (!existsSync("tools/genai/thresholds.json")) {
     cpSync(join(ASSETS, "project", "thresholds.json"), "tools/genai/thresholds.json");
-    did("thresholds.json copied — the floors a project starting from nothing should have; phase 4 agrees the numbers");
+    did("thresholds.json copied — the floors a project starting from nothing should have; the executor agrees the numbers against what the project measures");
   } else skip("thresholds.json already there — a round may not edit it, so neither does this");
 
   // The one project-supplied file a round MAY edit — it declares structure and no gate judges by it —
@@ -391,7 +418,7 @@ if (!upgrade) {
   // it is forbidden.
   if (!existsSync("tools/genai/modules.json")) {
     cpSync(join(ASSETS, "project", "modules.json"), "tools/genai/modules.json");
-    did("modules.json copied — it declares NO modules yet, which the modules-map check reports until phase 4 fills it in");
+    did("modules.json copied — it declares NO modules yet, which the modules-map check reports until the executor fills it in");
   } else skip("modules.json already there — left as the project's own description of itself");
 
   // Report on the file, not on the flag: on a re-run without --e2e the file may already be there and
@@ -399,7 +426,7 @@ if (!upgrade) {
   if (existsSync("tools/genai/e2e.json")) skip("e2e.json already there — a round may not write it, so neither does this");
   else if (has("e2e")) {
     cpSync(join(ASSETS, "project", "e2e.json"), "tools/genai/e2e.json");
-    did("e2e.json copied — its `contains` deliberately cannot match anything until phase 4 replaces it");
+    did("e2e.json copied — its `contains` deliberately cannot match anything until the executor replaces it");
   } else skip("e2e.json not written — the app does not answer on a URL yet, and an invented one is worse than an absent file");
 }
 
@@ -434,13 +461,16 @@ if (!upgrade) {
 if (upgrade) {
   head("upgrade backfill (only what the new definitions require and this project lacks)");
   let backfilled = 0;
+  const forExecutor = [];
 
-  if (existsSync("Makefile") && !/^genai-build:/m.test(read("Makefile") ?? "")) {
-    writeFileSync("Makefile", `${read("Makefile")}\n${asset("project", "genai-build.mk")}`);
-    did("genai-build target appended as a PLACEHOLDER — the build gate reports target_missing until its recipe is written");
-    backfilled += 1;
+  // A Makefile target the new definitions gate on is reported, never appended — same reason as
+  // section 5. On an upgrade the reporting is the whole of the job anyway: what an upgrade must not
+  // do is let a project reach its next round not knowing a new gate arrived.
+  const makefile = existsSync("Makefile") ? read("Makefile") ?? "" : null;
+  if (makefile === null) forExecutor.push("there is no Makefile at all, so neither genai target exists — this project wants a full install, not an upgrade");
+  else for (const target of ["genai-build", "genai-metrics"]) {
+    if (!new RegExp(`^${target}:`, "m").test(makefile)) forExecutor.push(`${target} is not declared — its gate reports target_missing until the executor writes the recipe`);
   }
-  if (!existsSync("Makefile")) warn("no Makefile in this project, so neither genai-metrics nor genai-build can be appended. Both gates will report a missing target — install rather than upgrade.");
 
   if (!existsSync("tools/genai/modules.json")) {
     ensureDir("tools/genai");
@@ -449,15 +479,17 @@ if (upgrade) {
     backfilled += 1;
   }
 
-  if (backfilled === 0) skip("nothing to backfill — this project already has everything the current definitions gate on");
-  else warn("the backfilled files are placeholders. Fill them BEFORE the next round starts, or that round refuses at its first step.");
+  if (backfilled === 0 && !forExecutor.length) skip("nothing to backfill — this project already has everything the current definitions gate on");
+  if (backfilled) warn("the backfilled files are placeholders. Fill them BEFORE the next round starts, or that round refuses at its first step.");
+  for (const line of forExecutor) warn(line);
+  if (forExecutor.length) log.push("      A new definition gates on something this project was never asked for. Write it before the next round starts.");
 }
 
 // ───────────────────────── 9. verify the shape ─────────────────────────
-// Only the shape. Whether the numbers are right is phase 4's question, and it cannot be asked until
+// Only the shape. Whether the numbers are right is the executor.s question, and it cannot be asked until
 // the metrics recipe exists.
 
-head("verification (shape only — the content is phase 4's)");
+head("verification (shape only — the content is the executor's)");
 
 const check = run("fsx", ["check", "--json"], { allowFail: true });
 if (check.ok || check.out) {
@@ -506,25 +538,36 @@ if (appeared.length) {
   appeared.forEach((p) => log.push(`      ${p}`));
 }
 
-head("NEXT — phase 4, which needs a model and not a script");
-log.push("  1. Describe the project in tools/genai/modules.json — one entry per module, `path` `.` for a");
+head("NEXT — the steps that need an executor and not a script");
+log.push("  1. Write the Makefile. This script no longer touches it: the recipes describe THIS project's");
+log.push("     modules, and appending to somebody's existing file collides with their includes, their");
+log.push("     variables and their default goal. Write from assets/project/*.mk as the reference.");
+log.push("       · head        — .DEFAULT_GOAL := help, so the bare command shows help");
+log.push("       · genai-build — the compiler, or the type checker where there is none. NO `-` prefix on");
+log.push("                       any line; on several modules, their own targets as prerequisites.");
+log.push("       · genai-metrics — read a machine-readable reporter (JSON, JUnit, lcov summary), never a");
+log.push("                       human-readable table. This one DOES take `-` on the line that runs the");
+log.push("                       suite — the opposite of genai-build.");
+log.push("     An existing Makefile keeps its own head and its own default goal.");
+log.push("  2. Describe the project in tools/genai/modules.json — one entry per module, `path` `.` for a");
 log.push("     project that is one module. `targets` names Makefile targets, never commands.");
-log.push("     node .flow/genai/check.mjs modules-map  → `consistent`; target_missing names the target");
-log.push("  2. Fill the genai-build recipe — the compiler, or the type checker where there is no");
-log.push("     compiler. NO `-` prefix on its lines: stopping at the failing one is the result.");
-log.push("     make genai-build                       → exit 0 when the project compiles");
-log.push("     node .flow/genai/check.mjs build-ok    → `built`");
-log.push("  3. Fill the two placeholder lines in the genai-metrics recipe. Read a machine-readable");
-log.push("     reporter (JSON, JUnit, lcov summary), never a human-readable table. This one DOES take");
-log.push("     the `-` prefix on the line that runs the suite — the opposite of genai-build.");
-log.push("     make genai-metrics                     → must print one genai-metrics: line");
-log.push("     node .flow/genai/check.mjs metrics     → `no_tests` is the expected answer with no tests;");
-log.push("     metrics_missing / metrics_unreadable / thresholds_missing are the broken-install labels");
-log.push("  4. Agree the coverage floors against what the project measures today. In a repository of");
-log.push("     several modules, count the source files of a module with no tests INTO the denominator —");
-log.push("     otherwise it cannot pull any dimension down and its absence reads as coverage.");
-log.push("  5. If tools/genai/e2e.json was written, fill url + contains and prove it with");
-log.push("     node .flow/genai/check.mjs app-identity (with the app running).");
+log.push("  3. Agree the coverage floors. On an existing project, MEASURE FIRST and set the floors at or");
+log.push("     below what came out — a round may not edit that file, so a floor above reality rejects");
+log.push("     every round with nothing able to fix it. In a repository of several modules, count the");
+log.push("     source files of a module with no tests INTO the denominator, or its absence reads as");
+log.push("     coverage.");
+log.push("  4. If tools/genai/e2e.json was written, fill url or command, plus a `contains` marker only");
+log.push("     this build returns.");
+log.push("  5. Prove it, and treat this as a loop rather than a checklist — a metrics recipe is not");
+log.push("     written right until its output has been read once:");
+log.push("       make genai-build                       → exit 0 when the project compiles");
+log.push("       make genai-metrics                     → one genai-metrics: line with real numbers");
+log.push("       node .flow/genai/check.mjs modules-map  → consistent");
+log.push("       node .flow/genai/check.mjs build-ok     → built");
+log.push("       node .flow/genai/check.mjs metrics      → `no_tests` is expected with no tests;");
+log.push("         metrics_missing / metrics_unreadable / thresholds_missing are the broken-install labels,");
+log.push("         and tests_failing on an existing project is the NEXT round's problem, not this install's");
+log.push("       node .flow/genai/check.mjs app-identity → identified (unreachable is fine while it is down)");
 log.push("  6. Commit the baseline explicitly — Makefile, tools/genai, openspec/config.yaml, .gitignore.");
 log.push("     Not `git add -A`, which sweeps in whatever else is lying around.");
 

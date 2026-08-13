@@ -1,5 +1,10 @@
-# Whether the project still builds. Append this target to the project's Makefile, then replace the
-# placeholder line below.
+# REFERENCE, not a file that gets copied. Whether the project still builds. The executor writes this
+# target into the project's Makefile, with a real recipe rather than the placeholder at the bottom.
+#
+# Nothing installs it, for the reason spelled out further down: on a repository of several modules
+# this recipe IS that project's module list, so a template cannot write it. Where the modules already
+# have their own targets, name them as prerequisites — see `tools/genai/modules.json`, which records
+# which those are.
 #
 # The gate runs `make genai-build` and reads its EXIT CODE, and nothing else. That is the opposite
 # of `genai-metrics`, where the exit code is ignored because a failing suite is data and the numbers
@@ -30,4 +35,4 @@
 # recipe; leaving the sentinel in anything the recipe prints would keep reporting a missing target.
 .PHONY: genai-build
 genai-build:                   ## prove every module still compiles
-	@echo 'GENAI-BUILD-PLACEHOLDER - genai-init phase 4 writes this recipe' >&2; exit 1
+	@echo 'GENAI-BUILD-PLACEHOLDER - genai-init leaves this recipe to the executor' >&2; exit 1

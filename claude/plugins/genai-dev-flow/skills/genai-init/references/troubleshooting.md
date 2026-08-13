@@ -59,23 +59,66 @@ the three values in place, and if a key is absent it inserts it and says so rath
 what the new name is. The file may also be deleted entirely — fsx falls back to built-in defaults —
 so a missing file is a legal state, not an error.
 
-## Why the Makefile takes three templates
+## Why no script writes the Makefile
 
-In a project that has no Makefile, appending is creating: `genai-metrics` would become the file's
-first target and therefore make's default goal, so the bare command would run the test suite, and
-the `## ` description the target carries would have nothing that renders it. `makefile-head.mk`
-supplies `.DEFAULT_GOAL := help` and a `help` target so the bare command shows help, which is what
-`devops-guideline` requires of any repository's front door.
+It used to append two targets. It stopped for two reasons that turned out to be one.
 
-A project that already has a Makefile keeps its own head untouched — a target appended to the end
-does not change the default goal.
+**The recipes need judgement.** `genai-build` on a repository of several modules *is* that project's
+module list, and `genai-metrics` has to read whatever machine-readable reporter this project's runner
+happens to produce. Neither is something a template knows, so appending a placeholder only moved the
+work later while leaving two targets that fail by construction — and an install that ends with two
+known-broken targets has trained everybody to skip reading its report.
 
-The other two are `genai-metrics.mk` and `genai-build.mk`, and **their recipes are written by
-opposite rules.** The metrics one needs make's `-` prefix on the line that runs the suite, or a red
-test aborts the recipe before the numbers print and the gate reports a broken setup instead of a
-failing suite. The build one must not have it anywhere: there the exit code *is* the verdict, so
-carrying on past a failed compile reports a build that never happened. Copying the prefix from one
-template to the other breaks each of them in its own direction, and neither failure announces itself.
+**And appending to somebody's Makefile is not safe in general.** A real one has includes, variables,
+`.PHONY` conventions, a default goal, sometimes already a target of that name. Every one of those
+collides quietly. The rule this settled into: a script may only touch a file it can modify
+idempotently or detect its way around first, and this is neither.
+
+The three `.mk` files under `assets/project/` stay where they are and changed role — they are the
+reference the executor writes from, never files that get copied.
+
+`makefile-head.mk` still matters for the case it was written for: in a project with no Makefile,
+`genai-metrics` would otherwise become the file's first target and therefore make's default goal, so
+the bare command would run the test suite, and the `## ` description each target carries would have
+nothing that renders it. A project that already has a Makefile keeps its own head and its own default
+goal — retrofitting either during an install is changing a file that belongs to the project.
+
+The other two are written by **opposite rules**, and this is the detail most often got wrong. The
+metrics recipe needs make's `-` prefix on the line that runs the suite, or a red test aborts the
+recipe before the numbers print and the gate reports a broken setup instead of a failing suite. The
+build recipe must not have it anywhere: there the exit code *is* the verdict, so carrying on past a
+failed compile reports a build that never happened. Copying the prefix from one to the other breaks
+each in its own direction, and neither failure announces itself.
+
+## Why the version record is a signature, and why it is not in `config.yaml`
+
+`.flow/genai/installed.json` records a sha256 over every shipped flow asset, plus the plugin version
+when the end has a manifest to read one from. The signature is what decides whether a project is
+behind; the version is for a person reading the file.
+
+A version string alone would not do it: two definitions edited between releases carry the same
+number, and an upgrade check reading that number reports nothing to do. What a signature cannot say
+is which side is newer — hence both.
+
+The version comes from `assets/plugin-version.json`, which the **compiler stamps** from the plugin's
+`plugin.json`. That is what makes it answer on all three ends: Claude and Codex each ship a manifest
+a script could have walked up to, but the common end ships a bare `skills/<name>/` with no manifest
+anywhere above it, and a support conversation that has to start from a sha256 is a worse one. Running
+straight out of `src/` the file still holds its uncompiled placeholder, so the manifest walk stays
+behind it as a fallback.
+
+The signature deliberately covers `assets/flow/` only, so bumping a version without touching a
+definition does **not** report an upgrade as due. There would be nothing to upgrade.
+
+It cannot live in `.flow/config.yaml`. Both `SystemConfigSchema` and `DefaultsSchema` are zod strict
+objects, so an unrecognised key — at the top level or under `defaults:` — comes back from `fsx check`
+as `config_invalid`. That is an **error**, not a warning, so it takes `ok` to false, and `apply.mjs`
+reads `ok: false` as a failed install. The record would make every run from then on report a break
+whose only cause was the record. The engine still runs, which makes it worse: a permanent false alarm
+is harder to trace than a crash.
+
+It is also written **after** `.flow/genai/` is copied, not before. That directory is replaced
+wholesale on every run, so a record written first is a record the next upgrade deletes.
 
 ## Why `modules.json` is the one file a round may edit
 
@@ -148,7 +191,7 @@ Labels, and which are this install's business:
 | `target_missing` | `build-ok` | no `genai-build` target — **fix at install time** |
 | `consistent` | `modules-map` | every target the map names exists |
 | `map_missing` | `modules-map` | `tools/genai/modules.json` is absent — **fix at install time** |
-| `map_malformed` | `modules-map` | it does not satisfy its contract. A freshly copied template declares no modules and reports this — **that is the state phase 4 clears** |
+| `map_malformed` | `modules-map` | it does not satisfy its contract. A freshly copied template declares no modules and reports this — **that is the state the build-out step clears** |
 | `target_missing` | `modules-map` | the map names a target make does not have; the facts say which module and which |
 
 `build-ok` deliberately does not read `modules.json`, and the separation is worth keeping: a broken
