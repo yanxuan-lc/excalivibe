@@ -1,20 +1,25 @@
 #!/usr/bin/env node
 // The scaffold step of genai-init: do the file work. Every branch this takes was decided before it ran —
-// by detect.mjs finding a file present or absent, or by the user answering the one round of questions and
-// arriving here as a flag. It makes no judgement of its own, which is the point: the parts of this
-// install that need judgement it deliberately leaves to the executor.
+// by detect.mjs finding a file present or absent, or by the user answering a round of questions whose
+// answer arrives here as a flag. It makes no judgement of its own, which is the point: the parts of
+// this install that need judgement belong to the executor.
 //
 //   node <skill-dir>/assets/scripts/apply.mjs --target claude|codex|common --lang zh-CN [flags]
 //
-//   --install a,b,c   only what the user approved: fsx | openspec | mdxv | skill | openspec-dir
-//   --git-init        create the repository and its first commit
-//   --git-commit      create the first commit only (repository exists, HEAD does not)
+//   --install a,b,c   the GLOBAL binaries the user approved: fsx | openspec | mdxv
 //   --lang <tag>      instruction_language: the language of the requirement briefs
 //   --patience <n>    default 5
 //   --budget <n>      default 50
 //   --e2e             copy the tools/genai/e2e.json template (only when the app exists today)
-//   --sibling-git     make the requirements directory its own git repository
+//   --sibling-git     also make the requirements directory its own git repository
 //   --upgrade         replace definitions and evaluators, touch nothing else
+//
+// Four things happen on their own, with no flag and no question, because they are confined to this
+// project and a project being set up wants all four: `git init` and an empty first commit where
+// there is no repository, `fsx skill install` where the driving manual is absent, and `openspec init`
+// where `openspec/` is. Only the three global binaries above are asked about, because installing one
+// reaches outside this directory — it replaces whatever was on PATH, an npm-linked local checkout
+// included, and says nothing about having done so.
 //
 // Idempotent, and that is what makes it the upgrade path too: re-running replaces the definitions
 // wholesale and leaves every project-owned file alone. It refuses to run at all while a graph is
@@ -40,12 +45,14 @@ const has = (name) => argv.includes(`--${name}`);
 // An unrecognised flag is a typo, and a silently ignored one is worse than a rejected one: `--e2ee`
 // leaves no e2e.json and the log then explains its absence with "the app does not answer on a URL
 // yet", which is a reason the caller never gave.
-const KNOWN = ["target", "install", "lang", "patience", "budget", "e2e", "sibling-git", "git-init", "git-commit", "upgrade"];
+const KNOWN = ["target", "install", "lang", "patience", "budget", "e2e", "sibling-git", "upgrade"];
 const strays = argv.filter((token) => token.startsWith("--")).map((token) => token.slice(2)).filter((name) => !KNOWN.includes(name));
 
 const target = flag("target");
 const install = (flag("install") ?? "").split(",").map((s) => s.trim()).filter(Boolean);
-const INSTALLABLE = ["fsx", "openspec", "mdxv", "skill", "openspec-dir"];
+// Global binaries only. What lands inside this project needs no permission of its own — the consent
+// to run this install already covered it.
+const INSTALLABLE = ["fsx", "openspec", "mdxv"];
 const lang = flag("lang");
 const patience = flag("patience") ?? "5";
 const budget = flag("budget") ?? "50";
@@ -213,46 +220,60 @@ if (install.length) {
     const v = run("mdxv", ["--version"], { allowFail: true });
     v.ok ? did(`mdxv installed — ${v.out.split("\n")[0]}`) : (warn("mdx-viewer installed but mdxv does not answer --version"), (broken += 1));
   }
-  if (install.includes("skill")) {
-    // A refusal here is information: it means someone edited their copy. Do not force it.
-    const r = run("fsx", ["skill", "install", "--target", TARGETS[target].skill], { allowFail: true });
-    // A refusal exits 1 on purpose: the install was asked for and did not happen, and the reason is a
-    // person's decision to make — not something a re-run will resolve.
-    if (r.ok) did(`flow-scratch skill installed for ${target}`);
-    else { warn(`fsx skill install refused — someone may have edited their copy. Show them the diff before reaching for --force:\n      ${r.out.split("\n")[0]}`); broken += 1; }
-  }
-  if (install.includes("openspec-dir")) {
-    // Without --tools it waits for an answer nobody is there to give; --no-animation for the same reason.
-    run("openspec", ["init", "--tools", TARGETS[target].openspec, "--no-animation"]);
-    isDir("openspec") ? did("openspec initialised") : (warn("openspec init left no openspec/ directory"), (broken += 1));
-  }
 }
 
 // ───────────────────────── 2. the repository ─────────────────────────
+// Unconditional, and it needs no flag: a project being set up wants a repository, and both of these
+// are confined to this directory.
 
-if (has("git-init") || has("git-commit")) {
-  head("repository");
-  // Ask git, not the filesystem. In a linked worktree `.git` is a *file*, so an isDir() test says "no
-  // repository here", runs git init against a perfectly good worktree, and reports creating a
-  // repository on main while the branch checked out is something else entirely.
-  const alreadyRepo = run("git", ["rev-parse", "--show-toplevel"], { allowFail: true }).ok;
-  if (has("git-init") && !alreadyRepo) { run("git", ["init", "-b", "main"]); did("git repository created on main"); }
-  else if (has("git-init")) skip("--git-init ignored: this is already a git repository (in a worktree, .git is a file rather than a directory)");
-  const headRef = run("git", ["rev-parse", "HEAD"], { allowFail: true });
-  if (!headRef.ok) {
-    // Several gates compare against HEAD and a repository with no commits has none. Nothing earlier
-    // catches it: check.mjs worktree reports `clean` there, so a missing HEAD stays invisible until
-    // the merge step measures its output at locator: HEAD.
-    run("git", ["commit", "--allow-empty", "-m", "chore: init"]);
-    did("empty first commit created — the gates that compare against HEAD now have one");
-  } else skip("HEAD already exists");
+head("repository");
+// Ask git, not the filesystem. In a linked worktree `.git` is a *file*, so an isDir() test says "no
+// repository here", runs git init against a perfectly good worktree, and reports creating a
+// repository on main while the branch checked out is something else entirely.
+if (run("git", ["rev-parse", "--show-toplevel"], { allowFail: true }).ok) skip("already a git repository");
+else { run("git", ["init", "-b", "main"]); did("git repository created on main"); }
+
+if (run("git", ["rev-parse", "HEAD"], { allowFail: true }).ok) skip("HEAD already exists");
+else {
+  // Several gates compare against HEAD and a repository with no commits has none. Nothing earlier
+  // catches it: check.mjs worktree reports `clean` there, so a missing HEAD stays invisible until
+  // the merge step measures its output at locator: HEAD.
+  run("git", ["commit", "--allow-empty", "-m", "chore: init"]);
+  did("empty first commit created — the gates that compare against HEAD now have one");
+}
+
+// ───────────────────────── 3. this project's own tooling ─────────────────────────
+// Also unconditional, for the same reason, and after the repository so both land inside one.
+
+head("this project's own tooling");
+
+const SKILL_PATHS = {
+  claude: ".claude/skills/flow-scratch/SKILL.md",
+  codex: ".codex/skills/flow-scratch.md",
+  common: "docs/flow-scratch-skill.md",
+};
+if (existsSync(SKILL_PATHS[target])) skip(`the flow-scratch skill is already installed for ${target}`);
+else {
+  // A refusal here is information: it means someone edited their copy, and replacing it is their
+  // call. Report it and carry on rather than reaching for --force.
+  const r = run("fsx", ["skill", "install", "--target", TARGETS[target].skill], { allowFail: true });
+  if (r.ok) did(`flow-scratch skill installed for ${target}`);
+  else { warn(`fsx skill install refused — someone may have edited their copy. Show them the diff before reaching for --force:\n      ${r.out.split("\n")[0]}`); broken += 1; }
+}
+
+if (isDir("openspec")) skip("openspec/ is already initialised");
+else {
+  // `--tools` and `--no-animation` keep it non-interactive; without them it waits for an answer
+  // nobody is there to give.
+  run("openspec", ["init", "--tools", TARGETS[target].openspec, "--no-animation"]);
+  isDir("openspec") ? did("openspec initialised") : (warn("openspec init left no openspec/ directory"), (broken += 1));
 }
 
 const top = run("git", ["rev-parse", "--show-toplevel"], { allowFail: true });
-if (!top.ok) fail("not a git repository. Re-run with --git-init, or let the user create it.");
+if (!top.ok) fail("still not a git repository after `git init` — check what went wrong above before re-running.");
 if (resolve(top.out) !== resolve(process.cwd())) fail(`run this from the repository root (${top.out}), not from a subdirectory.`);
 
-// ───────────────────────── 3. .flow/ ─────────────────────────
+// ───────────────────────── 4. .flow/ ─────────────────────────
 
 head(".flow/");
 
@@ -345,7 +366,7 @@ if (!upgrade) {
   }
 }
 
-// ───────────────────────── 4. engine defaults ─────────────────────────
+// ───────────────────────── 5. engine defaults ─────────────────────────
 
 if (!upgrade) {
   head("engine defaults");
@@ -375,7 +396,7 @@ if (!upgrade) {
   }
 }
 
-// ───────────────────────── 5. the Makefile, which this script deliberately does not write ─────────────────────────
+// ───────────────────────── 6. the Makefile, which the executor writes ─────────────────────────
 // It used to append two targets here. It no longer writes this file at all, for two reasons that
 // turned out to be the same reason.
 //
@@ -403,7 +424,7 @@ if (!upgrade) {
   }
 }
 
-// ───────────────────────── 6. tools/genai/ ─────────────────────────
+// ───────────────────────── 7. tools/genai/ ─────────────────────────
 
 if (!upgrade) {
   head("tools/genai/");
@@ -430,7 +451,7 @@ if (!upgrade) {
   } else skip("e2e.json not written — the app does not answer on a URL yet, and an invented one is worse than an absent file");
 }
 
-// ───────────────────────── 7. the requirements directory ─────────────────────────
+// ───────────────────────── 8. the requirements directory ─────────────────────────
 
 if (!upgrade) {
   head("requirements directory");
@@ -447,7 +468,7 @@ if (!upgrade) {
   }
 }
 
-// ───────────────────────── 8. what an upgrade backfills ─────────────────────────
+// ───────────────────────── 9. what an upgrade backfills ─────────────────────────
 // An upgrade refreshes the definitions, and a refreshed definition can gate on something the
 // project has never been asked for. That is what happened when the build gate and the module map
 // arrived: an install from before them would come back with `target_missing` at genai.implement and
@@ -485,7 +506,7 @@ if (upgrade) {
   if (forExecutor.length) log.push("      A new definition gates on something this project was never asked for. Write it before the next round starts.");
 }
 
-// ───────────────────────── 9. verify the shape ─────────────────────────
+// ───────────────────────── 10. verify the shape ─────────────────────────
 // Only the shape. Whether the numbers are right is the executor.s question, and it cannot be asked until
 // the metrics recipe exists.
 

@@ -8,49 +8,47 @@ description: Run the genai-init setup procedure — route a project as greenfiel
 One-time setup per project. Idempotent — safe to re-run, which is also how it upgrades.
 
 **Read `genai-guideline` first.** It defines what the project has to supply and the protocol behind
-the metrics recipe; this skill installs against that protocol rather than restating it.
+the metrics recipe; this skill installs against that protocol.
 
 ## The shape
 
 Two kinds of work, and the split between them is what everything else follows from. **Installing the
-components** is mechanical: the same files, in the same places, on every project. **Configuring the
-project** is judgement: what its modules are, what proves it builds, what its numbers are, how its
-app is recognised. The scripts own the first and refuse the second.
+components** is mechanical: the same files, in the same places, on every project — the scripts own
+it. **Configuring the project** is judgement: what its modules are, what proves it builds, what its
+numbers are, how its app is recognised — you own that.
 
 | Step | Who | What decides it |
 |---|---|---|
 | 1 · route | `detect.mjs` | greenfield, brownfield or upgrade — decided by what is missing |
-| 2 · consent | you, asking | automatic, manual, or stop |
-| 3 · ask | you, asking | three rounds of at most four, over what the route step could not answer |
-| 4 · scaffold | `apply.mjs` | nothing — every branch arrived as a flag |
-| 5 · build-out | you, doing | the route: a walking skeleton, or a derivation from what exists |
-| 6 · prove | `check.mjs`, `make` | the project's own commands, run for real |
-| 7 · baseline | you, committing | — |
+| 2 · ask | you, asking | three rounds of at most four, over what the route step left open |
+| 3 · scaffold | `apply.mjs` | the answers, arriving as flags |
+| 4 · build-out | you, doing | the route: a walking skeleton, or a derivation from what exists |
+| 5 · prove | `make`, `check.mjs`, `measure.mjs` | the project's own commands, run for real |
+| 6 · baseline | you, committing | — |
 
-Steps 5 and 6 are a **loop, not a line**: a metrics recipe is not written right until its output has
-been read once.
+Steps 4 and 5 are a **loop**: a metrics recipe is written right once its output has been read.
 
-**Do not go back to running the install one command at a time.** The scripts exist because that
-version spent a model call and a paragraph of reading per shell line. If a script is wrong, fix the
-script — the failure is then fixed for every project, not for this one.
+Keep the scripts as the way this runs. They exist because the hand-run version spent a model call and
+a paragraph of reading per shell line; when one of them is wrong, fix the script, and the fix lands
+for every project at once.
 
 ## What gets installed where
 
 ```
 <project>/                            the git repository, and the working directory
   .flow/
-    config.yaml                       engine defaults (edited in place, never overwritten)
+    config.yaml                       engine defaults (edited in place)
     workflows/genai-sprint.yaml       the step whitelist
     nodes/genai.*/                    the step definitions (fsx's own nodes/task/ stays alongside)
     genai/*.mjs                       the gate evaluators these definitions call
     genai/templates/                  the records the e2e steps copy and fill in
     genai/installed.json              what was installed, so a later run can tell if it is behind
-  Makefile                            `genai-build` and `genai-metrics` — WRITTEN BY YOU, not by a script
+  Makefile                            `genai-build` and `genai-metrics` — YOU write these
   tools/genai/modules.json            what the repository is made of (every step reads it)
   tools/genai/thresholds.json         the coverage floors and the e2e ceiling (the project sets these)
   tools/genai/e2e.json                how to recognise the running app (the project sets this)
 
-<project>_genai/                      a SIBLING of the repository, not inside it
+<project>_genai/                      a SIBLING of the repository
   backlogs/
   archive/
 ```
@@ -60,27 +58,41 @@ Three global binaries sit outside all of it and every round needs them: `fsx` (t
 the npm package `mdx-viewer`). The route step checks all three; the scaffold step installs whichever
 the user approved.
 
-The requirements directory is a sibling, and its name is `<repository-directory-name>_genai`.
-**That naming is load-bearing**: gate commands cannot receive graph variables, so they locate it as
-`../$(basename "$PWD")_genai`. A different name breaks two gates silently.
+Name the requirements directory `<repository-directory-name>_genai` and keep it a sibling.
+**That naming is load-bearing**: gate commands receive no graph variables, so two of them locate it as
+`../$(basename "$PWD")_genai`. It is created as a plain directory — whoever wants version control on
+it can add it later, and `apply.mjs` takes `--sibling-git` for anyone who wants it at install time.
 
-## Which files a script may write
+## Who decides what
 
-A script may only touch a file it can modify **idempotently**, or detect its way around first.
-Everything else goes to you. That leaves exactly four:
+Everything inside this project happens on the scripts' own initiative. What reaches outside it, or
+what only the project can know, gets asked.
 
-| File | Whose | How |
+| Action | How it happens |
+|---|---|
+| `git init` + an empty first commit | automatic, where there is no repository |
+| `fsx skill install` | automatic, where the driving manual is absent |
+| `openspec init` | automatic, where `openspec/` is absent |
+| the sibling requirements directory | automatic, as a plain directory |
+| installing `fsx` / `openspec` / `mdxv` globally | **asked** — it replaces whatever is on PATH, an npm-linked local checkout included |
+| the language, the modules, the coverage policy, the app's identity | **asked** — only the project knows |
+
+## Which files a script writes
+
+A script writes a file when it can do so idempotently, or detect its way around first. That leaves
+four; everything else is yours.
+
+| File | Whose | How a script handles it |
 |---|---|---|
-| `Makefile` | the project's | **yours** — see step 5. No script writes it |
-| `.gitignore` | the project's | already ignoring `.flow/` → untouched; otherwise its own known block, replaced not appended |
-| `.flow/config.yaml` | fsx's | located by key, unchanged when the value already matches |
+| `Makefile` | the project's | **yours to write** — see step 4 |
+| `.gitignore` | the project's | already ignoring `.flow/` → left as it is; otherwise its own known block is replaced |
+| `.flow/config.yaml` | fsx's | located by key, and left alone where the value already matches |
 | `.flow/genai/installed.json` | this flow's | whole-file rewrite, fixed schema |
 
-`installed.json` cannot live in `.flow/config.yaml`: both of fsx's config schemas are strict objects,
-so an unrecognised key there comes back from `fsx check` as `config_invalid` — an **error**, not a
-warning, which the scaffold step's own verification reads as a failed install. It would report a
-break whose only cause is itself. It is also written **after** `.flow/genai/` is copied, because that
-directory is replaced wholesale.
+Keep `installed.json` where it is. Both of fsx's config schemas are strict objects, so a key it does
+not recognise in `.flow/config.yaml` comes back from `fsx check` as `config_invalid` — an **error**,
+which the scaffold step's own verification reads as a failed install. It is written **after**
+`.flow/genai/` is copied, since that directory is replaced wholesale.
 
 ## Step 1 — route
 
@@ -88,227 +100,205 @@ directory is replaced wholesale.
 node <skill-dir>/assets/scripts/detect.mjs --target claude
 ```
 
-Resolve `<skill-dir>` from where this SKILL.md was loaded from. It writes nothing, so it needs no
+Resolve `<skill-dir>` from where this SKILL.md was loaded from. It is read-only, so it runs without
 permission and can be re-run at any point to see where an interrupted install stopped.
 
-**Read its last three sections.** `ROUTE` decides which of the two forks step 5 takes. `DECIDE` is
-step 3's agenda. `SUGGESTED` is step 4's command line with everything already-known filled in. A
-`BLOCKED` section means stop: those are conditions no answer can work around.
+**Read its last three sections.** `ROUTE` decides which fork step 4 takes. `DECIDE` is step 2's
+agenda, already grouped into rounds. `SUGGESTED` is step 3's command line with everything
+already-known filled in. A `BLOCKED` section lists conditions to fix first.
 
-The route is decided by **what is missing**, never by what the project looks like:
+The route is decided by **what is missing**:
 
 | Route | When | What it changes |
 |---|---|---|
-| **greenfield** | no manifest, no commit, no test file | step 5 writes a walking skeleton first |
-| **brownfield** | anything else | step 5 derives from what is already there |
-| **upgrade** | `genai.*` definitions are already installed | steps 3 and 5 mostly fall away — see below |
+| **greenfield** | no manifest, no commit, no test file | step 4 writes a walking skeleton first |
+| **brownfield** | anything else | step 4 derives from what is already there |
+| **upgrade** | `genai.*` definitions are already installed | steps 2 and 4 mostly fall away — see below |
 
-"Greenfield" is not a kind of project. It is the absence of the three things the configuration work
-reads from: a manifest to name a module, a commit to compare against, and a test whose numbers set
-the floors.
+Greenfield means the absence of the three things the configuration work reads from: a manifest to
+name a module, a commit to compare against, and a test whose numbers set the floors.
 
-The upgrade route compares a **signature** of what ships against the one in `installed.json`, not a
-version string — a definition edited between releases carries the same version number, and a check
-that read the number would report nothing to do.
+The upgrade route compares a **signature** of what ships against the one in `installed.json`. A
+signature catches a definition edited between releases, which is the case a version number reports as
+up to date.
 
-## Step 2 — consent, once, for the whole procedure
-
-Offer three, and recommend the first:
-
-- **automatic** — you run the scripts and do the build-out.
-- **manual** — you output what each step would do, and the user runs it. For the scripted steps that
-  is the command line; for the build-out it is which files to write and what goes in them. Do not
-  write a parallel hand-operated procedure — that is the version the scripts replaced.
-- **stop** — a real answer. Say plainly that the flow cannot be installed without this, and leave the
-  project **untouched**, rather than doing the half that needs no permission.
-
-On the upgrade route this is also where you ask whether to upgrade at all; the route step already
-read the version and said whether anything differs.
-
-## Step 3 — ask, in three rounds
+## Step 2 — ask, in three rounds
 
 **Ask in rounds of at most four, in the order the route step prints them.** Four is what the host's
-question tool shows at once, and a greenfield project raises eight — so batching everything into one
-call cannot work, and trying to either drops the tail without saying so or crams several decisions
-into one question. What rounds are *not* is an interview: the route step already knows what is
-missing, so each round is a short list the user answers at a glance, not one question per step with a
-paragraph of reading in between. It also lists only what is not already settled on disk, so a re-run
-does not walk anyone back through decisions they have made.
+question tool shows at once, and a greenfield project raises six. Keep each round a short list the
+user answers at a glance — the route step has already worked out what is open, and lists only what is
+unsettled on disk, so a re-run leaves decided things decided.
 
 | Round | What it settles | Why here |
 |---|---|---|
-| 1 · permission and access | consent, the missing prerequisites, the repository and its first commit | a refusal ends the procedure, so nothing else is worth asking first |
-| 2 · what this project is | `instruction_language`, the requirements directory, and **the module shape and stack** (greenfield) or **the module reading** (brownfield) | everything downstream is written against these answers |
+| 1 · permission and access | consent, and the missing global binaries | a refusal ends the procedure, so it comes first |
+| 2 · what this project is | `instruction_language`, and **the module shape and stack** (greenfield) or **the module reading** (brownfield) | everything downstream is written against these |
 | 3 · policy | coverage policy, and whether the app answers today | it rides on the shape settled in round 2 |
 
-The route step's `DECIDE` section is already grouped this way and flags any round that has outgrown
-four. Follow its grouping rather than re-deriving one.
+Follow the `DECIDE` grouping as printed; it flags any round that has outgrown four.
 
-The questions themselves, by round:
+**Round 1 — permission and access.**
 
-**Round 1 — permission and access.** Ask nothing else until these are answered.
+1. **Consent** — automatic (recommend this), manual, or stop.
+   - *Automatic:* you run the scripts and do the build-out.
+   - *Manual:* you print what each step would do and the user runs it — the command line for a
+     scripted step, the files and their contents for the build-out.
+   - *Stop:* say plainly that the flow needs these pieces, and leave the project exactly as it is.
+2. **The missing global binaries** — install them now, or let the user install them.
 
-1. **Consent** — automatic, manual, or stop. Step 2 has the wording.
-2. **The missing prerequisites** — install them now, the user installs them, or stop.
-3. **A repository, or its first commit**, if either is missing. The user's call.
+On the upgrade route, round 1 also asks whether to upgrade; the route step has already said whether
+anything differs.
 
-**Round 2 — what this project is.** These are what everything downstream is written against.
+**Round 2 — what this project is.**
 
-1. **`instruction_language`** — the language of the requirement briefs, *not* the language of whoever
-   is typing. It decides the language of every dispatched instruction, and therefore of the reports
-   and documents executors write back.
-2. **Whether the requirements directory is its own git repository.** It sits outside the code
-   repository, so it has no history and no backup unless it is given one.
-3. **The modules** — and this is the one question the two routes ask differently.
-   - *Greenfield:* **one module or several**, and what each is for. Nothing on disk can answer it, so
-     it has to be asked; a file listing settles nothing in an empty directory.
-   - *Brownfield:* **confirmation rather than preference.** The route step listed the manifest
-     directories, the runners and the commands this project already runs. Ask whether that reading is
-     right, and **which existing command** each module's build, lint and test should point at — the
-     map names Makefile targets, so those names have to come from something real.
-4. **The technology stack** (greenfield only) — language and runtime per module. Step 5 writes code,
+1. **`instruction_language`** — the language of the requirement briefs, which is the language of
+   whoever wrote them rather than of whoever is typing now. It sets the language of every dispatched
+   instruction, and so of the reports and documents executors write back.
+2. **The modules** — the one question the two routes ask differently.
+   - *Greenfield:* **one module or several**, and what each is for. Ask it outright; an empty
+     directory has nothing to read.
+   - *Brownfield:* **confirm the reading.** The route step listed the manifest directories, the
+     runners and the commands this project already runs. Ask whether that reading is right, and
+     **which existing command** each module's build, lint and test should point at — the map names
+     Makefile targets, so those names come from something real.
+3. **The technology stack** (greenfield only) — language and runtime per module. Step 4 writes code,
    and `tdd` needs this to wire a test framework.
 
-**Round 3 — policy.** It rides on what round 2 settled.
+**Round 3 — policy.**
 
-1. **Coverage policy — which dimensions apply, and which modules are allowed no tests.** Not the
-   numbers. **The numbers come from step 6, after something has measured them**, on both routes.
-2. **Does the app exist and answer on a URL today?** This decides whether step 4 writes
-   `tools/genai/e2e.json` at all. A fresh repository usually cannot answer honestly, and that is fine.
+1. **Coverage policy — which dimensions apply, and which modules are allowed no tests.** The numbers
+   come from step 5, once something has measured them, on both routes.
+2. **Does the app exist and answer on a URL today?** This decides whether step 3 writes
+   `tools/genai/e2e.json`. A fresh repository usually answers no, and that is fine.
 
-`instruction_language` **does not translate the step briefs.** Those ship inside this plugin as
-English source and are injected verbatim, so every dispatched instruction is two languages at once:
-an English brief, then a framework-rendered section in the configured language. That is the intended
-split — the brief is read by a model, the artifacts are written for people.
+`instruction_language` covers the framework-rendered half of each instruction. The step briefs ship
+inside this plugin as English source and are injected verbatim, so a dispatched instruction carries
+both: an English brief for a model to read, then a rendered section in the configured language for
+the artifacts people read.
 
-**`mdxv` is in the prerequisite list because a round dies without it, and the rest of `computer-use`
-is not.** `genai.arch-decision` sends its executor to `mdx-artifact`, which renders through the global
-`mdxv` binary — the npm package is named `mdx-viewer`, which is why `command -v mdx-viewer` finds
-nothing on a machine that has it. Absent, that step fails at the moment it tries to write its
-document, a long way from anything that would explain why. If the user declines a global install,
-`mdx-artifact` still works through `npx -p mdx-viewer mdxv doc.mdx` — slower on first use, and worth
-saying rather than presenting the refusal as a dead end.
+**`mdxv` is on the prerequisite list because a round needs it.** `genai.arch-decision` sends its
+executor to `mdx-artifact`, which renders through the global `mdxv` binary — the npm package is named
+`mdx-viewer`, which is why `command -v mdx-viewer` finds nothing on a machine that has it. Absent, that
+step fails as it tries to write its document, a long way from anything that would explain why. Where
+the user prefers to keep their globals clean, tell them `mdx-artifact` also works through
+`npx -p mdx-viewer mdxv doc.mdx`, slower on first use.
 
-The **notification consent and the browser stack** remain **`/install-computer-use`**'s, which this
-plugin already declares a dependency on. One named binary that blocks a step is a dependency; the
-whole of that skill's list would be a second copy to keep true.
+The **notification consent and the browser stack** belong to **`/install-computer-use`**, which this
+plugin already declares a dependency on. Point the user there for those.
 
-## Step 4 — scaffold
+## Step 3 — scaffold
 
-**Run the route step's `SUGGESTED` line**, with step 3's answers filled in. That line is already
-copy-pasteable; the shape below is only for reading — the square brackets are notation for
-"optional", not shell syntax, and `--install` takes **only** what was reported missing:
+**Run the route step's `SUGGESTED` line**, with step 2's answers filled in. That line is already
+copy-pasteable; the shape below is for reading — square brackets mean "optional", and `--install`
+carries only what the user approved:
 
 ```bash
-node <skill-dir>/assets/scripts/apply.mjs --target claude --lang zh-CN \
-  [--install fsx,openspec,mdxv,skill,openspec-dir] [--git-init|--git-commit] [--e2e] [--sibling-git]
+node <skill-dir>/assets/scripts/apply.mjs --target claude --lang zh-CN [--install fsx,openspec,mdxv] [--e2e]
 ```
 
-It installs only what `--install` names, scaffolds `.flow/` and ignores all of it, copies the
-definitions with their evaluators and the whitelist, removes any `genai.*` step that no longer ships,
-edits the three engine defaults in place, copies the `tools/genai/` templates, creates the sibling
-directories, records what it installed, and verifies the shape with `fsx check` and
+It installs the global binaries `--install` names, creates the repository and its first commit,
+installs the flow-scratch skill and initialises `openspec/`, scaffolds `.flow/` and ignores it, copies
+the definitions with their evaluators and the whitelist, retires any `genai.*` step that no longer
+ships, edits the three engine defaults in place, copies the `tools/genai/` templates, creates the
+sibling directories, records what it installed, and verifies the shape with `fsx check` and
 `fsx nodes -w genai-sprint`.
 
-**This step is identical on both routes.** So are the two before it, apart from what gets asked.
+**This step is identical on every route**, as is step 1. The routes diverge at what gets asked and
+what you build.
 
-Two more flags exist and are rarely needed: `--patience` (default 5) and `--budget` (default 50).
-Pass them only when the user asks for different numbers. Anything else is refused rather than
-ignored — a mistyped flag would otherwise go unnoticed and leave the log explaining the absence of a
-file with a reason nobody gave.
+Three more flags exist for when someone asks: `--patience` (default 5), `--budget` (default 50), and
+`--sibling-git`. Every other flag is refused, so a typo announces itself.
 
 Three things to read in its output:
 
-- **`!` lines.** Every one is either a step that did not happen or something the script hands to you
-  rather than judging — `fsx check`'s `problems[]` above all, since a `warning` there leaves `ok`
-  true and is nobody's business but the reader's.
-- **`new in the working tree`.** `openspec init` writes more than `openspec/`: given `--tools` it
-  also drops command and skill files wherever this host keeps them. Those files are the project's,
-  not this flow's — show the user and let them decide what to track. On a brownfield project this
-  list is longer and worth going through line by line.
-- **A non-zero exit.** Either a step it was told to do did not happen, or `fsx check` reported
-  something it calls an **error** rather than a warning. "Already there" exits 0.
+- **`!` lines** — a step that did not happen, or something handed to you rather than judged.
+  `fsx check`'s `problems[]` above all: a `warning` there leaves `ok` true and is the reader's to act
+  on.
+- **`new in the working tree`** — `openspec init` writes more than `openspec/`: given `--tools` it
+  also drops command and skill files wherever this host keeps them. Those files belong to the
+  project, so show the user and let them decide what to track. On a brownfield project, go through
+  this list line by line.
+- **The exit code.** Non-zero means a step it was told to do did not happen, or `fsx check` reported
+  an error. "Already there" exits 0.
 
-## Step 5 — build-out, which is where the two routes differ
+## Step 4 — build-out, where the two routes differ
 
 ### Greenfield: a walking skeleton first
 
-There is nothing here to describe yet, so write the smallest thing that can be described. Four
-things have to be true before step 6 can mean anything:
+Write the smallest thing that can be described. Four things have to be true before step 5 means
+anything:
 
-- one module — or one per module, if step 3 said several
+- one module — or one per module, if step 2 said several
 - one **passing** test
 - one build that **exits 0**
 - one thing that **answers** — a URL or a command — and one e2e that covers it
 
-Delegate rather than improvise: choosing and wiring the test framework is **`tdd`**'s subject, the
-Makefile, compose and Dockerfile conventions are **`devops-guideline`**'s, and the code layout is
-**`coding-guideline`**'s. This skill's business is that the skeleton exists, not what it looks like.
+Delegate the craft: choosing and wiring the test framework belongs to **`tdd`**, the Makefile,
+compose and Dockerfile conventions to **`devops-guideline`**, and the code layout to
+**`coding-guideline`**. This skill's business is that the skeleton exists.
 
-**The completion criterion is the skeleton walking, not the files existing.** Without a passing test,
-`satisfied` is unreachable, the floors cannot be verified and `e2e.json` cannot be filled — handing
-that over is handing over a project that will be rejected at its first round.
+**Treat the skeleton walking as the completion criterion.** A passing test is what makes `satisfied`
+reachable, the floors verifiable and `e2e.json` fillable, so it is what turns this into a project that
+can start a round.
 
 ### Brownfield: wrap what is already there
 
-The first rule is **do not rebuild what the project has**. A project with working lint, test and
-coverage does not need this install to invent any of them, and a second definition of how to build
-something is one that can disagree with the first. The route step listed the commands it already
-runs; the Makefile targets are written **from that listing**.
+**Wrap the commands the project already has.** A project with working lint, test and coverage has
+already answered those questions, and one definition of how to build something stays true where two
+can disagree. The route step listed the commands it runs; write the Makefile targets from that
+listing.
 
-### Both routes: the Makefile, and then the four files
+### Both routes: the Makefile, then the four files
 
-**No script writes the Makefile.** Its recipes describe *this* project — on several modules the build
-recipe is that project's module list — and appending to somebody's existing file collides with their
-includes, their variables and their default goal. `assets/project/*.mk` are the reference to write
-from, not files that get copied.
+**You write the Makefile.** Its recipes describe *this* project — on several modules the build recipe
+is that project's module list — and an existing one carries includes, variables and a default goal
+that only reading it can respect. Write from `assets/project/*.mk` as the reference.
 
-Modifying an existing Makefile, keep three rules:
+Three rules when an existing Makefile is in front of you:
 
-- **Do not change the default goal.** Whatever the bare `make` runs today, it still runs afterwards.
-- **Wire in, do not restate.** Where `test` / `lint` / `build` targets exist, `genai-build` names them
-  as prerequisites rather than copying their commands.
-- The two recipes have opposite conventions about failure, and this is the detail most often got
-  wrong: `genai-metrics` takes make's `-` prefix on the line that runs the suite, or a failing test
-  aborts the recipe before it prints and the gate reports a broken setup instead of a failing suite.
-  `genai-build` takes **no** `-` prefix on any line, because stopping at the failure is the result.
+- **Keep the default goal.** Whatever the bare `make` runs today, it still runs afterwards.
+- **Wire in.** Where `test` / `lint` / `build` targets exist, name them as prerequisites of
+  `genai-build`, so the project keeps one definition of how each module is built.
+- **Give each recipe the failure behaviour its gate reads.** `genai-metrics` takes make's `-` prefix
+  on the line that runs the suite, so the numbers still print when a test fails and the gate reports
+  a failing suite. `genai-build` runs bare, so make stops at the failing line and the exit code means
+  what the gate takes it to mean.
 
-A project with no Makefile at all gets a new one, `.DEFAULT_GOAL := help` included.
+Where the project has no Makefile, write one, `.DEFAULT_GOAL := help` included.
 
 Then the four project-owned files:
 
 **`tools/genai/modules.json`** — which directories are modules, what each is for, and which consume
 another's contract. A project that is one thing declares one module with `path` `.`. `targets` names
-**Makefile targets, not commands** — the commands already live in the Makefile, and a second copy
-here is one that can disagree. `null` says this module has no target of that kind, which is also how
-a module with no tests says so, and that is worth writing down: it is the module the coverage number
-cannot see. This is the one project-supplied file **a round may edit** — it describes rather than
-judges, so it has to be free to follow the code.
+**Makefile targets**, so the commands stay defined once, in the Makefile. Write `null` where a module
+has no target of that kind, which is also how a module with no tests says so — that is the module the
+coverage number cannot see, and worth recording. This is the one project-supplied file **a round may
+edit**, so it stays free to follow the code it describes.
 
-**`tools/genai/thresholds.json`** — written in step 6, after the measurement. Not before.
+**`tools/genai/thresholds.json`** — written in step 5, from the measurement.
 
-**`tools/genai/e2e.json`**, if step 4 wrote it. Declare **exactly one** of two shapes, and `contains`
-either way:
+**`tools/genai/e2e.json`**, if step 3 wrote it. Declare **one** of two shapes, with `contains` either
+way:
 
 | The project… | Declare | Example |
 |---|---|---|
 | listens on a port | `url` (+ `status` if not 200) | `{"url": "http://127.0.0.1:5173/healthz", "contains": "widget-api"}` |
-| never will — a CLI, a library, a batch job | `command` | `{"command": "node src/cli.js --version", "contains": "lintly 1.2.0"}` |
+| is a CLI, a library, a batch job | `command` | `{"command": "node src/cli.js --version", "contains": "lintly 1.2.0"}` |
 | has several faces — a client and its API | `targets` | a list of the two shapes above, each with a `name`, at most four |
 
-`contains` is something specific to **this** build — the name in a health payload, a version string,
-the title a known route renders. `ok`, `healthy` and `200` are not markers: every other process on
-the machine says those too. **Two shapes, one argument**: an open port proves nothing about which
-service answered, and a binary on PATH proves nothing about which build answered. Declaring both is
-refused. For a `command`, the exit code is not a criterion (`--version` exits 0, `--help` often exits
-2) and both streams are read; what is measured is whether the marker came out.
+Make `contains` something specific to **this** build — the name in a health payload, a version string,
+the title a known route renders. `ok`, `healthy` and `200` match every other process on the machine.
+**Two shapes, one argument**: an open port identifies no particular service, and a binary on PATH
+identifies no particular build, so each shape supplies the half the other lacks and one of them is
+declared. For a `command`, both streams are read and the marker is what counts — `--version` exits 0
+and `--help` often exits 2, so the exit code says little.
 
-If nothing runs yet, **tell the user in one sentence** what will be needed: a URL or a command, and a
-marker only this build returns. **A project that can never answer either is a project that can never
-merge** — `genai.merge` premises on this step. Nothing earlier in a round touches it, and `genai.e2e`
-then refuses to start with `config_missing`, which spends no verdict, no patience and no attempt.
+Where nothing runs yet, **tell the user in one sentence** what will be needed: a URL or a command, and
+a marker only this build returns. **A project that can answer one of those is a project that can
+merge** — `genai.merge` premises on this step, and `genai.e2e` waits with `config_missing`, spending
+no verdict, no patience and no attempt.
 
-## Step 6 — prove, and set the floors from what it measures
+## Step 5 — prove, and set the floors from what it measures
 
 ```bash
 make genai-build                          # exit 0 when the project compiles
@@ -319,57 +309,54 @@ node .flow/genai/check.mjs metrics         # see below
 node .flow/genai/check.mjs app-identity    # identified
 ```
 
-Then the floors, and **in this order — measure first, write second**, on both routes:
+Then the floors — **measure first, write second**, on both routes:
 
 ```bash
 node <skill-dir>/assets/scripts/measure.mjs        # runs `make genai-metrics`, proposes the floors
 ```
 
-It takes no `--target`, because nothing about reading a number differs per end. It writes nothing:
-proposing is the whole of the job, agreeing the numbers is the user's, and writing the file is yours.
-Before the recipe exists it says so rather than guessing — pass `--command` to point it at whatever
-the project runs its tests with today, and take that answer as an estimate.
+It takes no `--target`, since reading a number is the same on every end, and it writes nothing:
+proposing is its job, agreeing the numbers is the user's, writing the file is yours. Before the recipe
+exists it says so; pass `--command` to point it at whatever the project runs its tests with today and
+take that answer as an estimate.
 
-Setting them from a sense of what a project like this should manage is how a floor lands above what
-it measures, and the number that catches it is one you had already been shown. **A round may not edit
-this file**, so a floor above where the project stands rejects every round with nothing able to fix
-it. A floor of `null` opts that dimension out — the only way out, and visible in the file. Which
-dimensions are even reportable is a toolchain fact rather than a policy — Go's cover has statements
-and nothing else — so `null` the ones nothing measures. In a repository of several modules, the
-`targets.test: null` entries are the modules the number cannot see; their source files belong in the
-denominator. The `e2e` block is the ceiling on how much of a round may go unscripted; leave it at the
-shipped values unless the user has a reason, and note that **omitting it does not opt out** the way
-an omitted floor does.
+Set each floor at or below what came out. **A round may not edit this file**, so a floor the project
+already clears is what keeps a round fixable. Write `null` for a dimension the toolchain leaves
+unreported — Go's cover has statements and nothing else — since `null` is how a dimension opts out
+and it stays visible in the file. In a repository of several modules, the `targets.test: null` entries
+are the modules the number cannot see, so count their source files into the denominator. Leave the
+`e2e` block at the shipped values unless the user has a reason; it is the ceiling on how much of a
+round may go unscripted, and it takes an explicit value to change.
 
-**What has to be true here is the shape, not the verdict.** On a project with no tests the expected
-label is `no_tests`; `satisfied` is not reachable until something passes a test, and getting there is
-`genai.implement`'s job. On an existing project with a red suite, `tests_failing` is **the next
-round's problem, not this install's** — report it plainly and carry on. The three labels that mean a
-broken install are `metrics_missing`, `metrics_unreadable` and `thresholds_missing`.
+**What has to hold here is the shape.** On a project with no tests, `no_tests` is the answer to
+expect; `satisfied` becomes reachable once something passes a test, which is `genai.implement`'s job.
+On an existing project with a red suite, `tests_failing` belongs to the next round — report it and
+carry on. Three labels mean the install itself needs attention: `metrics_missing`,
+`metrics_unreadable` and `thresholds_missing`.
 
-A `satisfied` reached with fabricated numbers is the one failure no command here can catch, so read
-what the target actually runs. And **a target that parses human-readable output has not been tested
-by this**: see [references/troubleshooting.md](references/troubleshooting.md).
+Read what the metrics target actually runs, since numbers that were never measured are the one thing
+these commands take at face value. A target that reads a machine-readable reporter is the one to keep;
+[references/troubleshooting.md](references/troubleshooting.md) has why a formatted-text scraper passes
+here and fails later.
 
-For `app-identity`, `unreachable` means the app is not up, which is fine at install time.
-`wrong_service` is not: the marker does not appear, so the URL points at something else.
+For `app-identity`, `unreachable` means the app is down, which is fine at install time.
+`wrong_service` means the marker never appeared, so the URL points at something else.
 
-## Step 7 — commit the baseline, then report
+## Step 6 — commit the baseline, then report
 
 ```bash
 git add Makefile tools/genai openspec/config.yaml .gitignore   # whichever of these exist
 git commit -m "chore: genai flow baseline"
 ```
 
-Add paths explicitly. `git add -A` here sweeps in whatever else is lying around the working
-directory. Why it has to be now rather than later is in the troubleshooting reference, and
-**`e2e.json`'s window is narrow** — it goes in before `genai.code-review` is dispatched, or is left
-untracked for `genai.merge` to pick up.
+Name the paths explicitly, so the commit holds exactly what this install produced. Committing now is
+what keeps these files out of a round's first review — the troubleshooting reference has the full
+reason, and **`e2e.json`'s window is narrow**: it goes in before `genai.code-review` is dispatched, or
+stays untracked for `genai.merge` to pick up.
 
-Then report, briefly. Done means done. Not done means **what the user has to supply**, in one
-sentence per item — not a replay of what was run. On a brownfield project, say in one line that the
-existing specs under `docs/` have not been migrated: the first round starts with an empty backlog,
-and moving them across is a person's job, deliberately not this install's.
+Then report, briefly. Done means done. Anything unfinished means **what the user has to supply**, one
+sentence per item. On a brownfield project, add one line: the existing specs under `docs/` stay where
+they are, so the first round starts from an empty backlog and moving them across is a person's job.
 
 ## Upgrading
 
@@ -377,25 +364,24 @@ and moving them across is a person's job, deliberately not this install's.
 node <skill-dir>/assets/scripts/apply.mjs --target claude --upgrade
 ```
 
-Definitions and evaluators are replaced wholesale; nothing merges, and nothing the project owns is
-touched. A `genai.*` step that no longer ships is **removed** — left behind it would keep being
-counted by `fsx check`, and one that disagrees with its own directory name holds the whole check at
-`ok: false` with no later upgrade ever touching it. Only `genai.*` is removed: fsx's own `task/` and
-anything the project wrote itself share that directory. **It refuses while a graph is live** —
-changing a definition under a live run leaves the run measuring against a contract it was not created
-with. Finish or abort the round first.
+Definitions and evaluators are replaced wholesale, and everything the project owns is left as it is. A
+`genai.*` step that no longer ships is **retired**, because `fsx check` counts every definition on
+disk and one that disagrees with its own directory name holds the whole check at `ok: false`. Retiring
+covers `genai.*` alone — fsx's own `task/` and anything the project wrote share that directory.
+**Finish or abort a live round first**: `apply.mjs` refuses while a graph is in flight, so a run keeps
+measuring against the contract it was created with.
 
-**What an upgrade reports rather than writes is what a new definition gates on and the project has
-never been asked for** — the `genai-build` target and `tools/genai/modules.json` arrived that way.
-The map lands as a placeholder; the Makefile target is reported, because no script writes that file.
-Both have to be dealt with **before the next round starts**: until they are, `genai.spec` refuses at
-its first rule and `genai.implement` rejects on a missing target, on a project whose only mistake was
-being installed earlier.
+**An upgrade reports what a new definition gates on and the project has never been asked for** — the
+`genai-build` target and `tools/genai/modules.json` arrived that way. The map lands as a placeholder;
+the Makefile target is reported for you to write. Deal with both **before the next round starts**,
+since `genai.spec` checks the map at its first rule and `genai.implement` checks the target.
 
-## What this does not do
+## Boundaries — where the neighbouring work lives
 
-- Does not explain the flow or define the metrics protocol — that is `genai-guideline`
-- Does not create requirements — that is `genai-backlog`
-- Does not migrate an existing project's specs into openspec — that is a person's job
-- Does not create a graph — a graph is per round, not per project
-- Does not reimplement a gate the project already has; wrap the existing command
+| Concern | Owner |
+|---|---|
+| explaining the flow, and the metrics protocol | `genai-guideline` |
+| creating requirements | `genai-backlog` |
+| migrating an existing project's specs into openspec | a person, by hand |
+| creating a graph | `genai-flow` — a graph is per round |
+| a gate the project already has | the project's own command, wrapped |

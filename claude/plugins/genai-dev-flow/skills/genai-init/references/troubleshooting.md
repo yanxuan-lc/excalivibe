@@ -29,8 +29,14 @@ reports `clean` on a repository with no commits, because `git status --porcelain
 a missing `HEAD` stays invisible until the merge step.
 
 `git init` without a commit is a common way to arrive here: it passes `git rev-parse --show-toplevel`
-while failing `git rev-parse HEAD`. That is why the two are separate flags (`--git-init` and
-`--git-commit`) and separate questions.
+while failing `git rev-parse HEAD`. So `apply.mjs` tests the two conditions separately and repairs
+each on its own — a repository that exists with no commits gets the commit, and nothing else.
+
+Both happen without a flag and without asking. They stay inside this directory, and a project being
+set up wants a repository with something for the gates to compare against; the consent to run the
+install covers them. The same reasoning puts `fsx skill install` and `openspec init` on the automatic
+side. What gets asked is the global binaries, because installing one of those reaches outside this
+project.
 
 ## Why the whole of `.flow/` is ignored
 

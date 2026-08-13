@@ -107,6 +107,10 @@ const ROUNDS = ["permission and access", "what this project is", "policy"];
 const decide = [];
 const blocked = [];  // what makes the install impossible until it is fixed
 
+// Always asked, and always first. Everything after it is only worth asking once someone has agreed
+// there is going to be an install, so it is pushed here rather than conditionally anywhere below.
+decide.push([1, "how to proceed — automatic (recommended) / manual, meaning every step is printed for the user to run / stop, which leaves this project exactly as it is"]);
+
 // ───────────────────────── 1. tooling ─────────────────────────
 
 section("tooling");
@@ -138,14 +142,18 @@ item(
 );
 item("openspec/", isDir("openspec") ? "present" : "MISSING — this project has never been initialised");
 
-const missing = [
-  !fsx.ok && "fsx",
-  !openspec.ok && "openspec",
-  !mdxv.ok && "mdxv",
-  !foundSkill.some(([end]) => end === target) && "skill",
-  !isDir("openspec") && "openspec-dir",
+// Only the global binaries are a question. Installing one reaches outside this directory — it
+// replaces whatever was on PATH, an npm-linked local checkout included — so it is the user's to
+// approve. What lands inside the project (`fsx skill install`, `openspec init`) apply.mjs simply
+// does: consent to run the install already covered it, and a project being set up wants both.
+const missing = [!fsx.ok && "fsx", !openspec.ok && "openspec", !mdxv.ok && "mdxv"].filter(Boolean);
+if (missing.length) decide.push([1, `install the missing global binaries (${missing.join(", ")}) — offer: install now / user installs / stop`]);
+
+const automatic = [
+  !foundSkill.some(([end]) => end === target) && `fsx skill install --target ${target}`,
+  !isDir("openspec") && "openspec init",
 ].filter(Boolean);
-if (missing.length) decide.push([1, `install what is missing (${missing.join(", ")}) — offer: install now / user installs / stop`]);
+item("apply.mjs will also run", automatic.length ? automatic.join(", ") : "nothing extra — both are already in place");
 
 // ───────────────────────── 2. repository ─────────────────────────
 
@@ -157,8 +165,10 @@ const atRoot = top.ok && resolve(top.out) === resolve(process.cwd());
 item("git repository", top.ok ? (atRoot ? `yes, and this is its root` : `yes, but the root is ${top.out}`) : "no — not a repository");
 item("HEAD", head.ok ? head.out.slice(0, 12) : "MISSING — no commit yet");
 
-if (!top.ok) decide.push([1, "create the repository (git init -b main + an empty first commit) — the user's call"]);
-else if (!head.ok) decide.push([1, "create the first commit (git commit --allow-empty) — the user's call"]);
+// Both are apply.mjs's to do without asking: they stay inside this directory, and a project being
+// set up wants a repository with something to compare against.
+if (!top.ok) item("  apply.mjs will", "run git init -b main and make an empty first commit");
+else if (!head.ok) item("  apply.mjs will", "make an empty first commit — several gates compare against HEAD");
 if (top.ok && !atRoot) blocked.push(`run this from the repository root (${top.out}), not from a subdirectory`);
 
 const ignore = read(".gitignore") ?? "";
@@ -310,7 +320,8 @@ const siblingState = isDir(sibling)
   ? `present${isDir(join(sibling, ".git")) ? ", its own git repository" : ", not a git repository"}`
   : "absent — apply.mjs creates it";
 item("requirements directory", `${sibling}  ${siblingState}`);
-if (!isDir(sibling)) decide.push([2, `whether ${sibling} should be its own git repository — it sits outside this repo, so it has no history unless given one`]);
+// Created as a plain directory, with its version control left to whoever wants it. That is the
+// default and it is not a question — apply.mjs takes `--sibling-git` when someone asks for one.
 
 // ───────────────────────── 5. the modules and their toolchains ─────────────────────────
 // This is what the executor needs to write modules.json and to fill the two recipes, and it is why
@@ -576,9 +587,6 @@ if (!decide.length) {
     asked.forEach((question, i) => out(`    ${i + 1}. ${question}`));
     if (asked.length > PER_ROUND) out(`    ! ${asked.length} questions here and the tool shows ${PER_ROUND}. Split this round rather than dropping the tail`);
   });
-  out();
-  out("  The consent question — automatic / manual / stop — rides with round 1. A refusal there ends");
-  out("  the procedure, which is why nothing else is asked before it.");
 }
 
 if (blocked.length) {
@@ -594,18 +602,15 @@ const suggestion = [
   // a shell it is a redirection, which is the same mistake the Makefile placeholder used to make.
   lang ? `--lang ${lang}` : "--lang ZH-CN-OR-EN-US",
   missing.length ? `--install ${missing.join(",")}` : null,
-  !top.ok ? "--git-init" : !head.ok ? "--git-commit" : null,
   e2e === null ? "[--e2e]" : null,
-  isDir(sibling) ? null : "[--sibling-git]",
 ].filter(Boolean).join(" ");
 out(`  ${suggestion}`);
 out();
-if (suggestion.includes("[")) {
-  out("  Square brackets are the ones the ask step decides. Drop --install for anything the user installs");
-  out("  themselves, and re-run this script rather than assuming it worked.");
-} else if (!lang) out("  Replace ZH-CN-OR-EN-US with the language the requirement briefs are written in.");
-else out("  Nothing to fill in — that line is ready as it stands. Re-run this script afterwards rather");
-if (!suggestion.includes("[") && lang) out("  than assuming it worked.");
+if (suggestion.includes("[")) out("  Square brackets are the ones the ask step decides.");
+if (missing.length) out("  Keep --install to whatever the user agreed to; drop the rest and let them install those.");
+if (!lang) out("  Replace ZH-CN-OR-EN-US with the language the requirement briefs are written in.");
+if (!suggestion.includes("[") && !missing.length && lang) out("  That line is ready as it stands.");
+out("  Re-run this script afterwards rather than assuming it worked.");
 out();
 
 process.stdout.write(lines.join("\n"));
