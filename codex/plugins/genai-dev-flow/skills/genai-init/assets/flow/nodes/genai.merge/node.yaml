@@ -1,5 +1,6 @@
 id: genai.merge
 kind: effect
+description: required - the only step that commits what the round produced. Every step before it deliberately leaves the specs, the review records and the ticked tasks.md in the working tree, because committing during a review invalidates the verdict that review is producing, so a graph without this step ends with the whole round uncommitted and nothing on the integration branch
 
 executor:
   protocol: main

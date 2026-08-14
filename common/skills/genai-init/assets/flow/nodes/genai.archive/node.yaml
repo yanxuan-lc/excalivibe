@@ -1,6 +1,6 @@
 id: genai.archive
 kind: produce
-description: not optional while genai.accept is in the graph - the acceptance step refuses to start until openspec/changes/ is empty, and folding the deltas into the specs is what empties it
+description: required while genai.accept is in the graph - the acceptance step refuses to start until openspec/changes/ is empty, and folding the deltas into the specs is what empties it
 
 executor:
   protocol: main

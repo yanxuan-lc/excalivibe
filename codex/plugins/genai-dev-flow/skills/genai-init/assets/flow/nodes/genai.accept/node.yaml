@@ -1,5 +1,6 @@
 id: genai.accept
 kind: judge
+description: required - the last reading of whether the batch delivered what was asked, and the step that closes the requirement items. Give it a reject edge when you assemble the graph. A judge cannot rework its own subject, so with nowhere to send the work this verdict locks the round rather than returning it, and only fsx graph patch reopens it
 
 executor:
   protocol: subagent

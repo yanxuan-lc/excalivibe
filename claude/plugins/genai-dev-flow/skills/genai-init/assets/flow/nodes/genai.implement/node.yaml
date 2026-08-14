@@ -1,5 +1,6 @@
 id: genai.implement
 kind: produce
+description: required - the only step that writes code, and the sole source of the commits that genai.code-review, genai.e2e and genai.merge each measure. What is worth knowing when picking the shape is its entry - it refuses while a human ruling on record no longer describes the current spec, so genai.arch-decision belongs in the graph freshly ruled or not at all
 
 executor:
   protocol: subagent

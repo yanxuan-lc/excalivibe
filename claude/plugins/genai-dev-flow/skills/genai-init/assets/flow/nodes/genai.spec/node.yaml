@@ -1,5 +1,6 @@
 id: genai.spec
 kind: produce
+description: required - the round starts here. It is the only step that reads the requirements directory and claims a batch out of it, and every later step measures against the changes or the deltas it writes. Its entry is also where a round stops before it costs anything, on an empty backlog or a module map the Makefile no longer matches
 
 executor:
   protocol: subagent

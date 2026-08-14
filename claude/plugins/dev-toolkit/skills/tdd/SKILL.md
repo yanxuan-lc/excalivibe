@@ -1,6 +1,6 @@
 ---
 name: tdd
-description: Run the red-green-refactor loop properly — write the failing test first, confirm it fails for the reason you expect, make it pass with the least code that could work, then refactor under a green bar. Carries per-toolchain guides for wiring and running the test command so the loop is real rather than described. Use whenever implementing behavior that should be tested, on "write tests for this", "do this test-first", "TDD it", "add coverage", or when a bug needs a regression test that provably fails before the fix. Not for an exploratory spike you intend to throw away.
+description: Run the red-green-refactor loop properly — write the failing test first, confirm it fails for the reason you expect, make it pass with the least code that could work, then refactor under a green bar. Carries per-toolchain guides for wiring and running the test command so the loop is real rather than described. Use whenever implementing behavior that should be tested, on "write tests for this", "do this test-first", "TDD it", "add coverage", or when a bug needs a regression test that provably fails before the fix. It applies to behavior meant to survive the session — code you intend to keep.
 ---
 
 # Test-Driven Development

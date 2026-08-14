@@ -1,6 +1,6 @@
 ---
 name: grill
-description: Pin down a vague request before acting on it, through a short Socratic exchange — one question at a time, each shipped with your own recommended answer, and nothing asked that could have been answered by looking. Use whenever a request is under-specified, stated as an outcome with no behavior attached, or hiding several decisions inside one line — "let's build X", "add a way to do Y", "make this better", "handle the edge cases", a feature idea with no notion of done. Reach for it before designing or implementing against a fuzzy ask, since the cost of guessing wrong compounds through everything built on top. Not for a request that is already precise, and not a substitute for reading the code.
+description: Pin down a vague request before acting on it, through a short Socratic exchange — one question at a time, each shipped with your own recommended answer, and nothing asked that could have been answered by looking. Use whenever a request is under-specified, stated as an outcome with no behavior attached, or hiding several decisions inside one line — "let's build X", "add a way to do Y", "make this better", "handle the edge cases", a feature idea with no notion of done. Reach for it before designing or implementing against a fuzzy ask, since the cost of guessing wrong compounds through everything built on top. It earns its place while the ask is still ambiguous — where the request is already precise, or where the answer is in the code, reading is the cheaper move.
 ---
 
 # Grill — sharpen a vague request before building on it
