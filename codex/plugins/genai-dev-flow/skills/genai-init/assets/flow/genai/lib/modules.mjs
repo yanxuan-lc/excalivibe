@@ -21,6 +21,10 @@
 //                       rather than on a `docs/` it does not have
 //   targets             the Makefile targets that build, lint and test this module — the one place
 //                       this file touches something executable, and the reason `modules-map` exists
+//   version_files       optional: every file carrying this module's version number. Read by
+//                       genai.release and by nothing here, which is why this reader neither requires
+//                       nor validates it — an unknown key is not an error, and a release that
+//                       discovers a fifth copy of the version adds it in the same commit
 //
 // `targets` names targets, never commands. A command here would be a second way to build the same
 // module, and two ways to do one thing is one thing that can disagree with itself: the Makefile is

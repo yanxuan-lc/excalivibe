@@ -201,7 +201,7 @@ recorded rather than one a round awards itself — which is exactly why it does 
 |---|---|---|
 | `built` | `build-ok` | the project compiles |
 | `build_failed` | `build-ok` | it does not; the tail of make's output is in the facts. Not an install problem once the recipe is real |
-| `target_missing` | `build-ok` | no `genai-build` target — **fix at install time** |
+| `target_missing` | `build-ok` | no `genai-build` target, or one that runs nothing — an empty recipe and a bare `.PHONY` both exit 0 without building. **Fix at install time** |
 | `consistent` | `modules-map` | every target the map names exists |
 | `map_missing` | `modules-map` | `tools/genai/modules.json` is absent — **fix at install time** |
 | `map_malformed` | `modules-map` | it does not satisfy its contract. A freshly copied template declares no modules and reports this — **that is the state the build-out step clears** |

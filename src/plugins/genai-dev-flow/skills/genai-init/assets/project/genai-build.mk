@@ -24,7 +24,16 @@
 # is the compiler; for a language without one it is the type checker. A multi-module repository
 # names each module's own target, and `tools/genai/modules.json` records which those are:
 #
-#   genai-build: web-lint service-build agent-lint
+#   genai-build: web-build service-build agent-build
+#
+# **A linter is not part of this, and `modules.json` keeps them apart on purpose** — `targets.build`
+# and `targets.lint` are separate fields. What this target has to prove is that the code still
+# compiles or type-checks; style and lint rules are a different question with a different fix, and
+# folding them in means a naming complaint fails the round's build gate. Adding a lint target as a
+# prerequisite is a project's choice and nothing here objects to it; what should not happen is a
+# module putting `lint` here *instead of* a compile step because that is the only target it has. A
+# module with neither a compiler nor a type checker has nothing for this gate to measure, and saying
+# so — `"build": null` in the map, with the reason — is better than substituting a linter for it.
 #
 # Prerequisites rather than recipe lines when the targets already exist — make stops at the first
 # failing one either way, and the project keeps one definition of how each module is built.

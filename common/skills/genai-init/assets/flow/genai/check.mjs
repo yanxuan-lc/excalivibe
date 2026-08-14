@@ -17,6 +17,7 @@
 //   open-changes                 present | absent | unreadable
 //   spec-deltas                  present | absent | unreadable
 //   worktree                     clean | dirty | unreadable
+//   round-commits                ahead | not_ahead | no_baseline | unreadable
 //   openspec-valid --scope <s>   satisfied | validation_failed | totals_unreadable
 //                                | openspec_unavailable
 //   metrics                      satisfied | tests_failing | no_tests | too_many_skipped
@@ -64,6 +65,7 @@ const atoms = {
   "open-changes": openChangesAtom,
   "spec-deltas": specDeltasAtom,
   worktree,
+  "round-commits": roundCommits,
   "openspec-valid": openspecValid,
   metrics: metricsAtom,
   "build-ok": buildOk,
@@ -138,6 +140,66 @@ function worktree() {
   } catch (cause) {
     say("unreadable", { reason: String(cause?.message ?? cause) });
   }
+}
+
+/**
+ * Does this branch carry work that no other branch has?
+ *
+ * `outputs_present` on a `git_commit` locator asks whether the branch has a tip, and after the
+ * install baseline it always has one; `signature_changed` compares an attempt to the one before it,
+ * and the first attempt has nothing to compare to. Between them a step that committed nothing at all
+ * passes both on its first try — measured, not theorised. The implement brief already requires "at
+ * least one new commit"; this is the check that reads it.
+ *
+ * The baseline is derived rather than declared, because a gate command gets no variables and the
+ * round's branch name is one. Every other local branch that is an ancestor of HEAD is a candidate,
+ * and the nearest one is what this round grew from — that is the integration branch by construction,
+ * since the flow creates one branch per round off it.
+ *
+ * **`no_baseline` is a pass, deliberately.** A repository shape this cannot read — a round working
+ * directly on the integration branch, a single-branch clone — must not stall behind a check whose own
+ * premise did not hold. The failure it exists to catch is a comparison that came out empty, not a
+ * comparison that could not be made.
+ */
+function roundCommits() {
+  const git = (...args) =>
+    execFileSync("git", args, { encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] }).trim();
+  let head;
+  let branches;
+  try {
+    head = git("rev-parse", "--abbrev-ref", "HEAD");
+    branches = git("for-each-ref", "--format=%(refname:short)", "refs/heads/")
+      .split("\n")
+      .map((name) => name.trim())
+      .filter((name) => name !== "" && name !== head);
+  } catch (cause) {
+    say("unreadable", { reason: String(cause?.message ?? cause) });
+  }
+
+  const ancestors = branches.filter((name) => {
+    try {
+      git("merge-base", "--is-ancestor", name, "HEAD");
+      return true;
+    } catch {
+      return false;
+    }
+  });
+  if (ancestors.length === 0) {
+    say("no_baseline", { branch: head, candidates: branches });
+  }
+
+  // The nearest ancestor: the one this branch has the fewest commits beyond. Comparing against a
+  // further one would count another round's commits as this round's.
+  const counted = ancestors
+    .map((name) => ({ name, ahead: Number(git("rev-list", "--count", `${name}..HEAD`)) }))
+    .sort((left, right) => left.ahead - right.ahead);
+  const nearest = counted[0];
+  say(nearest.ahead > 0 ? "ahead" : "not_ahead", {
+    branch: head,
+    baseline: nearest.name,
+    ahead: nearest.ahead,
+    considered: counted,
+  });
 }
 
 function openspecValid() {

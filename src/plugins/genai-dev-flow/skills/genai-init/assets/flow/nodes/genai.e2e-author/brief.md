@@ -88,6 +88,28 @@ gate stop the round. You cannot ask the user yourself.
 A scenario too vague to script is a spec defect, not something to invent around: name it and report
 `blocked`.
 
+## Say what you ran it against
+
+**You will almost certainly run something**, and that is expected: nobody writes a suite of this size
+plus its harness without executing it once. The working tree you are in also holds the implementation,
+being written in parallel with your work, so what you can run it against is that — and that is exactly
+the thing this suite must not be derived from.
+
+So record it in your report, in `summary` or as a `finding`:
+
+- whether you ran the suite, and against what — the harness only, a stub, or the implementation as it
+  stood
+- whether any assertion changed **because of what you observed running**, and which ones
+- for each such change, why the spec says the new assertion is the right one
+
+Nothing gates this. What it buys is that the change is visible: an assertion edited after a red run is
+indistinguishable, in the artifacts, from one written straight from the spec — and if the
+implementation was the thing that was wrong, "make the assertion match what happened" is precisely how
+a suite comes to pass by construction. A one-line note is enough. Silence is what costs.
+
+**The rule that does not bend**: an assertion follows the spec. If a run shows the app doing something
+the spec does not say, that is a finding for the report — not an assertion to update.
+
 ## If you are being sent back
 
 The acceptance run delegates to this step when a **test** is the thing that failed, and what it found is

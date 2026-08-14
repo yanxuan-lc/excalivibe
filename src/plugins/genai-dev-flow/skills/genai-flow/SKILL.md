@@ -37,10 +37,26 @@ that one ruling cheap: a person settles the structure while changing it is still
 document nobody has built against. It suspends and waits when nobody is there — an unattended run
 that moved past it would have removed the step rather than passed it.
 
+**Removing the step and passing it unattended are different things, and only one of them is
+available.** A round that settles no structure — a fix, a wording change, a field on an interface
+that is already agreed — has nothing to put in front of a person, and it says so by leaving both
+this step and `genai.write-arch-docs` out of the graph. `genai.implement` then reads its premise on
+the ruling as `absent`: no step in this graph concluded anything, so there is no conclusion to keep
+fresh. That is the one shape where the premise protects nothing, it is chosen once and in the open
+when the graph is submitted, and `fsx graph create` prints a notice for every premise that will fall
+that way. What stays impossible is the thing the suspension exists to prevent: a graph that contains
+the ruling and gets past it without one.
+
 The fork after it is the design: **the tests and the code are built in parallel from the same
 approved spec**, and `genai.e2e-author` is wired to `genai.spec` rather than to the commits so that
 its instruction has no path to the implementation in it. A suite derived from the code passes by
 construction. Then two independent judgements — a review and an acceptance run — meet at the merge.
+
+**The wiring is the whole of the separation, and the working tree is shared.** Both steps run in it
+at once, so the implementation is on disk while the suite is being written; `genai-guideline` has what
+was measured about that and what the author is asked to record instead. If a round needs the
+separation to be mechanical rather than instructed, dispatch `genai.e2e-author` in a worktree checked
+out at the integration branch and copy the suite back before `genai.e2e` runs.
 
 Five rework edges, and they are where the routing lives:
 
@@ -87,11 +103,15 @@ Pick a branch name for the round and create the branch off the integration branc
 branch per round, not per change.
 
 **The call below is the full round, and it is a worked example rather than a form to submit
-unchanged.** A lighter round leaves steps out — but only the ones `fsx nodes` marks as optional. The
-rest are load-bearing in a way the graph cannot express: drop one and the graph still creates, then
-a downstream step is refused entry forever, writing no event and spending no patience. So decide
-what to include from the listing's `description` lines, and read the assembly rules at the end of
-this skill before changing any edge.
+unchanged.** A lighter round leaves steps out — the ones `fsx nodes` marks optional, and only those.
+Optional there is a mechanical property rather than a preference: either nothing downstream premises
+on that step, or the premise that does routes `absent` to ready, and `fsx graph create` answers with
+one notice per premise that will fall that way — so what a shape gives up is on the record at the
+moment it is chosen. The steps with no such line are load-bearing in a way the graph cannot express.
+`genai.archive` is the sharp one: leave it out with `genai.accept` still in, and the acceptance step
+is refused entry forever by a check that writes no event and spends no patience. So decide what to
+include from the listing's `description` lines, and read the assembly rules at the end of this skill
+before changing any edge.
 
 ```bash
 fsx graph create --name <round-label> --var branch=<branch-name> --inline '{
@@ -144,6 +164,42 @@ the graph that already exists rather than starting a second run against the same
 `--var branch` must be a new value every round. Graph identity is workflow plus variables plus
 nodes plus edges, so reusing a branch name collides with the previous round and its artifact
 signatures interfere.
+
+### A lighter round
+
+Two rules cover every shape between the full round and the smallest one:
+
+- **Bridge what the removal disconnects**, and the reason is the opposite of the obvious one. A step
+  takes its edges with it, and a step left with no incoming edge is not stalled — it is a **root**,
+  dispatchable from the moment the graph exists. Drop the design review without reconnecting and
+  `genai.write-arch-docs` can be dispatched before `genai.spec` has produced anything, reading
+  whatever happens to be under `openspec/changes/`: the previous round's spec, or nothing.
+  `genai.spec → genai.spec-review → genai.write-arch-docs` has to become
+  `genai.spec → genai.write-arch-docs`. **Read `next` on the create response to check it**: any step
+  other than `genai.spec` listed there is a step whose dependency left with an edge. Rework edges go
+  too — dropping `genai.code-review` drops `code-review → implement` on `reject` with it.
+- **Pairs leave together, and nothing enforces it.** `genai.write-arch-docs` with
+  `genai.arch-decision`, `genai.e2e-author` with `genai.e2e`. Each pair is one step that produces
+  something and one step that is its only reader, and half a pair creates, dispatches and passes:
+  the ruling kept alone asks a person to approve documents nobody wrote, and the acceptance run kept
+  alone rejects on a manifest it cannot read — a setup problem, charged to the round's patience.
+  Neither is a deadlock, which is exactly why they have to be a habit rather than a check.
+
+The smallest round that still ships — a fix with no structural choice in it, no interface moved,
+nothing about how the thing is used changed:
+
+```
+nodes  genai.spec · genai.implement · genai.merge · genai.archive · genai.accept · genai.release
+edges  spec→implement · implement→merge · merge→archive · archive→accept · accept→release
+```
+
+Four premises fall to `absent` in that shape and the create call says so four times. Read those
+lines as the round's own account of what it is not doing: nobody ruled on the structure, no reading
+independent of the developer saw the diff, and nothing beyond the project's own suite ran.
+`genai.implement` and `genai.merge` still gate on the build and the coverage floors, twice over on
+two different trees, and that is the whole of what stands between this work and the integration
+branch. It is the right shape for a fix whose correctness fits in a diff one person can read, and
+the wrong shape for everything else — the listing's `description` lines say which is which per step.
 
 ## The loop
 
@@ -221,8 +277,11 @@ Dispatch what the message names; `fsx next` answers a topology question, not an 
 Rejection is normal. **Patience is a number the project sets, not a constant** — declared in
 `.flow/config.yaml` and in the workflow's `defaults`, shipped at 5 and meant to be tuned against real
 runs. Read this round's from the response rather than from memory: `patience.initial` is what this
-project set, `patience.remaining` is what is left. It is shared across the whole batch, so a round
-that reworks three changes once each has spent three of it.
+project set, `patience.remaining` is what is left. **It belongs to the step, not to the round, and it
+resets when that step passes** — the number bounds how many times one step may be rejected *in a row*,
+so a round that reworks three different steps once each has spent nothing that adds up, and a step
+rejected four times and then passing is back at full. Plan the risk per step; there is no batch
+budget to run down.
 
 **That arithmetic holds only while every rejection is an ordinary one.** `patience.consumed_now` says
 what *this* gate call took: `0` for a pass, a waiver, a delegation or a replay; `1` for an ordinary
@@ -269,10 +328,12 @@ a mess of it.
 The graph above is the whole design, but if it is ever edited, these are the ways to get a
 graph that **passes creation and deadlocks at run time**:
 
-- **The `delegate` edge is not optional.** One gate here produces a `delegate` verdict, and a
-  `delegate` with no matching edge hard-locks: the gate errors, the verdict is not recorded, and the
-  node sits forever at dispatched-but-ungated. Drop `genai.e2e → genai.e2e-author` and the first test
-  bug of the round ends the round.
+- **The `delegate` edge is not optional wherever `genai.e2e` is.** That gate is the one that
+  produces a `delegate` verdict, and a `delegate` with no matching edge hard-locks: the gate errors,
+  the verdict is not recorded, and the node sits forever at dispatched-but-ungated. Drop
+  `genai.e2e → genai.e2e-author` and the first test bug of the round ends the round. Leaving the
+  acceptance pair out entirely is a different thing and is fine — no step remains that can return
+  that verdict.
 - **One destination per verdict, so a node has at most two.** Edges route on the verdict and nothing
   else — not on a report field, not on a gate label. That is why a failure has to be classified into
   the two buckets the graph can act on before it can be routed anywhere, and why a third
@@ -281,8 +342,17 @@ graph that **passes creation and deadlocks at run time**:
   the downstream node into a root and inverts the graph.
 - **`reject` self-rework needs no edge.** A redundant self-edge is harmless; a missing
   cross-node reject edge is not.
-- **Never route `genai.accept` back with `reject`.** It judges the whole batch, so a return
-  edge reopens all of it. Letting it suspend and handing to a person is the intended behaviour.
+- **`genai.accept` rejecting stops the round hard, and it does not suspend.** A judge cannot rework
+  itself — it judged; re-reading the same artifacts would only repeat — so its `reject` needs a
+  destination, and the graph above deliberately gives it none. Measured, not assumed: the gate then
+  errors with `no_matching_edge`, the verdict is **not** recorded, and the node stays
+  dispatched-but-ungated. The finding is not lost — the report is submitted and stored before the
+  gate runs, and it is what says which requirement went missing in the fold. What to do is a
+  person's call and it is not "add the edge and rerun": the batch is merged and archived by then, so
+  the finding is next round's work, entered as a backlog item. Only if a rework of *this* round is
+  genuinely wanted does an edge get added, with `fsx graph patch -g <round> -i
+  '{"ops":[{"op":"add_edge","edge":{"from":"genai.accept#1","to":"genai.spec#1","on":"reject"}}]}'`
+  — and then the whole batch reopens, which is the cost the missing edge is there to make you weigh.
 - **Never route `genai.archive` back with `reject` either**, and here the reason is mechanical:
   its two entry rules are `upstream_reran`, so re-activating it through a dependency edge asks
   again for an unfolded change and a clean tree — both false by then, and the refusal is silent.

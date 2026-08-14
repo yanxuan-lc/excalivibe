@@ -7,6 +7,14 @@ openspec archive <change-id> -y --json
 Run it for each change. It moves the change directory under `openspec/changes/archive/` and
 merges its spec deltas into `openspec/specs/<capability>/spec.md`.
 
+## Say what the record will say
+
+Before folding, read each change's `tasks.md` and count the boxes still open. **Name them in the
+report** — this is the last step that can see them, and `openspec archive` carries the file into
+`changes/archive/` exactly as it stands. Unticked boxes are not a reason to refuse the fold: the work
+may well be done and only the bookkeeping missed. But the archived record is what a reader gets a year
+from now, and it should not be the only one of the round's four records that says nothing happened.
+
 ## Read `archive.warnings[]`, and act on it
 
 `openspec archive` reports problems it is carrying into the main specs, and **archives anyway,

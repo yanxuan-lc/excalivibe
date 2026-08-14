@@ -1,6 +1,6 @@
 id: genai.spec-review
 kind: judge
-description: optional - nothing downstream consumes this verdict, so a round whose design needs no second reading can leave it out
+description: optional - nothing downstream consumes this verdict. Leave it out for a small batch on ground the project has covered before; keep it where a design error would be found late and cost a rewrite
 
 executor:
   protocol: subagent

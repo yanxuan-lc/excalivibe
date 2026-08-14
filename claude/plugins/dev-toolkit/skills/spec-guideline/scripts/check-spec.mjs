@@ -235,10 +235,45 @@ const probe = spawnSync('openspec', ['--version'], { encoding: 'utf8' });
 if (probe.error) die('`openspec` is not on PATH - this check runs on top of it, not instead of it');
 
 console.log(dim(`  openspec ${probe.stdout.trim()} · sections from ${sectionSource}`));
-const os = spawnSync('openspec', ['validate', '--changes', ...ids], { encoding: 'utf8' });
-const osOut = `${os.stdout ?? ''}${os.stderr ?? ''}`.trim();
-const osOk = os.status === 0;
-if (!osOk) for (const line of osOut.split('\n').filter(Boolean)) detail(line, '~');
+
+// `--changes` is a BOOLEAN switch meaning "all of them", and `validate` takes at most one
+// positional argument. Passing ids alongside the switch made openspec refuse to parse the command
+// line as soon as there were two of them — and this script reported that parse error as a problem
+// with the specs. Two evaluation rounds hit it, one of them costing an executor the time to work
+// out its own way around.
+//
+// **The exit code answers neither question.** Measured on openspec 1.8.0: a batch run exits 0 with
+// items failing, and so does a single-id run over a change with no delta sections at all. So the
+// batch form is what runs — one invocation, and its per-item lines say which change is which — and
+// the verdict is read out of the output. A failing change is then re-run on its own, purely to get
+// the explanation the batch form replaces with "Details: …".
+const batch = spawnSync('openspec', ['validate', '--changes', '--strict'], { encoding: 'utf8' });
+const batchOut = `${batch.stdout ?? ''}${batch.stderr ?? ''}`.trim();
+const totals = /Totals:\s*(\d+)\s+passed,\s*(\d+)\s+failed/i.exec(batchOut);
+const verdicts = new Map(
+  [...batchOut.matchAll(/^\s*([✓✗])\s+change\/(\S+)\s*$/gm)].map((match) => [match[2], match[1] === '✓'])
+);
+
+let osOk = true;
+if (totals === null) {
+  // No totals line means nothing was validated; reading that as a pass is the trap this whole file
+  // is careful about elsewhere.
+  osOk = false;
+  detail(`openspec printed no totals line, so nothing was validated:\n      ${batchOut.split('\n').slice(-3).join('\n      ')}`, '~');
+} else {
+  for (const id of ids) {
+    if (!verdicts.has(id)) {
+      osOk = false;
+      detail(`${id}: openspec did not validate it — no such change under openspec/changes/?`, '~');
+      continue;
+    }
+    if (verdicts.get(id)) continue;
+    osOk = false;
+    const one = spawnSync('openspec', ['validate', id, '--strict'], { encoding: 'utf8' });
+    const explained = `${one.stdout ?? ''}${one.stderr ?? ''}`.trim();
+    for (const line of explained.split('\n').filter(Boolean)) detail(line, '~');
+  }
+}
 
 // ── step 2: ours ────────────────────────────────────────────────────────────────
 for (const id of ids) checkChange(id);
@@ -260,7 +295,7 @@ result(
 );
 if (!ok) {
   next(
-    ...(osOk ? [] : ['fix the spec deltas first — `openspec validate --changes <id>` explains each one']),
+    ...(osOk ? [] : ['fix the spec deltas first — `openspec validate <id> --strict` explains each one']),
     ...(problems.length ? ['a section that does not apply still needs one written line saying so'] : [])
   );
   process.exit(1);

@@ -1,6 +1,6 @@
 id: genai.arch-decision
 kind: judge
-description: keep in every graph - genai.implement premises on this ruling and silently never starts without it
+description: optional, and only together with genai.write-arch-docs - the round's one human step. Left out, genai.implement reads its premise as absent and starts unruled; kept without the document step it still passes, having asked a person to rule on documents nobody wrote
 
 executor:
   protocol: human
@@ -21,6 +21,22 @@ inputs:
   - name: arch-docs
     from: genai.write-arch-docs
     required: true
+  # Not material the reader opens — the decision document is the whole of what they are handed, and
+  # it was written to stand on its own. These two are here because a ruling is *about* a version of
+  # the spec, and this is where that version is recorded: `genai.implement` premises `decision`
+  # against both of them, and a premise can only be measured against something the upstream step
+  # actually read. Without these declarations that check has no version to compare and refuses
+  # entry forever — which is exactly what it did until they were added.
+  #
+  # Both, not one. `changes` is the proposals and `specs` is the deltas underneath them, and it is
+  # the deltas that implementation builds from: a spec revised after approval without touching its
+  # proposal.md moves nothing in `changes`.
+  - name: changes
+    from: genai.spec
+    required: true
+  - name: specs
+    from: genai.spec
+    required: true
 
 # `fsx human` writes the decision to this path itself, so the artifact check holds for a human step
 # the same way it does for every other. The durable copy is the signed report in the event log —
@@ -36,7 +52,7 @@ outputs:
     signature: checksum
 
 # No entry rule, and none is possible: the only precondition is that there is something to read,
-# which the required input already asserts.
+# which the required `arch-docs` input already asserts.
 
 gates:
   # `fsx human` ghostwrites the ruling into a conforming judge report, so it is read exactly the

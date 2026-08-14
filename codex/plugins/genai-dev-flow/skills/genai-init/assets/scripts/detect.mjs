@@ -244,10 +244,18 @@ const configValue = (key) => {
 item("config: patience", config === null ? "no config.yaml" : configValue("patience") ?? "not set");
 item("config: graph_budget", config === null ? "no config.yaml" : configValue("graph_budget") ?? "not set");
 const lang = config === null ? null : configValue("instruction_language");
-item("config: language", lang ?? "not set");
-// Only ask what is not already settled on disk. This script is the agenda for the ask step, and a re-run —
-// which is also the upgrade path — must not walk the user back through decisions they already made.
-if (!lang) decide.push([2, "instruction_language — the language the requirement briefs are written in, not the language of whoever is typing"]);
+// Whether a value is there is not the question — `fsx init` always writes one, from the shell's
+// locale. The question is whether a person ever chose it, and `installed.json` is what separates the
+// two: no record means this side has never been installed, so whatever sits in config.yaml arrived
+// by default rather than by decision.
+const langChosen = lang !== null && record !== null;
+item("config: language", lang === null ? "not set" : record === null ? `${lang} — from fsx init's locale default, nobody has chosen it` : lang);
+// Otherwise only ask what is not already settled. This script is the agenda for the ask step, and a
+// re-run — which is also the upgrade path — must not walk the user back through decisions they
+// already made. Reading a locale default as one of those decisions was the bug: it let a project
+// take `en-US` because of the shell that ran the install, and the executor following this agenda
+// never saw the question. Measured on a round whose operator answered it only by reading SKILL.md.
+if (!langChosen) decide.push([2, "instruction_language — the language the requirement briefs are written in, not the language of whoever is typing. Ask it even when .flow/config.yaml already carries a value, unless this project has an installed record"]);
 
 // ───────────────────────── 4. what the project owns ─────────────────────────
 
@@ -593,7 +601,7 @@ const health = files.filter((f) => SCANNABLE.test(f) && small(f)).filter((f) => 
 item("health-ish routes in", health.length ? `${health.slice(0, 5).join(", ")}${health.length > 5 ? ` (+${health.length - 5} more)` : ""}` : "nothing found");
 // Only the first of these is a question. The template case is a fact about the file, and it is already
 // reported above — DECIDE is the list the ask step works through, so a statement in it gets asked.
-if (e2e === null) decide.push([3, "does this project's app exist and answer on a URL today? If not, leave tools/genai/e2e.json out — an invented URL is worse than an absent file"]);
+if (e2e === null) decide.push([3, "how will this app prove it is itself — a URL, or a command? Not whether anything answers today; a greenfield project answers `nothing does` and then never gets the file it needs. Write tools/genai/e2e.json either way (--e2e) and fill it once the skeleton walks — what must not be invented is the URL or the marker"]);
 
 // ───────────────────────── the sections that get read ─────────────────────────
 

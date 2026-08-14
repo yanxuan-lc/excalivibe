@@ -90,12 +90,19 @@ is the specific mistake this paragraph exists to prevent.
   abruptly, which is when it matters. End the turn that started it by ending it:
 
   ```bash
-  kill $(lsof -ti tcp:4321) 2>/dev/null || true   # safe if it is already gone
+  kill $(lsof -ti tcp:<the port in the URL it printed>) 2>/dev/null || true   # safe if already gone
   ```
+
+  **Read that port off the URL rather than assuming 4321.** `mdxv` walks past an occupied port, so
+  another preview — someone else's, or your own from an earlier turn — puts this one on 4322 or
+  4323. Killing 4321 on that machine stops a process this turn never started and leaves the one it
+  did start still holding its port. Measured: an unattended round would have done exactly that.
 
   Leave it running **only** when the user still needs the URL, and then say so, so the process is
   something they know about rather than something they discover.
-- Common flags — `--port <n>` (default 4321), `--host`, `--no-open`, `--lang zh-CN|en-US`.
+- Common flags — `--port <n>` (**where it starts looking**, 4321 by default; it takes the next free
+  port when that one is busy, so what it printed is the only place the real port is), `--host`,
+  `--no-open`, `--lang zh-CN|en-US`.
 - **When a global install is not permitted**, fall back to `npx -p mdx-viewer mdxv doc.mdx`.
 - **Multi-document trees** — rooted at a directory, relative links in the body that point at local
   `.md`/`.mdx` files or directories are routed automatically, so plain markdown links wire up the

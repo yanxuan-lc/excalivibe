@@ -22,9 +22,10 @@ nodes:
 
 defaults:
   # One value for every node above — so it is declared once here rather than repeated in each
-  # definition. This is a starting number to tune against real runs, not a derived one. Patience is shared
-  # across the whole batch now that implement and review are not split per change, so a round
-  # that reworks three changes once each spends three of it.
+  # definition. This is a starting number to tune against real runs, not a derived one. It is spent
+  # per step and per consecutive rejection: a step rejected four times and then passing is back at
+  # five, and five different steps rejected once each have accumulated nothing. So this number bounds
+  # how long one step may go round in circles, not how much rework a round may contain.
   #
   # One rework path deliberately spends none of it: a test bug found by genai.e2e is handed to
   # genai.e2e-author as a `delegate`, because the acceptance run did not fail — it worked, and what it

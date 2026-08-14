@@ -1,6 +1,6 @@
 id: genai.e2e
 kind: verify
-description: keep in every graph - genai.merge premises on this run and silently never starts without it
+description: optional, and only together with genai.e2e-author - drop both and nothing beyond the project's own suite exercises the round end to end. Keep both wherever a requirement is worth proving against a running thing
 
 executor:
   protocol: subagent

@@ -45,6 +45,11 @@ export function judgeBuild() {
     return { label: "target_missing", facts: { target: TARGET, reason: known.reason } };
   }
 
+  const empty = runsNothing();
+  if (empty) {
+    return { label: "target_missing", facts: { target: TARGET, reason: empty } };
+  }
+
   const run = spawnSync("make", [TARGET, "--no-print-directory"], {
     encoding: "utf8",
     stdio: ["ignore", "pipe", "pipe"],
@@ -71,6 +76,43 @@ export function judgeBuild() {
     return { label: "build_failed", facts: { target: TARGET, exit: run.status, output_tail: tail(output) } };
   }
   return { label: "built", facts: { target: TARGET } };
+}
+
+// A target that exists and exits 0 having run no command at all was reported as a green build, and
+// it was measured rather than reasoned about: `.PHONY: genai-build` on its own, and a `genai-build:`
+// with an empty body, both make `make genai-build` print "Nothing to be done" and exit 0. Neither
+// compiled anything, and the placeholder check above does not see them — there is no recipe to carry
+// the sentinel. This is the same hole `round-committed` closes for genai.implement: a step whose
+// evidence is an exit code needs to know something actually ran.
+//
+// Asked with `-n` rather than by reading the Makefile, because the answer depends on includes,
+// variables and pattern rules, and make is the only thing that resolves those correctly. Everything
+// make says about itself is prefixed `make:` or `make[N]:`, and a recipe line never is — so what
+// survives the filter is exactly the commands this build would run. `LC_ALL=C` is what makes that
+// prefix dependable; without it a localized make can print its diagnostics in another form.
+//
+// `-n` on a recursive build really does invoke the sub-make, which is safe and intended: make
+// propagates the flag through MAKEFLAGS, so the sub-make dry-runs too and prints its recipe instead
+// of running it.
+//
+// A dry run that fails says nothing — the real run below reports it properly as `build_failed`, and
+// guessing here would name the wrong problem.
+function runsNothing() {
+  const dry = spawnSync("make", ["-n", TARGET, "--no-print-directory"], {
+    encoding: "utf8",
+    stdio: ["ignore", "pipe", "pipe"],
+    timeout: BUILD_TIMEOUT_MS,
+    maxBuffer: 64 * 1024 * 1024,
+    env: { ...process.env, LC_ALL: "C" },
+  });
+  if (dry.error || dry.status !== 0) return null;
+
+  const commands = String(dry.stdout ?? "")
+    .split("\n")
+    .filter((line) => line.trim() !== "" && !/^make(\[\d+\])?:/.test(line));
+  if (commands.length > 0) return null;
+
+  return "the target is there but runs no command at all — an empty recipe, or a `.PHONY` line with no rule under it. It exits 0 without building anything, which is not the same as building";
 }
 
 function tail(output, lines = 40) {

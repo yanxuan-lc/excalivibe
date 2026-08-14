@@ -9,18 +9,30 @@ recommendation, and what the wrong choice costs.
 These are written for a human, so hand them over rendered, not as a path to a source file. The
 `mdx-artifact` skill serves a local preview; background it and give the reader the URL.
 
-**Serve one document from a directory that holds nothing else.** Pointing the preview at
-`openspec/changes/<id>/genai/DECISION.mdx` roots it at that file's *directory*, and every sibling
-lands in the reader's drawer — `e2e-manifest.md`, `e2e-report.md`, records written in English for a
-model and self-contained for nobody. The whole design of this document assumes the reader sees
-exactly one thing:
+**Serve this round's decision documents from a directory that holds nothing else.** Pointing the
+preview at `openspec/changes/<id>/genai/DECISION.mdx` roots it at that file's *directory*, and every
+sibling lands in the reader's drawer — `e2e-manifest.md`, `e2e-report.md`, records written in English
+for a model and self-contained for nobody. What the reader gets handed is this round's rulings and
+nothing beside them:
 
 ```bash
-d=$(mktemp -d) && cp openspec/changes/*/genai/DECISION.mdx "$d"/ && mdxv "$d"
+d=$(mktemp -d)
+for f in openspec/changes/*/genai/DECISION.mdx; do
+  id=$(basename "$(dirname "$(dirname "$f")")")
+  cp "$f" "$d/$id.mdx"
+done
+ls "$d"          # one file per change — check the count against the changes in this round
+mdxv "$d"
 ```
 
+**Renaming to the change id is the point of the loop, not tidiness.** Every change names its document
+`DECISION.mdx`, so copying them into one directory under their own names leaves one file: the last
+one wins, `cp` exits 0, and nothing says a document went missing. Measured on a two-change round —
+the reader was shown one document and would have approved both. A ruling on a document nobody saw is
+the one failure this step exists to prevent.
+
 Copying is safe because the document has no local links to break. If `mdxv` is not available, say
-so and give the file path rather than pretending the preview is there.
+so and give the file paths rather than pretending the preview is there.
 
 Then restate the decision items in the conversation — the reader should be able to answer without
 scrolling back. Do not summarise the recommendation as though it were settled.
@@ -50,5 +62,11 @@ End the turn that started it by ending it — a preview left running holds a por
 the foreground holds a shell that never returns:
 
 ```bash
-kill $(lsof -ti tcp:4321) 2>/dev/null || true
+kill $(lsof -ti tcp:<the port in the URL mdxv printed>) 2>/dev/null || true
 ```
+
+**Take that port from the URL, and do not assume 4321.** `mdxv` starts looking there and moves to
+the next free port, so anything else already previewing on this machine — another round, or the
+reader's own work — pushes this one to 4322 or 4323. Killing 4321 regardless is how an unattended
+round stops a stranger's process and leaves its own running; this step runs on someone's real
+machine, and it was about to do exactly that.

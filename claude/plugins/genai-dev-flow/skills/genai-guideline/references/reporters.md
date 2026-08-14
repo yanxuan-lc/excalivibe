@@ -36,6 +36,12 @@ node .flow/genai/check.mjs metrics     # {"result":"satisfied", ...}
 
 ## Scope, per module
 
+**Why the floors are keyed by module and not by repository.** A repository-wide figure forced every
+module onto the lowest common denominator, and a module with no unit tests either vanished from the
+number — its absence reading as coverage — or went into the denominator and dragged the rest below a
+floor nobody could reach. Both were measured on real repositories before the floors moved into
+`thresholds.json` per module.
+
 A module's coverage is that module's claim, and some tools quietly narrow it. Several — Node's
 built-in `--experimental-test-coverage` among them — report only the files a test actually loaded, so
 a file nobody imports never appears and therefore cannot pull any dimension down. Where that is the

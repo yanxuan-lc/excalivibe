@@ -59,9 +59,10 @@ the listing is right and this table is stale — and the listing carries one thi
 a `description` on each step whose inclusion in a graph is a real choice.
 
 Gates run in declaration order and the first non-pass concludes, so each row below is
-"every condition, cheapest first". Patience is one number for all of them, shared across the whole
-batch, and it is the project's to set — `.flow/config.yaml` and the workflow's `defaults` ship it at 5.
-Read a live round's from `patience.initial` rather than assuming the shipped value survived.
+"every condition, cheapest first". **Patience is per step and resets on a pass** — it bounds
+rejections *in a row* for one step, so five steps rejected once each accumulate nothing. The project
+sets it (`.flow/config.yaml`, and the workflow's `defaults`, shipped at 5); read a live round's from
+`patience.initial`.
 
 | Step | Executor | Produces | Passes when |
 |---|---|---|---|
@@ -87,6 +88,12 @@ Six asymmetries are deliberate:
   itself. The cost is that UI selectors cannot be finalised against a DOM that does not exist yet —
   which is what the `delegate` edge is for: a test that turns out to be wrong comes back once there is
   a real failure to fix it against, rather than on a schedule.
+
+  **What this rules out is a path in the instruction, which is less than it sounds.** Both steps run
+  in one working tree, so the implementation is there while the suite is written. Measured: two
+  assertions rewritten after the commits landed, because the suite had gone red against them — both
+  right, both invisible, since `delegate` never fired to record a test changing. The author records
+  it instead (its brief says what); closing this mechanically means a tree with no code in it.
 - **A failed acceptance run routes by classification, and there are exactly two destinations.** A
   product failure is a `reject` to `genai.implement`; a test failure is a `delegate` to
   `genai.e2e-author`, which spends no patience because the acceptance run did not fail — it worked, and
@@ -109,9 +116,14 @@ Six asymmetries are deliberate:
 - **The human ruling is depended on, not merely awaited.** `genai.implement` takes the decision as
   an input it never reads, purely so an entry rule can measure it: approval covers the spec it was
   given and no other, and a spec revised afterwards refuses entry until it has been ruled on again.
-  Without that rule the step would still wait for a person and then build whatever the spec had
+  It takes two rules, because a revision can move the proposals or the deltas underneath them and a
+  premise is measured against one thing at a time — the deltas are the half a review comment usually
+  lands in. Without them the step would still wait for a person and then build whatever the spec had
   since become — a human step that is sequenced but not binding, which is the failure mode worth
-  more than the step itself.
+  more than the step itself. **What both rules do not assert is that a ruling exists.** A graph with
+  no ruling step in it reads `absent` and starts unruled; that is a shape a round chooses openly at
+  creation, and it is the reason the rules distinguish "this round did not plan on one" from "the
+  ruling has not happened yet" rather than treating both as not-ready.
 
 ## What the project has to supply
 
@@ -203,8 +215,13 @@ Two consequences of that timing, and the second is the one to hold on to:
   one-line answer — not something for a step to guess its way around.
 
 A marker earns its place by being **specific to this service**: the service name from a health payload,
-a version string, the title a known route renders. `ok`, `healthy` and `200` are not markers; every
-other process on the machine says those too.
+the title a known route renders, a route only this build serves. `ok`, `healthy` and `200` are not
+markers; every other process on the machine says those too.
+
+**Not the version string** — the wrong answer that looks most like a right one. `genai.release` moves it
+after the round's last acceptance run, so from the next round on the marker names a version the build no
+longer reports and `genai.e2e` refuses with `wrong_service` — which that round cannot repair, since this
+file is the owner's. Pick something a release does not move.
 
 The e2e ceiling rides in `thresholds.json` alongside the coverage floors, under an `e2e` key holding
 `max_non_scripted` and `max_non_scripted_ratio`. **They are two numbers describing one limit: the
@@ -233,6 +250,11 @@ directory listing does not; `depends_on` tells the spec reviewer which way the a
 tells the code reviewer that a contract has another side; `docs` says where documentation lives, so
 a repository with a README per module is measured on those rather than on a `docs/` it does not
 have; `targets` names the Makefile targets that build, lint and test each module.
+
+**A test-only directory is not a module** — an e2e harness, a fixture generator: nothing ships from it, and
+listing it would oblige it to answer "who tests this" about itself. What it still needs is somewhere to be
+compiled, because `genai-build` only reaches the modules — make it a prerequisite of that target, or say
+plainly that running it is the only thing that ever checks it. Left unsaid, no gate looks at its code.
 
 `targets` names **targets, never commands.** A command here would be a second way to build the same
 module, and two ways to do one thing is one thing that can disagree with itself. The project's
@@ -267,23 +289,17 @@ either, because the other modules already satisfy "at least one test ran". Its c
 compiling with every gate green. This is the gate that notices, and it is the only one that sees a
 contract changed on one side of a language boundary and not the other.
 
-Like the metrics target it runs twice, at `genai.implement` and again at `genai.merge`, and the
-second run is not a retry: two changes that each compile can fail to compile together.
+**Narrowing belongs in the recipe, not in the gate.** A project whose build is genuinely slow narrows
+it inside its own target, where the knowledge of how to do that safely lives and where the toolchain
+usually does it already. A gate that narrowed would have to be right about the module map, the
+dependency graph and the fork point at once, and being wrong means silently building less — which
+looks exactly like passing.
 
-**Narrowing belongs in the recipe, not in the gate.** A project whose build is genuinely slow should
-narrow it — inside its own target, where the knowledge of how to do that safely already lives, and
-where the toolchain is usually doing it already (`go test` skips packages nothing touched; tsc has
-`--incremental`). A gate that narrowed would have to be right about the module map, the dependency
-graph and the fork point all at once, and being wrong about any of them means silently building
-less — which looks exactly like passing.
-
-**One target, two steps, two trees.** `genai.implement` runs it on the sprint branch and
-`genai.merge` runs it again on the merged tree, against the same floors. The second run is not
-a retry of the first: only the merge happened in between, so what it catches is the merge itself
-— a conflict resolved wrong, or two changes that pass separately and fail together. Nothing else
-in the round looks at the integration branch, which is why this one costs a full suite run and
-is worth it. The consequence for the project is that the target has to be runnable on the
-integration branch too, not only on a feature branch.
+**One target, two steps, two trees.** `genai.implement` runs it on the sprint branch and `genai.merge`
+again on the merged tree. The second run is not a retry: only the merge happened in between, so what it
+catches is the merge itself — a conflict resolved wrong, or two changes that pass separately and fail
+together. Nothing else in the round looks at the integration branch, which is why this run costs a full
+build and earns it, and why the target has to be runnable there too, not only on a feature branch.
 
 ### The project reports; the gate decides
 
@@ -349,14 +365,10 @@ What it decides, and where each rule comes from:
 code, agree the numbers with whoever owns it: **the round may not edit that file**, so a floor above
 where the project stands rejects every round with nothing able to fix it.
 
-Coverage is measured over each module, not over the diff. Patch coverage would aim better at the
-failure below, and it was deliberately not built: it needs a merge base, a diff, and an intersection
-with the coverage report inside every project's own target.
-
-**A repository of several modules had the same hole one size larger**, and closing it is why the
-floors are keyed by module: one repository-wide figure forced every module onto the lowest common
-denominator, and a module with no unit tests either vanished from the number — its absence reading as
-coverage — or went into the denominator and dragged the rest below a floor nobody could reach.
+Coverage is measured over each module, not over the diff — patch coverage would aim better and was
+deliberately not built, since it needs a merge base, a diff and an intersection with the coverage
+report inside every project's own target. Why the floors are keyed by module rather than by repository
+is in the reference.
 
 ```json
 { "coverage": { "server": { "lines": 0.8 }, "core": { "lines": 0.9, "branches": 0.85 } } }
@@ -368,10 +380,6 @@ may not edit this one. A dimension left out of an entry is not checked for that 
 a Go module says its cover reports statements and nothing else. A module that **is** listed reports
 tests, or the gate reads `no_tests`: listing it claims its numbers get measured, and a floor with no
 measurement behind it counts as below.
-
-Aggregating **within** one module still needs care where its report spans tools — sum covered and
-total counts rather than averaging percentages, and mind that merged profiles can list the same block
-twice (`go test -coverpkg=./...` does, and summing naively reports about half the real figure).
 
 ### A broken setup rejects; it never passes
 
@@ -442,6 +450,10 @@ independent reviewer caught it; no gate did.
 Which is why the reviewer's criteria include whether the project's gate actually reaches the new
 behaviour. A gap there is a finding, and the finding becomes the backlog item above.
 
+**And it proves them on a tree that is not the one released.** Acceptance runs before the merge and
+`genai.release` bumps last, nothing running the app after — so "36 of 36 passed, released v0.2.0" means 36
+passed on the pre-merge tree. The end-of-round build gate stops a broken bump; nothing re-probes identity.
+
 ## Traps that cost a whole round
 
 - **`openspec validate` exits 0 even when items fail.** Both openspec gates read the totals line
@@ -456,7 +468,8 @@ behaviour. A gap there is a finding, and the finding becomes the backlog item ab
 - **The specs are not in git history until the merge** — provided the project's own baseline is
   already committed. `genai.spec` writes `openspec/changes/` and does not commit — its outputs are
   measured as a checksum over files on disk, so nothing needs a commit to be gated — and neither
-  `genai.implement` (which may neither edit nor commit anything under `openspec/**`) nor
+  `genai.implement` (which may commit nothing under `openspec/**`, and may edit nothing there but the
+  checkboxes in `tasks.md`) nor
   `genai.code-review` (which may not commit at all) changes that. The caveat is not hypothetical: on a
   project where `Makefile`, `tools/genai/` and `openspec/config.yaml` were still untracked when the
   round began, a developer facing a branch on which `make genai-metrics` cannot run has a real reason to

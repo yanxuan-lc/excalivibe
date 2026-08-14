@@ -10,6 +10,13 @@ inputs:
   - name: changes
     from: genai.spec
     required: true
+  # The deltas under each change directory — the requirement text this step builds against, and the
+  # subject of the second premise rule below. `changes` alone would not do: a proposal.md left
+  # untouched while its delta is rewritten is the ordinary shape of a spec revision, not an exotic
+  # one.
+  - name: specs
+    from: genai.spec
+    required: true
   # Not material this step builds from — it never opens the decision document, which was trimmed
   # and diagrammed for a person and has lost the detail an implementer needs. It is here so the
   # premise rule below has a conclusion to measure, and so the human ruling is a thing this step
@@ -24,7 +31,7 @@ outputs:
     locator: "{{vars.branch}}"
     signature: commit_sha
 
-# Neither rule asserts anything this step changes. A clean-worktree rule would deadlock against the
+# No rule here asserts anything this step changes. A clean-worktree rule would deadlock against the
 # very artifact that makes the tree dirty, and is left out for that reason.
 ready:
   # of is whose conclusion; against is what that conclusion was about. A person approved a
@@ -34,6 +41,23 @@ ready:
   # This is what makes the human step load-bearing rather than ceremonial. Without it, a spec
   # revised after the ruling would be built anyway, and the approval on record would describe a
   # design nobody implemented.
+  #
+  # It takes two rules because a premise is measured against one thing at a time, and a spec
+  # revision can move two: the proposals, and the deltas underneath them. Both read the same
+  # ruling; splitting them is what lets the refusal say which half moved. `genai.arch-decision`
+  # declares both as inputs for no other purpose than to be measurable here — a premise against
+  # something the upstream step never read is not false, it is unanswerable, and an unanswerable
+  # premise refuses entry every time it is asked.
+  #
+  # **`absent` is ready, and it is the one branch here that is a policy rather than a fact.** It
+  # means this graph holds no ruling step at all, which is how a round says it has no structural
+  # choice to put in front of a person — a bug fix, a wording change, a field on a settled
+  # interface. There is then no conclusion to keep fresh, and nothing for this rule to protect.
+  # Every other not-fresh branch refuses: `unknown` is a ruling that has not happened yet and will,
+  # `unread` is a definition bug, `stale` is an approval that no longer describes the spec. Only
+  # "the round deliberately did not plan on one" lets the work through, and that choice is made once,
+  # in the open, when the graph is submitted — `fsx graph create` prints which premises will fall to
+  # `absent` and which way each is routed.
   - rule_id: decision-still-valid
     checker:
       type: upstream_premise
@@ -41,12 +65,41 @@ ready:
       against: changes
     on_result:
       fresh: { ready: true }
+      absent: { ready: true }
       stale:
         ready: false
-        reason: "The spec moved after it was approved. Have the decision document written again from the current spec and re-approved — an approval describes the design it was given and no other"
+        reason: "A proposal moved after it was approved. Have the decision document written again from the current spec and re-approved — an approval describes the design it was given and no other"
+      unread:
+        ready: false
+        reason: "The ruling on record never read the spec, so it cannot say which version it approved. That is a bug in the installed step definitions, not in this round — genai.arch-decision has to declare `changes` and `specs` as its own inputs"
       unknown:
         ready: false
-        reason: "The approved spec cannot be measured — confirm openspec/changes/ still holds this round's changes"
+        reason: "The ruling step is in this graph but has not run yet. Let genai.arch-decision be dispatched and approved first"
+
+  # Not a duplicate of the rule above, and the one that catches the common case: the deltas are what
+  # implementation reads, and a requirement rewritten there while proposal.md stays put is invisible
+  # to `changes`. That is the revision this flow expects to see most — it is where a review comment
+  # lands.
+  - rule_id: decision-covers-deltas
+    checker:
+      type: upstream_premise
+      of: [decision]
+      against: specs
+    on_result:
+      fresh: { ready: true }
+      # Same policy as the rule above, for the same reason. The two must agree: routing one to ready
+      # and the other to refused would leave a round that dropped the ruling step blocked by
+      # whichever one refuses, with nothing in the graph able to satisfy it.
+      absent: { ready: true }
+      stale:
+        ready: false
+        reason: "A spec delta moved after the structure was approved. The ruling describes the requirements it was given — have the decision document written again from the current deltas and re-approved"
+      unread:
+        ready: false
+        reason: "The ruling on record never read the spec deltas, so it cannot say which version it approved. That is a bug in the installed step definitions — genai.arch-decision has to declare `specs` as its own input"
+      unknown:
+        ready: false
+        reason: "The ruling step is in this graph but has not run yet. Let genai.arch-decision be dispatched and approved first"
 
   - rule_id: has-spec-deltas
     checker:
@@ -85,6 +138,37 @@ gates:
       stalled:
         verdict: reject
         message: "The branch tip has not moved. There is no new commit this round"
+
+  # The two rules above have a hole between them that only shows on a first attempt, and it was
+  # measured rather than reasoned about: `outputs` asks whether the branch has a tip, which it has had
+  # since the install committed the baseline, and `signature_changed` compares this attempt to the
+  # previous one, of which there is none. So an attempt that committed nothing at all passed both.
+  # In the full graph the code review would catch it; in a graph without one, nothing did.
+  #
+  # This asks git the question the brief already puts to the executor — "every round must produce at
+  # least one new commit" — by comparing the branch against the nearest branch it grew from. See
+  # `round-commits` in check.mjs for why the baseline is derived and why an unreadable shape passes.
+  - rule_id: round-committed
+    checker:
+      type: command
+      command: node .flow/genai/check.mjs round-commits
+      label_from: result
+      values: [ahead, not_ahead, no_baseline, unreadable]
+    on_result:
+      ahead: { verdict: pass }
+      no_baseline: { verdict: pass }
+      not_ahead:
+        verdict: reject
+        message: "This branch carries nothing the branch it grew from does not already have — no commit landed this round. Uncommitted work cannot be measured, and a report that says otherwise is describing work nobody can see"
+      unreadable:
+        verdict: reject
+        message: "git could not be read, so whether anything landed cannot be established. A setup problem — confirm this is a repository"
+      failed:
+        verdict: reject
+        message: "The check itself exited non-zero. That is a bug in the installed step definitions"
+      unexecutable:
+        verdict: reject
+        message: "The check could not run at all. Re-install with genai-init, and confirm node is on PATH"
 
   - rule_id: outcome
     checker: { type: report, field: outcome }
@@ -181,7 +265,7 @@ gates:
         message: "The project does not build. What make printed before it stopped is in the gate facts — read that rather than working from this line. A compiler or type-check error is the round's to fix"
       target_missing:
         verdict: reject
-        message: "Nothing proves the code still compiles — either there is no `genai-build` target, or it still holds the placeholder recipe the install wrote. The gate facts say which. Setup problem — stop and hand it to a person"
+        message: "Nothing proves the code still compiles — there is no `genai-build` target, or it still holds the placeholder recipe the install wrote, or it runs no command at all. The gate facts say which. Setup problem — stop and hand it to a person"
       failed:
         verdict: reject
         message: "The gate evaluator exited non-zero. That is a bug in the installed step definitions, not in the code under test"

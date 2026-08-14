@@ -38,8 +38,21 @@ const COST = "cost";
  * stops standing alone, and it is worth matching on the **path** rather than on phrasing: the
  * document is written in a language this check does not know, but a filename is a filename in all
  * of them.
+ *
+ * The leading directories are part of the match, and that is the whole point of `PREFIX`. An earlier
+ * form excluded `/` in front of the filename, which meant it caught a bare `design.md` and missed
+ * `openspec/changes/<id>/design.md` — the form the document almost always uses, since a bare
+ * filename is ambiguous when every change directory has one. It was the qualified path, the one
+ * worth catching most, that walked through.
+ *
+ * What the guard still excludes is a word character, `.` or `-` immediately before, so a filename
+ * that merely ends this way — `interface-design.md` — is not read as the artifact.
  */
-const INTERNAL = /(?:^|[^\w/.-])((?:proposal|design|tasks|spec-review|e2e-manifest|e2e-report)\.md|specs\/[\w./*-]*)/g;
+const PREFIX = "(?:[\\w.-]+/)*";
+const INTERNAL = new RegExp(
+  `(?:^|[^\\w.-])(${PREFIX}(?:proposal|design|tasks|spec-review|e2e-manifest|e2e-report)\\.md|${PREFIX}specs/[\\w./*-]*)`,
+  "g",
+);
 
 const anchor = (slug) => new RegExp(`genai:${slug}(?![\\w.-])`);
 

@@ -142,7 +142,7 @@ are the whole of the structure — a wall of every open question at once is what
 | Round | What it settles | Why here |
 |---|---|---|
 | 1 · permission and access | consent, and the missing global binaries | a refusal ends the procedure, so it comes first |
-| 2 · what this project is | `instruction_language`, and **the module list** | everything downstream is written against these |
+| 2 · what this project is | `instruction_language`, and **the module list** | everything downstream is written against these. Ask `instruction_language` even when `.flow/config.yaml` already carries one: `fsx init` writes it from the shell's locale, and a value nobody chose is not a settled question |
 | 3 · policy | coverage policy, and whether the app answers today | it rides on the shape settled in round 2 |
 
 **Round 1 — permission and access.**
@@ -199,8 +199,12 @@ a wrong guess shows up at the prove step, with the user able to see it in the fi
 
 1. **Coverage policy — which dimensions apply, and which modules are allowed no tests.** The numbers
    come from step 5, once something has measured them, on both routes.
-2. **Does the app exist and answer on a URL today?** This decides whether step 3 writes
-   `tools/genai/e2e.json`. A fresh repository usually answers no, and that is fine.
+2. **How will this app prove it is itself — a URL, or a command?** Not whether anything answers
+   today: on the greenfield route nothing does yet, and asking in the present tense has exactly one
+   possible answer, after which step 4's own completion criterion ("one thing that **answers** — a URL
+   or a command") cannot be met. A project can say which of the two it will be on its first day, and
+   that is the answer `e2e.json` needs. Step 3 writes the template either way; step 4 fills it in once
+   the skeleton walks.
 
 `instruction_language` covers the framework-rendered half of each instruction. The step briefs ship
 inside this plugin as English source and are injected verbatim, so a dispatched instruction carries
@@ -315,17 +319,20 @@ edit**, so it stays free to follow the code it describes.
 
 **`tools/genai/thresholds.json`** — written in step 5, from the measurement.
 
-**`tools/genai/e2e.json`**, if step 3 wrote it. Declare **one** of two shapes, with `contains` either
-way:
+**`tools/genai/e2e.json`** — step 3 writes the template on both routes, and this is where it gets
+filled in. Declare **one** of two shapes, with `contains` either way:
 
 | The project… | Declare | Example |
 |---|---|---|
 | listens on a port | `url` (+ `status` if not 200) | `{"url": "http://127.0.0.1:5173/healthz", "contains": "widget-api"}` |
-| is a CLI, a library, a batch job | `command` | `{"command": "node src/cli.js --version", "contains": "lintly 1.2.0"}` |
+| is a CLI, a library, a batch job | `command` | `{"command": "node src/cli.js --help", "contains": "lintly — lint your"}` |
 | has several faces — a client and its API | `targets` | a list of the two shapes above, each with a `name`, at most four |
 
-Make `contains` something specific to **this** build — the name in a health payload, a version string,
-the title a known route renders. `ok`, `healthy` and `200` match every other process on the machine.
+Make `contains` something specific to **this** build — the name in a health payload, the title a known
+route renders. `ok`, `healthy` and `200` match every other process on the machine. **Never the version
+string**: `genai.release` moves it after the round's last acceptance run, so from the next round on the
+marker names a version the build no longer reports, `genai.e2e` refuses with `wrong_service`, and the
+round cannot fix it — this file is the owner's, not the round's.
 **Two shapes, one argument**: an open port identifies no particular service, and a binary on PATH
 identifies no particular build, so each shape supplies the half the other lacks and one of them is
 declared. For a `command`, both streams are read and the marker is what counts — `--version` exits 0
@@ -334,7 +341,9 @@ and `--help` often exits 2, so the exit code says little.
 Where nothing runs yet, **tell the user in one sentence** what will be needed: a URL or a command, and
 a marker only this build returns. **A project that can answer one of those is a project that can
 merge** — `genai.merge` premises on this step, and `genai.e2e` waits with `config_missing`, spending
-no verdict, no patience and no attempt.
+no verdict, no patience and no attempt. A round may leave the acceptance pair out of its graph
+altogether, and then nothing asks for this file; install it anyway, because the first round that
+wants an end-to-end proof should not have to stop and set up a project to get one.
 
 ## Step 5 — prove, and set the floors from what it measures
 
@@ -419,11 +428,20 @@ For `app-identity`, `unreachable` means the app is down, which is fine at instal
 ## Step 6 — commit the baseline, then report
 
 ```bash
+# brownfield — the flow's own files are all this install produced
 git add Makefile tools/genai openspec/config.yaml .gitignore   # whichever of these exist
+
+# greenfield — add every source file step 4 wrote as well: the modules, the e2e directory,
+# the scripts and the lockfiles. The skeleton is part of what this install produced.
+git add <each path step 4 created>
+
 git commit -m "chore: genai flow baseline"
 ```
 
-Name the paths explicitly, so the commit holds exactly what this install produced. Committing now is
+Name the paths explicitly, so the commit holds exactly what this install produced — and on the
+greenfield route that includes the walking skeleton. Left untracked it survives the whole round
+(`worktree` ignores untracked files), drifts into `genai.merge`'s commit, and is missing from the diff
+`genai.code-review` reads — so the round's first review never sees the project's starting point. Committing now is
 what keeps these files out of a round's first review — the troubleshooting reference has the full
 reason, and **`e2e.json`'s window is narrow**: it goes in before `genai.code-review` is dispatched, or
 stays untracked for `genai.merge` to pick up.

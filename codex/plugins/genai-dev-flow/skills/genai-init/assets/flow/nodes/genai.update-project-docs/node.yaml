@@ -1,6 +1,6 @@
 id: genai.update-project-docs
 kind: produce
-description: optional - nothing downstream consumes it, so a round that changed no documented behaviour can leave it out
+description: optional - runs last and nothing consumes what it writes. Leave it out for a fix that changes no interface, no structure and nothing about how the thing is used
 
 executor:
   protocol: subagent

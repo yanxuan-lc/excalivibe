@@ -1,6 +1,6 @@
 id: genai.e2e-author
 kind: produce
-description: keep whenever genai.e2e is in the graph - it is the only source of the manifest that step routes by
+description: optional, and only together with genai.e2e - the suite is written from the spec, never from the code. Dropped alone, the acceptance gate rejects on a manifest it cannot read and charges a setup problem to the round's patience
 
 executor:
   protocol: subagent

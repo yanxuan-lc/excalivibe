@@ -10,7 +10,9 @@
 //   --lang <tag>      instruction_language: the language of the requirement briefs
 //   --patience <n>    default 5
 //   --budget <n>      default 50
-//   --e2e             copy the tools/genai/e2e.json template (only when the app exists today)
+//   --e2e             copy the tools/genai/e2e.json template. Whether the app runs today does not
+//                     come into it — a project that will answer on a URL and one that will answer to
+//                     a command both need the file; what may not be invented is what goes inside it
 //   --sibling-git     also make the requirements directory its own git repository
 //   --upgrade         replace definitions and evaluators, touch nothing else
 //
@@ -448,7 +450,7 @@ if (!upgrade) {
   else if (has("e2e")) {
     cpSync(join(ASSETS, "project", "e2e.json"), "tools/genai/e2e.json");
     did("e2e.json copied — its `contains` deliberately cannot match anything until the executor replaces it");
-  } else skip("e2e.json not written — the app does not answer on a URL yet, and an invented one is worse than an absent file");
+  } else skip("e2e.json not written — pass --e2e to write the template. A project that will answer on a URL and one that will answer to a command both need this file; what must not be invented is the URL or the marker inside it");
 }
 
 // ───────────────────────── 8. the requirements directory ─────────────────────────
@@ -579,7 +581,7 @@ log.push("     A module left out is not coverage-checked — that is how a clien
 log.push("     is declared. A dimension left out of a module's entry is not checked for that module,");
 log.push("     which is how Go declares that its cover reports statements and nothing else. A module");
 log.push("     that IS listed has to report tests, or the gate reads it as no_tests.");
-log.push("  4. If tools/genai/e2e.json was written, fill url or command, plus a `contains` marker only");
+log.push("  4. Fill tools/genai/e2e.json — url or command, plus a `contains` marker only");
 log.push("     this build returns.");
 log.push("  5. Prove it — ONE command says whether this install is done:");
 log.push("       node .flow/genai/check.mjs install-ready  → ready | unfinished | broken");
@@ -589,8 +591,11 @@ log.push("     NOT the criterion — no_tests and tests_failing are both accepta
 log.push("     and install-ready is what knows that. The individual checks carry the detail:");
 log.push("       make genai-build · make genai-metrics");
 log.push("       check.mjs modules-map · build-ok · metrics · app-identity");
-log.push("  6. Commit the baseline explicitly — Makefile, tools/genai, openspec/config.yaml, .gitignore.");
-log.push("     Not `git add -A`, which sweeps in whatever else is lying around.");
+log.push("  6. Commit the baseline explicitly — Makefile, tools/genai, openspec/config.yaml, .gitignore,");
+log.push("     AND every source file step 4 wrote: the modules, the e2e directory, the scripts, the");
+log.push("     lockfiles. On a greenfield project the skeleton IS part of this baseline — left");
+log.push("     untracked it drifts into genai.merge's commit, and the first code review never sees");
+log.push("     where the project started. Not `git add -A`, which sweeps in whatever else is lying around.");
 
 process.stdout.write(`${log.join("\n")}\n`);
 process.exit(broken ? 1 : 0);

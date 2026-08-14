@@ -24,6 +24,19 @@ outputs:
 ready:
   # of is whose conclusion; against is what that conclusion was about. Do not merge code that
   # moved after the review approved it.
+  #
+  # `absent` is ready here for the same reason it is in genai.implement — a round that left the
+  # review out has no verdict to keep fresh — but the two are not the same decision, and a project
+  # that wants the reading mandatory flips this one branch to `ready: false` without touching
+  # anything else. That is the whole point of the label being routed rather than assumed: the
+  # framework knows the fact, and each step says what the fact means for it.
+  #
+  # What is worth reading twice before flipping either: with genai.code-review and genai.e2e both
+  # out of a graph, this step's own gates are all that stands between the round and the integration
+  # branch, and both of them measure the project's own suite. Nothing independent of whoever wrote
+  # the code has looked at it. That is a legitimate shape for a one-line fix and a bad one for
+  # anything else, and the choice is visible where it is made: `fsx graph create` prints one notice
+  # per premise that will fall to `absent`.
   - rule_id: review-still-valid
     checker:
       type: upstream_premise
@@ -32,12 +45,16 @@ ready:
     on_result:
       fresh:
         ready: true
+      absent: { ready: true }
       stale:
         ready: false
         reason: "The branch moved after the review approved it. Get the new commits reviewed first"
+      unread:
+        ready: false
+        reason: "The review on record never read the commits, so it cannot say which tip it approved. That is a bug in the installed step definitions — genai.code-review has to declare `commits` as its own input"
       unknown:
         ready: false
-        reason: "The reviewed commits cannot be measured — confirm the sprint branch still exists"
+        reason: "The review step is in this graph but has not run yet. Let genai.code-review be dispatched and gated first"
 
   # The same rule for the acceptance run, and the leak it closes is the one this flow would otherwise
   # have twice: e2e green on commit X, a review fix lands as Y, Y merges on X's evidence. Note what
@@ -52,12 +69,20 @@ ready:
     on_result:
       fresh:
         ready: true
+      # A graph with no acceptance run has no pass to invalidate. Note that genai.e2e and
+      # genai.e2e-author leave together: the acceptance gate reads the manifest the author writes, so
+      # an acceptance run with no author in the graph fails its own gate on an unreadable manifest
+      # rather than arriving here.
+      absent: { ready: true }
       stale:
         ready: false
         reason: "The branch moved after the acceptance run. A pass describes the commit it ran against and no other — run the e2e pass again on the current tip"
+      unread:
+        ready: false
+        reason: "The acceptance run on record never read the commits, so it cannot say which tip it covered. That is a bug in the installed step definitions — genai.e2e has to declare `commits` as its own input"
       unknown:
         ready: false
-        reason: "The commits the acceptance run covered cannot be measured — confirm the sprint branch still exists"
+        reason: "The acceptance step is in this graph but has not run yet. Let genai.e2e be dispatched and gated first"
 
   - rule_id: clean-tree
     checker:
@@ -186,7 +211,7 @@ gates:
         message: "The merged tree does not build, and each branch did. Fix it here on the integration branch — what make printed before it stopped is in the gate facts"
       target_missing:
         verdict: reject
-        message: "Nothing on the integration branch proves the code compiles — no `genai-build` target, or one still holding its placeholder recipe. If the sprint branch built, the merge lost it. Setup problem — stop and hand it to a person"
+        message: "Nothing on the integration branch proves the code compiles — no `genai-build` target, or one still holding its placeholder recipe, or one that runs no command. If the sprint branch built, the merge lost it. Setup problem — stop and hand it to a person"
       failed:
         verdict: reject
         message: "The gate evaluator exited non-zero. That is a bug in the installed step definitions, not in the merged code"

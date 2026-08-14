@@ -1,6 +1,6 @@
 id: genai.write-arch-docs
 kind: produce
-description: keep it - genai.arch-decision has nothing to put in front of a person without it, and dropping both silently stalls genai.implement
+description: optional, and only together with genai.arch-decision - drop both when the round settles no structure a person should rule on. Nothing enforces the pairing - kept alone it writes a document no step in the graph puts in front of anyone
 
 executor:
   protocol: subagent

@@ -1,6 +1,6 @@
 id: genai.code-review
 kind: judge
-description: keep in every graph - genai.merge premises on this verdict and silently never starts without it
+description: optional - drop it and no reading independent of whoever wrote the code stands between the branch and the merge. One measured round passed all four of its own gates with a requirement unimplemented, and this is the step that caught it
 
 executor:
   protocol: subagent

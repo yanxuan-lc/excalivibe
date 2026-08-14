@@ -87,7 +87,9 @@ is the specific mistake this paragraph exists to prevent.
   `http://localhost:4321/?doc=…` from the output. Before delivering, load that URL for real — open
   it, or `curl --fail --silent --show-error '<URL>' >/dev/null` — and confirm it is not a 4xx/5xx.
   Stop it yourself by sending Ctrl-C through that session.
-- Common flags — `--port <n>` (default 4321), `--host`, `--no-open`, `--lang zh-CN|en-US`.
+- Common flags — `--port <n>` (**where it starts looking**, 4321 by default; it takes the next free
+  port when that one is busy, so what it printed is the only place the real port is), `--host`,
+  `--no-open`, `--lang zh-CN|en-US`.
 - **When a global install is not permitted**, fall back to `npx -p mdx-viewer mdxv doc.mdx`.
 - **Multi-document trees** — rooted at a directory, relative links in the body that point at local
   `.md`/`.mdx` files or directories are routed automatically, so plain markdown links wire up the

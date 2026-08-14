@@ -83,12 +83,15 @@ the cheat sheet below or against `mdxv demo`. Reading "the check passed" as "the
 is the specific mistake this paragraph exists to prevent.
 
 - **The preview is a long-lived process.** Start it however this host runs background work, keeping
-  a handle you can later use to stop it — an orphaned process holding port 4321 is a problem the
-  user inherits. Take the `http://localhost:4321/?doc=…` it prints, and before delivering, load it
+  a handle you can later use to stop it — an orphaned preview holding a port is a problem the
+  user inherits, and the handle is what makes stopping it exact, since the port is not reliably the
+  one you asked for. Take the `http://localhost:4321/?doc=…` it prints, and before delivering, load it
   for real (`curl --fail --silent --show-error '<URL>' >/dev/null`) to confirm it is not a 4xx/5xx.
   If the host gives you no way to manage a background process, run it in the foreground and tell
   the user they will need to stop it with Ctrl-C when done.
-- Common flags — `--port <n>` (default 4321), `--host`, `--no-open`, `--lang zh-CN|en-US`.
+- Common flags — `--port <n>` (**where it starts looking**, 4321 by default; it takes the next free
+  port when that one is busy, so what it printed is the only place the real port is), `--host`,
+  `--no-open`, `--lang zh-CN|en-US`.
 - **When a global install is not permitted**, fall back to `npx -p mdx-viewer mdxv doc.mdx`.
 - **Multi-document trees** — rooted at a directory, relative links in the body that point at local
   `.md`/`.mdx` files or directories are routed automatically, so plain markdown links wire up the
