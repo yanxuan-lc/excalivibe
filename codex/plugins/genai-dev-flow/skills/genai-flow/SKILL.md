@@ -215,12 +215,17 @@ directory and returns `instruction_path` beside `draft_path`; read that file rat
 survives the working tree moving on. It disappears only if `.flow/runs/` is cleaned, which costs a
 record and no state — the event log is the scheduling truth.
 
-**`fsx preview` is still not a way to read a dispatched instruction.** Preview renders the **next**
-attempt, so after `genai.spec#1` has been dispatched once it renders attempt 2 — and its `draft_path`
-points into attempt 2's directory. Relay that and the executor writes its report where nothing will
-look for it; `fsx report submit` then says `report_missing` about attempt 1, and the error names a path
-that gives no hint the fault was in the relaying. Preview answers "what would this attempt be told if
-dispatched now"; `instruction_path` answers "what was it told".
+**Read a dispatched instruction from `instruction_path`, and pick an interrupted one back up from
+`preview`'s `idle` block.** Preview renders the **next** attempt, so after `genai.spec#1` has been
+dispatched once it renders attempt 2 and its `draft_path` points into attempt 2's directory — relay
+that and the executor writes its report where nothing will look for it, and `fsx report submit` then
+says `report_missing` about attempt 1, naming a path that gives no hint the fault was in the relaying.
+Preview says which attempt is still open rather than leaving it to be worked out: while one is
+unjudged it answers `dispatchable: false` and
+`idle: { code: "dispatched", open_attempt: 1, instruction: <path> }`. **`idle.instruction` is the file
+to hand over** — it is what the attempt the gate will read was actually told. Preview answers "what
+would the next attempt be told"; `instruction_path` and `idle.instruction` answer "what was this one
+told".
 
 **Every command names its graph.** There is no current graph and no default, so a command
 without `-g` fails with `graph_ref_required` rather than acting on the wrong round. Take the
@@ -261,6 +266,12 @@ between changes, the third decides a version.
 
 **Between attempts, only the rejection message travels.** Say what failed and where, not that
 it failed.
+
+**Take a message from `--json`, which carries it whole.** The human-readable rendering abbreviates
+anything past one line or 120 characters and says it did — that is what keeps a several-thousand
+character ruling from burying `fsx next --check-ready`. The `--json` field, the edge's `message` and
+the rendered instruction the next executor receives are all full text, so an abbreviation reaches
+nobody who has to act on it.
 
 ## When a step is rejected
 

@@ -68,7 +68,7 @@ of its labels choose between two **destinations** rather than two messages.
 `skills/genai-guideline/SKILL.md` carries the protocol between the first two in full, and it is the
 file to change when that protocol changes — it is what a person reads before wiring a project up.
 
-## Two habits specific to the step definitions
+## Habits specific to the step definitions
 
 **A record a gate parses is one fenced json block, and the contract lives in the brief.** Two records
 work this way — `e2e-manifest.md` and `e2e-report.md` — with prose around the block for whoever reads
@@ -84,6 +84,24 @@ definitions depend on this: `nodes/genai.spec/node.yaml` uses `first_attempt` be
 and `nodes/genai.archive/node.yaml` uses `upstream_reran` because it has an upstream that can re-run.
 Leave `when` off wherever the rule survives its own step — that is every rule guarding an
 irreversible act, and those are the ones worth asking every time.
+
+**Take a checker's label set from `fsx schema`.** `on_result` has to enumerate every label its
+checker can produce, and too few or too many is an error at load time, so the label set is an input
+you need *before* writing the block: `fsx schema --json | jq .checkers.<type>`. Two checkers answer
+there that their labels come from the declaration instead — `command`, whose success labels are
+`label_from`'s `values` with `failed` and `unexecutable` required either way, and `report`, whose
+labels are the declared `values` or, for `verdict` and `outcome`, the framework's own domain when
+`values` is omitted. Omitting is the better move: a hand-copied enumeration is one more place to
+mistype. The same content ships as `contracts.md` with the flow-scratch skill.
+
+**A premise that refuses `unread` obliges the step it reads to declare that input.** Four rules
+depend on this — `genai.implement` premises `decision` against `changes` and against `specs`,
+`genai.merge` premises `reviews` and `e2e-report` against `commits` — so `genai.arch-decision`
+declares `changes` and `specs`, `genai.code-review` declares `commits`, and `genai.e2e` declares
+`commits`, each purely so the rule downstream can be measured. `fsx check` reports a broken pairing
+as `node_premise_unsatisfiable` and gives both fixes; run it after touching either end. (A rule
+routing `unread` to ready is a definition the checker leaves alone — the author has taken that
+outcome.)
 
 **When you change a node, change its comment with it.** There is no separate design document for this
 plugin: the reasoning lives in the node comments, in the evaluators, and in the root `CONTEXT.md`.

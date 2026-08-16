@@ -40,15 +40,28 @@ scrolling back. Do not summarise the recommendation as though it were settled.
 ## Record the ruling
 
 ```bash
-fsx human <instance> -g <graph> --decision approve --by <who> --note "D1=A, D2=B"
+fsx human <instance> -g <graph> --decision approve --by <who> --note "D1=A, D2=B" --unattended
 ```
 
 `--note` is where the answers go, item by item. A bare `approve` with no note records that someone
 clicked past it, which is the outcome this step exists to prevent.
 
+`--by` names the person who ruled, and `--unattended` says who is typing: the reader answered in the
+conversation and this command is a program writing their ruling down. `fsx` asks for the flag
+whenever stdin is not a terminal, which a shell driven from an agent never is — without it the
+command exits 1 and records nothing. A person running it in their own terminal leaves it off.
+
 Rejecting or approving with conditions both send the round back to the spec. That is the cheap
 direction: a condition on the architecture is a change to the architecture, and making it now costs
 one edit to a document nobody has built against yet.
+
+**A ruling belongs to the attempt it was given on, and stands.** A second `fsx human` against the
+same attempt exits 1 with `human_decision_already_judged` and names who ruled and how — that holds
+for a `reject` as much as an `approve`, since both are decided. When a ruling has to change — the
+reader thought again, or the note recorded the wrong answer — the round gets a fresh attempt for it:
+`fsx dispatch <instance> -g <graph>`, put the documents in front of them again, then `fsx human`
+against that attempt. Both rulings stay in the record in the order they were made, which is the
+reason it works this way.
 
 ## What comes back does not get edited here
 
