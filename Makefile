@@ -71,19 +71,49 @@ verify-no-nul: ## no source carries a raw NUL byte, which would hide the whole f
 # Not part of `check`: it costs a model call, and a description is retuned deliberately, not on
 # every commit. Two phases because the whole corpus then costs **one** call rather than one per
 # query — and because the answer has to come from a context that has not just read the source.
+#
+# Two axes, and they are different questions:
+#
+#   END=claude|codex|common   whose description text is scored (a skill may tune one per end)
+#   RUNNER=claude|codex       which host answers the prompt
+#
+# RUNNER defaults to END because what ships is a text and a host together — scoring the codex
+# descriptions with Claude as the router measures a pairing nobody runs. `common` has no host of
+# its own, so it falls back to claude. Setting the two apart is the deliberate way to separate the
+# causes: while the descriptions are identical across ends, END=claude RUNNER=codex against
+# END=claude RUNNER=claude isolates the model as the only variable.
+EVAL_END    := $(if $(END),$(END),claude)
+EVAL_RUNNER := $(if $(RUNNER),$(RUNNER),$(if $(filter codex,$(EVAL_END)),codex,claude))
+
+# The one line that differs per host. Both read the prompt on stdin, leave the answer in
+# answer.json and their own chatter in run.log, so everything around them is shared and a third
+# host is one more variable here rather than a branch in the recipe.
+#
+# codex: `-` is what makes it read the prompt from stdin the way `claude -p` does, and
+# --output-last-message is what keeps the answer clean — its stdout is the whole session, not the
+# reply. --ephemeral and --ignore-user-config apply this section's own "fresh context" rule to that
+# host: nothing persisted, and none of the operator's config or profile in the way. read-only
+# sandbox because routing is a question and not work — and because an approval prompt inside a
+# piped run has nobody to answer it.
+EVAL_CMD_claude := claude -p --model opus < prompt.md > answer.json 2> run.log
+EVAL_CMD_codex  := codex exec - --sandbox read-only --skip-git-repo-check --ephemeral \
+                     --ignore-user-config --color never -o answer.json < prompt.md > run.log 2>&1
 
 eval-build: ## write the router prompt for every skill description + every trigger fixture
-	@$(NODE) scripts/eval-triggers.ts build $(if $(END),--end=$(END),)
+	@$(NODE) scripts/eval-triggers.ts build --end=$(EVAL_END)
 
 eval-score: ## score a router answer: accuracy overall, by language, and every miss
 	@[ -n "$(ANSWER)" ] || { $(UI) fail "eval-score needs ANSWER"; $(UI) next "make eval-score ANSWER=<answer.json>"; exit 2; }
-	@$(NODE) scripts/eval-triggers.ts score $(ANSWER) $(if $(END),--end=$(END),)
+	@$(NODE) scripts/eval-triggers.ts score $(ANSWER) --end=$(EVAL_END) $(if $(RUNNER),--runner=$(RUNNER),)
 
-eval: ## the whole loop: build → answer in a fresh Claude → score. One model call.
-	@$(NODE) scripts/eval-triggers.ts build $(if $(END),--end=$(END),) > $(EVAL_TMP)/prompt.md
-	@$(UI) detail "prompt $(EVAL_TMP)/prompt.md — answering in a fresh context, this may take a minute"
-	@cd $(EVAL_TMP) && claude -p --model opus < prompt.md > answer.json
-	@$(NODE) scripts/eval-triggers.ts score $(EVAL_TMP)/answer.json $(if $(END),--end=$(END),)
+eval: ## the whole loop: build → answer in a fresh host → score. One model call. RUNNER=claude|codex
+	@[ -n "$(EVAL_CMD_$(EVAL_RUNNER))" ] || { $(UI) fail "unknown RUNNER \"$(EVAL_RUNNER)\""; $(UI) next "RUNNER=<claude|codex>"; exit 2; }
+	@$(NODE) scripts/eval-triggers.ts build --end=$(EVAL_END) > $(EVAL_TMP)/prompt.md
+	@$(UI) detail "prompt $(EVAL_TMP)/prompt.md — answering in a fresh $(EVAL_RUNNER), this may take a minute"
+	@cd $(EVAL_TMP) && $(EVAL_CMD_$(EVAL_RUNNER))
+	@[ -s $(EVAL_TMP)/answer.json ] || { $(UI) fail "$(EVAL_RUNNER) produced no answer"; $(UI) next "read $(EVAL_TMP)/run.log"; exit 2; }
+	@$(UI) detail "run record $(EVAL_TMP)/run.log — it names the model that actually answered"
+	@$(NODE) scripts/eval-triggers.ts score $(EVAL_TMP)/answer.json --end=$(EVAL_END) --runner=$(EVAL_RUNNER)
 
 # ───────────────────────────── release ─────────────────────────────
 # bump on dev → MR into main → pull main → build → publish.

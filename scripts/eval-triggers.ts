@@ -18,7 +18,19 @@
  *
  *   node scripts/eval-triggers.ts build > /tmp/prompt.md
  *   claude -p --model opus < /tmp/prompt.md > /tmp/answer.json     # or any fresh context
- *   node scripts/eval-triggers.ts score /tmp/answer.json
+ *   node scripts/eval-triggers.ts score /tmp/answer.json --runner=claude
+ *
+ * Any host can answer it, and which one did is part of the result rather than a detail of how it
+ * was produced: the same descriptions routed by two hosts are two different numbers, and nothing in
+ * the answer file says which. `--runner` is how that gets recorded — `make eval RUNNER=codex` fills
+ * it in, and a run scored without it is labelled unrecorded instead of assumed. For codex the
+ * equivalent of the line above is:
+ *
+ *   codex exec - --sandbox read-only --ephemeral --ignore-user-config \
+ *     -o /tmp/answer.json < /tmp/prompt.md
+ *
+ * `-o` matters there: codex writes the whole session to stdout, so redirecting it captures the run
+ * and not the reply.
  *
  * **Run the prompt in a fresh context.** Answering it inside the session that just edited the
  * descriptions measures that session's memory, not the descriptions — and it scores far too well
@@ -65,6 +77,23 @@ if (!ENDS.includes(endArg as End)) {
   process.exit(2);
 }
 const END = endArg as End;
+
+/**
+ * Which host answered. It is not derivable from the answer file, and a score without it cannot be
+ * compared with another one — the same descriptions routed by two hosts are two different numbers.
+ * Optional rather than required, because `score` is meant to be runnable by hand on an answer that
+ * came from anywhere; an unlabelled run therefore says so out loud instead of borrowing a default
+ * and reading as a claim about a host that may never have seen the prompt.
+ */
+const RUNNERS = ['claude', 'codex'] as const;
+type Runner = (typeof RUNNERS)[number];
+const runnerArg = argv.find((a) => a.startsWith('--runner='))?.slice('--runner='.length);
+if (runnerArg !== undefined && !RUNNERS.includes(runnerArg as Runner)) {
+  ui.result(false, `unknown runner "${runnerArg}"`);
+  ui.next(`--runner=<${RUNNERS.join('|')}> — which host answered the prompt`);
+  process.exit(2);
+}
+const RUNNER = runnerArg as Runner | undefined;
 
 interface Query {
   id: string;
@@ -197,7 +226,7 @@ if (cmd === 'score') {
       b.length ? `${(rate(b) * 100).toFixed(1)}%` : '—'
     }`;
 
-  ui.heading(`trigger accuracy — ${END} descriptions`);
+  ui.heading(`trigger accuracy — ${END} descriptions, answered by ${RUNNER ?? '(unrecorded host)'}`);
   for (const k of ['all', 'zh', 'en'] as const) ui.detail(line(k, buckets[k]));
 
   // An id the answer simply omits cannot be scored either way, so it stays out of the buckets —
@@ -228,5 +257,8 @@ if (cmd === 'score') {
 }
 
 ui.result(false, `unknown command ${cmd ?? '(none)'}`);
-ui.next('node scripts/eval-triggers.ts build [--end=claude|codex|common]', 'node scripts/eval-triggers.ts score <answer.json>');
+ui.next(
+  'node scripts/eval-triggers.ts build [--end=claude|codex|common]',
+  'node scripts/eval-triggers.ts score <answer.json> [--end=…] [--runner=claude|codex]',
+);
 process.exit(2);
