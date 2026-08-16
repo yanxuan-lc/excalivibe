@@ -133,6 +133,27 @@ fixtures live in seven skills' `evals/` directories (`make eval` spends a real m
 a batch, run one case and read its full event stream; audit run by run rather than trusting the
 summary line.
 
+## Positive form
+
+**Every instruction a skill gives says what to do.** The description rule above — write the boundary
+as what it is — is this rule applied to the routing surface, and it holds for the body just as much:
+`read the machine-readable reporter` rather than "do not scrape the printed output", `serve the
+reader a directory holding this round's documents and nothing else` rather than "do not point the
+preview at the change directory". A prohibition spends its most-read words on the behaviour you do
+not want and leaves the reader to derive the one you do; it also puts the unwanted scenario in front
+of a model that is deciding what to do, and on descriptions an exclusion naming a scenario went on
+triggering there in every case measured.
+
+**The failure that motivated the rule stays** — as the reason, after the instruction, where it says
+what the wrong move costs rather than standing in for the ask.
+
+**An exempted prohibition carries its reason in the text.** Where the prohibition *is* the content —
+a hard boundary whose consequence is mechanical and irreversible, such as `a round may not widen the
+gate it is measured by` or `never shell inside a node.yaml` — the negative carries the force and
+keeping it is right, and the cost that makes it worth keeping goes on the page beside it. A
+prohibition a reader has to take on authority is the one shape this rule exists to keep out, so an
+exemption is exactly one whose cost you can state. Nothing checks any of this: it is a habit.
+
 ## Layout
 
 ```
