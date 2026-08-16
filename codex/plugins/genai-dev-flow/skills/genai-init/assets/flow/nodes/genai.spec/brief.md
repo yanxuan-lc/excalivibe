@@ -17,9 +17,18 @@ Read every selected brief before designing any of them. Two items that touch the
 capability may belong in one spec; deciding that is impossible one item at a time, and it is
 the only reason this step handles the whole batch at once.
 
-For each change produce `openspec/changes/<change-id>/proposal.md` and the spec deltas under
-`specs/`. **Record in the change which backlog items it came from** — that direction is
+For each change produce `openspec/changes/<change-id>/proposal.md`, `tasks.md`, and the spec deltas
+under `specs/`. **Record in the change which backlog items it came from** — that direction is
 authoritative; the briefs do not maintain a reverse pointer.
+
+## The task list is written here and nowhere else
+
+`tasks.md` is one unticked box per piece of work the change needs. Three later steps premise it and
+none of them can produce it: the implementer ticks each box as that piece lands and is forbidden to
+write anything else under `openspec/**`, the merge leaves the ticked file in the working tree, and
+the archive counts the boxes still open before folding. A change that arrives without one carries
+all three past a file that is not there, and the archived record then says nothing about what was
+actually done. A gate here checks it landed.
 
 ## What the project owns is not yours to claim
 

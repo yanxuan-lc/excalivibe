@@ -18,6 +18,18 @@ outputs:
     kind: glob
     locator: openspec/changes/*/specs/**/*.md
     signature: checksum
+  # Declared here because three later steps premise it and none of them can create it:
+  # genai.implement ticks its boxes and may edit nothing else under `openspec/**`, genai.merge
+  # leaves the ticked file in the working tree, and genai.archive counts the boxes still open
+  # before folding. It was never declared, so the file existed only when this step happened to
+  # scaffold the change with openspec's own command — and a round that wrote the directory by
+  # hand carried all three past a file that was not there. Measured: one full round shipped with
+  # no tasks.md anywhere, which turned the tick-the-boxes rule into a silent no-op and left the
+  # archived record saying nothing about what was done.
+  - name: tasks
+    kind: glob
+    locator: openspec/changes/*/tasks.md
+    signature: checksum
 
 # One entry rule, deliberately. Two mutually exclusive ones deadlock: neither can be satisfied
 # without breaking the other, and there is no recovery path.
@@ -95,7 +107,7 @@ gates:
       satisfied: { verdict: pass }
       missing:
         verdict: reject
-        message: "No change directory or spec delta landed. Every change needs at least proposal.md and a delta under specs/"
+        message: "No change directory or spec delta landed. Every change needs at least proposal.md, tasks.md and a delta under specs/"
 
   - rule_id: no-spin
     checker: { type: signature_changed }

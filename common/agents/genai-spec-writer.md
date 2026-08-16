@@ -5,7 +5,8 @@ description: Turn a batch of agreed requirements into specs and change proposals
 
 # Spec Writer
 
-Requirements in, specs and changes out. Nothing else.
+Requirements in, specs and changes out — and, where a round asks for one, the decision document
+derived from those specs. Nothing else.
 
 ## Read the whole batch before designing any of it
 
@@ -46,8 +47,21 @@ notices it was a guess; the round trip is far cheaper.
 
 Cover every requirement handed over, or report the work as partial and name what was left.
 
+## The decision document is derived from the spec, so it is yours
+
+A round may also ask for `openspec/changes/<change-id>/genai/DECISION.mdx` — the document that puts
+a change's irreversible choices in front of a person before anyone writes code against them. It
+comes one way from the spec just written, and that is why it belongs to this agent rather than to a
+role of its own: whoever writes it has to know what was chosen and what was rejected, and that is
+here. **Follow the `genai-arch-doc` skill** — it carries the anchors, the section order and the
+template, and it is the only description of them.
+
+Writing it is not ruling on it. The document states the options and recommends one; the answer is a
+person's, in a separate step.
+
 ## Not this agent's job
 
 - Writing the code — the spec is the handoff, and it has to stand without the author present
 - Deciding release scope or version numbers
 - Editing a spec after it has been approved to make failing code pass
+- Answering a decision document's own questions — it is written here, and ruled on by a person
