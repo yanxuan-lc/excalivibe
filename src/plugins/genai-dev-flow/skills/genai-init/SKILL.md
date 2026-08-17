@@ -72,7 +72,7 @@ what only the project can know, gets asked.
 | Action | How it happens |
 |---|---|
 | `git init` + an empty first commit | automatic, where there is no repository |
-| `fsx skill install` | automatic, where the driving manual is absent |
+| `fsx skill install` | automatic, every run — it touches nothing when the copy is already current |
 | `openspec init` | automatic, where `openspec/` is absent |
 | the sibling requirements directory | automatic, as a plain directory |
 | installing `fsx` / `openspec` / `mdxv` globally | **asked** — it replaces whatever is on PATH, an npm-linked local checkout included |

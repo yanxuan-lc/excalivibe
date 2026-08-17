@@ -301,6 +301,12 @@ rule returned:
   condition true in the world, and dispatch once. Retrying by itself never helps: an applicable
   condition is recomputed from the world every single time, and each recomputation costs.
 
+**One `details.label` value comes from no rule: `__contract_violation__`.** The checker reached no
+result, so no branch matched and **there is no `reason` to read** — a driver hunting for one falls
+through into retrying, and retrying cannot help: this is a complaint about the graph, not about the
+work. Reaching it means an edge was edited or a step dropped, and the fix is in
+[references/graph-assembly.md](references/graph-assembly.md).
+
 `details.patience` carries `remaining` and `consumed_now` on the refusal itself, and `fsx status`
 keeps the last one per instance under `last_entry` — including `refused_visits`, the number of
 consecutive refusals. One refusal is ordinary. The same rule refusing five times in a row is a graph
@@ -376,13 +382,15 @@ planning assumption, not a rule. When `fsx next` marks a node `last_chance`, one
 Patience ran out. **This is a handoff, not a failure**: a path that keeps not working is for a
 person to decide about. Bring them the rejection history and the options.
 
-**Read `consumed_now` on the rejection that suspended it before you offer those options.** Equal to
-the whole remaining budget means the engine stopped because a repeat was pointless — a stalled
-attempt, a cache hit, or a delegation that delivered nothing — and more patience buys nothing until
-something about the attempt changes. Drained one at a time means the work really was moving and
-simply did not arrive; more budget is a reasonable ask. Say which of the two it was. (The same
-distinction is in the gate diagnostics as `no_progress` / `cache_hit`; `consumed_now` is the one
-number that does not need them parsed.)
+**Read the diagnostics on that rejection before you offer those options, and branch on `kind`.**
+`no_progress` (a signature that did not move), `cache_hit` (a verdict already ruled on) and
+`transfer_landed_nowhere` (a delegation every target could already have acted on) each mean a repeat
+was pointless, and more patience buys nothing until something about the attempt changes. None of the
+three, and the work really was moving and simply did not arrive — more budget is a reasonable ask.
+Say which, in the diagnostic's own terms: the prose beside `kind` is written for a person and is
+translated, and `kind` is the part that does not move. `consumed_now` corroborates — the whole
+remaining budget at once in the first case, one point in the second — but reading it alone asks you
+to remember the balance from before the charge, and that arithmetic gets the last point wrong.
 
 **A suspension at the door reads differently from one at the gate**, and `fsx status` separates
 them: an instance held up by its entry rules carries `last_entry` with the rule, the verdict and

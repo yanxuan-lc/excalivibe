@@ -18,8 +18,9 @@
 //
 // Four things happen on their own, with no flag and no question, because they are confined to this
 // project and a project being set up wants all four: `git init` and an empty first commit where
-// there is no repository, `fsx skill install` where the driving manual is absent, and `openspec init`
-// where `openspec/` is. Only the three global binaries above are asked about, because installing one
+// there is no repository, `fsx skill install` on every run (it touches nothing when the copy already
+// matches its source, and a copy from an older fsx teaches definitions that no longer load), and
+// `openspec init` where `openspec/` is absent. Only the three global binaries above are asked about, because installing one
 // reaches outside this directory — it replaces whatever was on PATH, an npm-linked local checkout
 // included, and says nothing about having done so.
 //
@@ -268,18 +269,19 @@ else {
 
 head("this project's own tooling");
 
-const SKILL_PATHS = {
-  claude: ".claude/skills/flow-scratch/SKILL.md",
-  codex: ".codex/skills/flow-scratch.md",
-  common: "docs/flow-scratch-skill.md",
-};
-if (existsSync(SKILL_PATHS[target])) skip(`the flow-scratch skill is already installed for ${target}`);
+// Run it every time rather than skipping on the file being there. `fsx skill install` compares
+// against its own source and touches nothing when the copy is current, so the only thing a presence
+// check bought was leaving a copy from an older fsx in place — and a stale copy is worse than none.
+// The 0.3.x body taught `ready: true`, which no longer loads, and taught that an entry refusal costs
+// nothing, which is how an agent reads a stale manual and confidently re-dispatches a step to death.
+const skillInstall = run("fsx", ["skill", "install", "--target", TARGETS[target].skill], { allowFail: true });
+if (skillInstall.ok) did(`the flow-scratch skill is current for ${target}`);
 else {
-  // A refusal here is information: it means someone edited their copy, and replacing it is their
-  // call. Report it and carry on rather than reaching for --force.
-  const r = run("fsx", ["skill", "install", "--target", TARGETS[target].skill], { allowFail: true });
-  if (r.ok) did(`flow-scratch skill installed for ${target}`);
-  else { warn(`fsx skill install refused — someone may have edited their copy. Show them the diff before reaching for --force:\n      ${r.out.split("\n")[0]}`); broken += 1; }
+  // Two causes reach this line and only the operator can tell them apart: someone edited their copy,
+  // or the copy predates this fsx and its body is the one being replaced. Either way overwriting is
+  // their call, not this script's — so report which files and carry on rather than reaching for --force.
+  warn(`fsx skill install refused. Either the copy was edited, or it came from an older fsx whose body no longer loads — both are answered by reading the diff and then, if the edits can go, \`fsx skill install --target ${TARGETS[target].skill} --force\`:\n      ${skillInstall.out.split("\n")[0]}`);
+  broken += 1;
 }
 
 if (isDir("openspec")) skip("openspec/ is already initialised");

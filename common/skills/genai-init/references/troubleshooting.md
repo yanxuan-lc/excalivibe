@@ -14,8 +14,12 @@ than left to be re-derived from the code.
   reports what that printed; treat a missing version line as a failed install.
 - **`openspec init` is interactive without `--tools`** and will sit waiting for an answer nobody is
   there to give. `--no-animation` is for the same reason.
-- **`fsx skill install` refuses to overwrite a copy that has been edited.** That refusal is
-  information: someone customised it. Do not reach for `--force` without showing them the diff.
+- **`fsx skill install` refuses to overwrite a copy that differs from its source**, and two very
+  different things arrive there: someone customised their copy, or it came from an older `fsx` and is
+  now the stale half. Only the project's owner can tell them apart, so do not reach for `--force`
+  without showing them the diff. **A stale copy is worse than an absent one** — it describes an engine
+  that is gone, and an agent following it writes definitions that will not load. That is why the
+  install runs every time: a presence check reads a stale manual as a satisfied one.
 - **`openspec init` writes more than `openspec/`.** Given `--tools` it also drops command and skill
   files wherever this host keeps them. `apply.mjs` prints everything new in the working tree for
   exactly this reason — those files are the project's, not this flow's, so the user decides what to

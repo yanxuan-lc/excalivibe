@@ -33,6 +33,13 @@ re-enter, are in the skill body: those come up every round, whether or not anyon
   message.
 - **Never draw a `pass` edge backwards.** Pass edges are dependencies; one pointing back turns the
   downstream node into a root and inverts the graph.
+- **A step premised on an upstream conclusion needs the edge that orders it after the producer.**
+  `genai.merge` compares the review and the acceptance run against what `genai.implement` produced;
+  `genai.implement` compares the decision against what `genai.spec` produced. Reachable ahead of its
+  producer, the premise has nothing to measure and the refusal comes back as
+  `label: __contract_violation__` with no `reason` — a shape complaint wearing the clothes of a
+  verdict. Dropping a step therefore means checking what was premised on it, not only what was
+  routed to it.
 - **`reject` self-rework needs no edge.** A redundant self-edge is harmless; a missing cross-node
   reject edge is not.
 
