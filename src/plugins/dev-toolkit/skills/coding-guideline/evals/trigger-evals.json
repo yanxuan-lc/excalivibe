@@ -46,5 +46,13 @@
  {
   "query": "excel 里 vlookup 匹配不到值显示 N/A 怎么处理？",
   "should_trigger": false
+ },
+ {
+  "query": "该用哪个日志库？日志要打成什么样、写到哪里",
+  "should_trigger": true
+ },
+ {
+  "query": "把这批日志接到 OpenObserve，配一下采集和索引",
+  "should_trigger": false
  }
 ]
