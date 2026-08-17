@@ -29,12 +29,19 @@ Three rules carry the weight:
   sequence; the id carries identity, and an id that shifts is not one. A reused id is worse — it
   makes two different assertions read as the same one across the manifest, the test title and the
   report.
-- **Unique within the change, not across the round.** Every record keyed on an id lives inside one
-  change directory, so two changes both using `S1` cannot confuse anything. Demanding more would
-  let two independent changes break each other.
+- **Unique within the change, not across the round.** The manifest and the report are keyed on these
+  ids and both live inside one change directory, so they are archived with it and two changes both
+  using `S1` cannot confuse either. Demanding more would let two independent changes break each
+  other.
 - **Matched verbatim, everywhere.** `s1`, `S01` and `S-1` are three different ids, and none of them
-  is `S1`. The id appears in the spec header, in the test's own title, and as a key in two records;
-  a re-cased or re-punctuated copy reads as an id nobody declared.
+  is `S1`. The id appears in the spec header, as a key in two records, and inside the tag on a test's
+  title; a re-cased or re-punctuated copy reads as an id nobody declared.
+- **In a test title the id is qualified, because the suite outlives the change.** The rule above
+  holds for everything archived alongside the change and stops at the repository's test directory,
+  which keeps its files after the change is folded away. So a test carries
+  `@<change-id>/<scenario-id>` rather than a bare id, and numbering still restarts at `S1` in the
+  next change. `genai.e2e-author`'s brief has the shape and the reason it goes at the end of the
+  title rather than the front.
 
 Semantic ids (`S-CHK-ACCEPT`) were considered and rejected: the id would restate the title, and two
 places describing the same thing drift. The title says what the scenario is. The id says which one
@@ -71,6 +78,10 @@ and the new one as added.
 Retitle deliberately, then, and keep the id and its separator untouched while doing it. Putting the
 id at the front is what keeps the flow's own records pointing at the same scenario across a retitle.
 
+The requirement header one level up has the same property and a different remedy, because openspec
+gives that one an operation of its own: see `RENAMED` under Deltas. Nothing equivalent exists for a
+scenario, which is why the id carries scenario identity here instead.
+
 ## What to ask openspec for, and what it cannot tell you
 
 **Drive openspec's own commands; never reimplement one of its rules.** A local copy of a rule drifts
@@ -99,6 +110,33 @@ that cost a round when missed:
 - **Do not restate the parts of the capability that are not changing.** The existing spec is still
   there, and a delta that repeats it makes the next MODIFIED block ambiguous about which copy is
   authoritative.
+
+### Changing a requirement's title goes through RENAMED
+
+**A requirement whose header changes is a `## RENAMED Requirements` entry, never a MODIFIED block
+with the new header written in.** MODIFIED matches the existing requirement by its header, verbatim;
+rewrite that header and it matches nothing.
+
+```markdown
+## RENAMED Requirements
+
+- FROM: `### Requirement: the old title`
+- TO: `### Requirement: the new title`
+```
+
+The two compose, and openspec expects them to: rename in the RENAMED block, change the body in a
+MODIFIED block, and **the MODIFIED block references the NEW header** — openspec applies renames
+before modifications and checks exactly that, so writing the old header in MODIFIED alongside a
+rename is itself an error. A successful archive counts the renames separately from the
+modifications, which is the line to read to confirm both halves landed.
+
+What makes this worth a rule rather than a footnote is where it fails. `openspec validate --strict`
+reports the rewritten-header form as **valid**, so `genai.spec`'s `openspec-valid` gate passes it,
+the design review reads the same clean output and passes it too, and nothing goes wrong until
+`genai.archive` reports `MODIFIED failed for header … - not found` and stops. By then the code is
+written, reviewed, accepted and merged, and a one-line retitle has become a rework that goes back to
+the spec. This is the sharpest instance of the rule above it: openspec's validator is not a
+sufficient condition for anything downstream of it.
 
 ## What this does not do
 

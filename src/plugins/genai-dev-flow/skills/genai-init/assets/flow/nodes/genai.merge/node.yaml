@@ -15,6 +15,13 @@ inputs:
   - name: commits
     from: genai.implement
     required: true
+  # Declared here for the same reason genai.code-review declares it, and both ends are required: a
+  # premise names inputs of the step it is written on, so `against: product` below is unresolvable
+  # without this line, and `of: [reviews]` can only be answered if the review declared it too. This
+  # step does not read it — its own subject is the whole branch, which `commits` already names.
+  - name: product
+    from: genai.implement
+    required: true
 
 outputs:
   - name: merged
@@ -28,7 +35,7 @@ ready:
   #
   # `absent` is ready here for the same reason it is in genai.implement — a round that left the
   # review out has no verdict to keep fresh — but the two are not the same decision, and a project
-  # that wants the reading mandatory flips this one branch to `ready: false` without touching
+  # that wants the reading mandatory flips this one branch to `verdict: reject` without touching
   # anything else. That is the whole point of the label being routed rather than assumed: the
   # framework knows the fact, and each step says what the fact means for it.
   #
@@ -38,23 +45,42 @@ ready:
   # the code has looked at it. That is a legitimate shape for a one-line fix and a bad one for
   # anything else, and the choice is visible where it is made: `fsx graph create` prints one notice
   # per premise that will fall to `absent`.
+  #
+  # **`against: product`, not `against: commits`, and the difference was measured.** A tip signature
+  # says "some commit landed", and this flow lands commits the review's subject does not contain: a
+  # delegation to genai.e2e-author repairs a test and commits it, the doc writer updates a document.
+  # A round reached this step with the product code untouched since the approval, two such commits
+  # against it, and the review invalidated by both. `genai.implement` declares `product` for this
+  # reader alone, and `check.mjs signature-product` says what it covers.
+  #
+  # **`stale` delegates rather than refuses, and that is what makes the loop above terminate.** The
+  # graph carries `merge -> code-review` on `delegate`, narrowed by this `rule_id` — without the
+  # narrowing it would also catch the rule below and pull the acceptance run back by mistake. Sending
+  # the work where it can actually be done costs no patience, and the chain closes itself: the review
+  # re-runs against the current product code, its `pass` edge re-activates this step, and the premise
+  # is fresh. Nobody updates a number anywhere; the framework compares the snapshot it took when it
+  # dispatched the review against what is there now.
+  #
+  # The loop has a fixed point because genai.code-review does not move what it is compared against:
+  # it writes `review.md` and leaves it uncommitted for this step to collect. Read that as the
+  # condition it is — a step that moved its own subject would spin here until the patience ran out.
   - rule_id: review-still-valid
     checker:
       type: upstream_premise
       of: [reviews]
-      against: commits
+      against: product
     on_result:
       fresh:
-        ready: true
-      absent: { ready: true }
+        verdict: pass
+      absent: { verdict: pass }
       stale:
-        ready: false
-        reason: "The branch moved after the review approved it. Get the new commits reviewed first"
+        verdict: delegate
+        message: "The product code moved after the review approved it. Review the current tip — what you approved before is still on record, and this is about what changed since"
       unread:
-        ready: false
-        reason: "The review on record never read the commits, so it cannot say which tip it approved. That is a bug in the installed step definitions — genai.code-review has to declare `commits` as its own input"
+        verdict: reject
+        reason: "The review on record never read the product code, so it cannot say which version it approved. That is a bug in the installed step definitions — genai.code-review has to declare `product` as its own input"
       unknown:
-        ready: false
+        verdict: reject
         reason: "The review step is in this graph but has not run yet. Let genai.code-review be dispatched and gated first"
 
   # The same rule for the acceptance run, and the leak it closes is the one this flow would otherwise
@@ -62,6 +88,16 @@ ready:
   # is NOT here — no commit written into the report and compared by hand. The framework already
   # measures both sides, so asking an executor to stamp its own artifact would only add a field it
   # could get wrong.
+  #
+  # **`against: commits` here, deliberately, where the rule above narrowed to `product`.** An
+  # acceptance run executes the test code as well as the product, so a repaired test is exactly the
+  # kind of change that makes a green run stop describing what would happen now. Narrowing this one
+  # the same way would keep a pass that no longer covers the suite that produced it.
+  #
+  # `stale` delegates for the same reason it does above, over the graph's `merge -> e2e` edge, and
+  # that edge needs this `rule_id` too — two rules on one node both returning `delegate` to different
+  # destinations is the case `fsx graph create` reports as `graph_transfer_ambiguous`. The fixed
+  # point holds here as well: genai.e2e writes `e2e-report.md` and leaves it uncommitted.
   - rule_id: e2e-still-valid
     checker:
       type: upstream_premise
@@ -69,20 +105,20 @@ ready:
       against: commits
     on_result:
       fresh:
-        ready: true
+        verdict: pass
       # A graph with no acceptance run has no pass to invalidate. Note that genai.e2e and
       # genai.e2e-author leave together: the acceptance gate reads the manifest the author writes, so
       # an acceptance run with no author in the graph fails its own gate on an unreadable manifest
       # rather than arriving here.
-      absent: { ready: true }
+      absent: { verdict: pass }
       stale:
-        ready: false
-        reason: "The branch moved after the acceptance run. A pass describes the commit it ran against and no other — run the e2e pass again on the current tip"
+        verdict: delegate
+        message: "The branch moved after the acceptance run. A pass describes the commit it ran against and no other — run the e2e pass again on the current tip"
       unread:
-        ready: false
+        verdict: reject
         reason: "The acceptance run on record never read the commits, so it cannot say which tip it covered. That is a bug in the installed step definitions — genai.e2e has to declare `commits` as its own input"
       unknown:
-        ready: false
+        verdict: reject
         reason: "The acceptance step is in this graph but has not run yet. Let genai.e2e be dispatched and gated first"
 
   - rule_id: clean-tree
@@ -92,18 +128,18 @@ ready:
       label_from: result
       values: [clean, dirty, unreadable]
     on_result:
-      clean: { ready: true }
+      clean: { verdict: pass }
       dirty:
-        ready: false
+        verdict: reject
         reason: "The working tree has uncommitted changes to tracked files. Commit or clean them before merging"
       unreadable:
-        ready: false
+        verdict: reject
         reason: "git could not run — confirm this is a repository"
       failed:
-        ready: false
+        verdict: reject
         reason: "The check itself exited non-zero. That is a bug in the installed step definitions"
       unexecutable:
-        ready: false
+        verdict: reject
         reason: "The check could not run at all. Re-install with genai-init, and confirm node is on PATH"
 
 gates:

@@ -10,8 +10,13 @@ agent-driven or waived. The gate reads the json block and nothing else.
 
 Buckets, one per scenario, and every scenario in the change appears exactly once:
 
-  mapped        a test case covers it. Needs `test` (the file), `title` (the test's own title,
-                which must contain the scenario id) and `db_assert`.
+  mapped        a test case covers it. Needs `test` (the file), `title` and `db_assert`.
+
+                `title` is the test's own title, copied rather than retyped, and it must carry the
+                tag `@<change-id>/<scenario-id>` — the change id included, because scenario numbers
+                restart in every change while the suite outlives all of them. The gate opens the
+                file and looks for this string exactly as written here, so an apostrophe in the
+                title means quoting the test literal with `"` or a backtick rather than escaping it.
   agent-driven  no scripted seam exists, so it will be driven live during the acceptance run.
                 Needs `reason`. Every step of it costs a model call, so use it sparingly.
   waived        genuinely not automatable — a third-party callback, real hardware, a
@@ -38,7 +43,7 @@ Delete this comment when you fill the file in.
     "S1": {
       "bucket": "mapped",
       "test": "e2e/<feature>.spec.ts",
-      "title": "S1: <the test's own title>",
+      "title": "<the scenario's own wording> @<change-id>/S1",
       "db_assert": "suite"
     },
     "S2": {

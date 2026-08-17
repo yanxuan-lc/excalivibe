@@ -41,6 +41,7 @@
 //   signature-docs               (not a check: prints the documentation tree's signature)
 //   signature-archive            (not a check: prints the archive's signature)
 //   signature-e2e-suite          (not a check: prints the e2e suite's signature)
+//   signature-product            (not a check: prints the declared product code's signature)
 
 import { execFileSync } from "node:child_process";
 import { createHash } from "node:crypto";
@@ -49,7 +50,7 @@ import { changeFiles, openChanges, specDeltas } from "./lib/changes.mjs";
 import { judgeBuild } from "./lib/build.mjs";
 import { judgeDocs } from "./lib/decision.mjs";
 import { treeSignature } from "./lib/docs.mjs";
-import { judgeMap } from "./lib/modules.mjs";
+import { judgeMap, productSignature } from "./lib/modules.mjs";
 import { judgeManifest, judgeMapping, judgeReport, judgeScenarios, probeApp, suiteSignature } from "./lib/e2e.mjs";
 import { judge } from "./lib/metrics.mjs";
 import { validate } from "./lib/openspec.mjs";
@@ -80,6 +81,7 @@ const atoms = {
   "signature-docs": signatureDocs,
   "signature-archive": signatureArchive,
   "signature-e2e-suite": signatureE2eSuite,
+  "signature-product": signatureProduct,
 };
 
 if (!Object.hasOwn(atoms, atom ?? "")) {
@@ -129,14 +131,38 @@ function specDeltasAtom() {
 
 // Untracked files are invisible here, which is load-bearing: the review leaves its records
 // uncommitted on purpose, and the merge is what commits them.
+//
+// That design has one failure mode worth naming in the facts, because the symptom sits a long way
+// from the cause. A round's own records are meant to stay untracked until the merge; once one of
+// them is committed by mistake it becomes a tracked file, and from then on writing it dirties the
+// tree — so the review's record blocks the acceptance run's entry and the acceptance run's record
+// blocks the review's, forever, and committing either to break the tie moves the tip and
+// invalidates whatever the other one just concluded. Measured, on a round where an unrelated commit
+// swept `review.md` into history: two steps refusing each other, with the cause dozens of commits
+// back and nothing pointing at it. `round_records` is what points at it.
+//
+// Declared inside the function on purpose: the atom table above is called at module scope, so a
+// `const` out here is in its temporal dead zone by the time this runs, and the atom answers
+// `unreadable` with a message about initialisation order. Measured, on the first run of this.
 function worktree() {
+  const roundRecords = [/^openspec\/changes\/[^/]+\/review\.md$/, /^openspec\/changes\/[^/]+\/genai\/e2e-(manifest|report)\.md$/];
   try {
     const status = execFileSync("git", ["status", "--porcelain", "--untracked-files=no"], {
       encoding: "utf8",
       stdio: ["ignore", "pipe", "pipe"],
     });
     const changed = status.split("\n").filter((line) => line.trim() !== "");
-    say(changed.length > 0 ? "dirty" : "clean", { changed: changed.slice(0, 20) });
+    // Porcelain v1 is `XY <path>`, and a rename carries `orig -> path`; the tail is what to match.
+    const records = changed
+      .map((line) => line.slice(3).split(" -> ").pop().replace(/^"|"$/g, ""))
+      .filter((path) => roundRecords.some((pattern) => pattern.test(path)));
+    const facts = { changed: changed.slice(0, 20) };
+    if (records.length > 0) {
+      facts.round_records = records;
+      facts.hint =
+        "These are a round's own records, and they are meant to stay untracked until genai.merge commits them. Being listed here means they are tracked, which happens when an earlier commit swept them in. Until that is undone — `git rm --cached <path>` and a commit — the review and the acceptance run block each other's entry, and neither can be fixed by retrying";
+    }
+    say(changed.length > 0 ? "dirty" : "clean", facts);
   } catch (cause) {
     say("unreadable", { reason: String(cause?.message ?? cause) });
   }
@@ -357,4 +383,11 @@ function signatureArchive() {
 // what they contain.
 function signatureE2eSuite() {
   emit(suiteSignature());
+}
+
+// Not a check. What a code review was about, narrowed to the product code the modules declare, so
+// that a test repair or a document edit does not invalidate an approval that is still true of every
+// line it read. `productSignature` carries the reasoning and the one project shape it cannot narrow.
+function signatureProduct() {
+  emit(productSignature());
 }

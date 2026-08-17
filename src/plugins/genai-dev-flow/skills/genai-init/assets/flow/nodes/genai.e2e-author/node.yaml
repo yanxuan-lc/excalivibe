@@ -128,7 +128,7 @@ gates:
       matched: { verdict: pass }
       title_missing:
         verdict: reject
-        message: "A mapped scenario's id does not appear in the test file the manifest points at. Put the id in the test's own title — that is what makes the mapping greppable instead of a promise"
+        message: "The title a manifest row claims is not in the test file it points at. The facts name the file and the exact string looked for, so compare the two before rewriting anything — the title has to appear as it reads, and the usual cause is not a missing tag but a title that was retyped in one of the two places rather than copied. Fix every row this affects in one pass; the gate reports the first one it meets"
       file_missing:
         verdict: reject
         message: "A mapped scenario names a test file that is not there, or a path reaching outside the project"

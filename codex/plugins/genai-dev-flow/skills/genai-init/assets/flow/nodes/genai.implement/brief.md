@@ -63,6 +63,13 @@ history, because a commit during a review invalidates the verdict that review is
 `genai.merge` is what commits them. The project's own baseline — `Makefile`, `tools/genai/`, and
 `openspec/config.yaml` — was committed at install time, so nothing here still needs a first commit.
 
+**Which means every commit names its paths.** `git add -A` and `git commit -a` sweep in whatever is
+lying around, and what is lying around here is exactly the set of records that must not be swept.
+The damage outlives the commit: once `review.md` is tracked, writing it dirties the tree, so the
+review's entry rule and the acceptance run's entry rule start refusing each other and neither can be
+satisfied without a commit that invalidates the other one's conclusion. That round ended in
+`git rm --cached`, dozens of commits after the mistake, with nothing in between pointing at it.
+
 ## If you are being sent back
 
 Two steps can return work here, and each writes down what it found:

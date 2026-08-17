@@ -29,8 +29,25 @@ project's stack. Beyond it, four conventions this flow depends on:
 - **One test per scenario, and stop.** No extra cases the spec never asked for, no page-object layer a
   single suite does not need. Test code you add is test code someone maintains and every acceptance
   run pays to execute.
-- **The id goes in the test's own title** — `test('S1: a valid order is accepted', …)`. A gate opens
-  the file and looks for it, which is what keeps the mapping from drifting when a test is renamed.
+- **The title is the scenario's own wording, with the scenario tagged on the end.** The spec header
+  reads `#### Scenario: S1 — a valid order is accepted`, so the test reads:
+
+  ```js
+  test('a valid order is accepted @add-order-intake/S1', …)
+  ```
+
+  Take the behaviour from the header and append `@<change-id>/<scenario-id>`. Two rules are doing
+  separate work here. The behaviour goes first because that is what a test title is for — a run's
+  output should read as a list of things the product does, not as a list of numbers. The tag carries
+  identity: a gate opens the file and looks for the exact title, which is what makes a renamed or
+  deleted test show up as a broken mapping rather than as a scenario that quietly stopped being
+  covered. The change id is part of the tag because scenario numbering restarts at `S1` in every
+  change, while the suite stays in the repository long after a change is archived — without it, two
+  rounds put two `S1`s in one directory.
+
+  **Write the title once and copy it into the manifest.** The gate compares them as text. If the
+  behaviour contains an apostrophe, quote the literal with `"` or a backtick instead of escaping it,
+  so what the file contains is what the manifest says.
 
 If the project already has an e2e setup, write into it and follow its conventions rather than
 standing up a second one beside it.
@@ -67,7 +84,11 @@ What the template cannot decide for you:
   When in doubt, `runner`.
 
 A gate checks both directions of the mapping — a scenario you left out, and an id you named that the
-spec does not have.
+spec does not have. A second one opens every mapped file and looks for the `title` you wrote, as
+text. **Copy the title from the test into the manifest; do not retype it.** When that check fails it
+can only say the string is not there, so a stray difference of a character reads as a missing test
+and costs a rejection to find. It reports the first bad row only, so when one turns up, check the
+rest in the same pass rather than one rejection at a time.
 
 ## Run your own tests before handing them over
 

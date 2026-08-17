@@ -61,9 +61,18 @@ const APP_TIMEOUT_MS = 5000;
 /**
  * The scenario ids in this round's spec deltas — the only place they come from.
  *
- * Uniqueness is required within a change and not across the round. The manifest, the report and the
- * test titles are all per change, so a collision between two changes cannot confuse any of them;
- * requiring more would make two independent changes able to break each other.
+ * Uniqueness is required within a change and not across the round. The manifest and the report are
+ * keyed on these ids and both live inside a change directory, so they are archived with it and a
+ * collision between two changes cannot confuse either; requiring more would make two independent
+ * changes able to break each other.
+ *
+ * **The test suite is the one place that argument does not reach**, and it used to be claimed here
+ * that it did. Test code stays in the repository after its change is archived, so two rounds each
+ * numbering from `S1` put two `S1` titles in one suite — and it was an executor noticing that and
+ * quietly numbering from `S52` instead that kept one project out of it, which is a convention
+ * working by being broken. The fix is not global numbering, which would make parallel changes
+ * coordinate: it is qualifying the tag in the title with the change id, which `rowShape` requires.
+ * Ids stay per change; titles are unique in the suite.
  */
 export function judgeScenarios() {
   const changes = collect();
@@ -127,7 +136,7 @@ export function judgeManifest() {
     extra.push(...declared.filter((id) => !change.scenarios.ids.includes(id)).map((id) => `${change.id}:${id}`));
 
     for (const [id, row] of Object.entries(rows)) {
-      const shape = rowShape(id, row);
+      const shape = rowShape(change.id, id, row);
       if (shape !== null) return { label: "manifest_malformed", facts: { change: change.id, scenario: id, reason: shape } };
       buckets[row.bucket] = (buckets[row.bucket] ?? 0) + 1;
       if (row.bucket !== "mapped") nonScripted += 1;
@@ -169,11 +178,13 @@ export function judgeManifest() {
 }
 
 /**
- * Every mapped scenario's id is greppable in the test file the manifest names.
+ * Every mapped scenario's declared title is really in the test file the manifest names.
  *
  * This is the rule that keeps the mapping honest. A manifest row is a claim about a file, and the
- * claim costs nothing to write; checking that the id really appears in the title is what makes a
- * renamed or deleted test show up here rather than as a silently uncovered scenario months later.
+ * claim costs nothing to write; opening the file and finding the title is what makes a renamed or
+ * deleted test show up here rather than as a silently uncovered scenario months later. `rowShape`
+ * has already required the title to carry `@<change-id>/<scenario-id>`, so finding it here is what
+ * ties this file to this scenario — the two halves are one check split across two rules.
  */
 export function judgeMapping() {
   const changes = collect();
@@ -196,7 +207,14 @@ export function judgeMapping() {
       if (!existsSync(row.test)) {
         return { label: "file_missing", facts: { change: change.id, scenario: id, test: row.test } };
       }
-      if (!readFileSync(row.test, "utf8").includes(row.title)) {
+      // Unescaped before comparing, because the two sides quote differently and neither is wrong.
+      // A title written into a single-quoted test literal carries the backslash the source needed —
+      // `session\'s` — while the manifest holds it as JSON, where it is just `session's`, so a raw
+      // comparison is false for every title containing an apostrophe. That is not an exotic case:
+      // one round hit it six times across five files, and each one cost a rejection whose message
+      // said "put the id in the title" about a title that already had it. Six of those exhaust the
+      // default patience.
+      if (!unescaped(readFileSync(row.test, "utf8")).includes(row.title)) {
         return { label: "title_missing", facts: { change: change.id, scenario: id, test: row.test, title: row.title } };
       }
       checked.push(`${change.id}:${id}`);
@@ -587,12 +605,52 @@ function payload(path) {
   }
 }
 
-function rowShape(id, row) {
+/**
+ * The tag that ties a test back to the scenario it covers: `@<change-id>/<scenario-id>`.
+ *
+ * Anchored on both sides, and both anchors were paid for. Without the left one `@other/S1` would
+ * satisfy a row belonging to this change; without the right one `S1` matches `@c/S12`, so every
+ * title from `S10` up could stand in for `S1` — and the ambiguity grows with the round, which is
+ * backwards, since a big round is where this check earns its place. Measured on a round of 115
+ * scenarios, where `S1` was satisfiable by sixteen other scenarios' titles.
+ *
+ * The change id carries the uniqueness the scenario id cannot. Ids are unique **within a change**
+ * and deliberately restart at `S1` in the next one, which is right for the manifest and the report —
+ * both live in a change directory and are archived with it — and wrong for a test title, because the
+ * suite stays in the repository after the change is archived. Qualifying the tag is what lets the
+ * numbering stay per change without two rounds' tests colliding in one suite.
+ */
+/**
+ * Source text with its backslash escapes removed, so a title can be looked for as it reads.
+ *
+ * Only the quote characters and the backslash itself — enough to make `\'`, `\"` and `\\` compare
+ * as what they mean. Deliberately not a JavaScript string parser: this file is read as text and may
+ * be Dart, Swift or Kotlin as easily as TypeScript, and the failure this fixes is entirely about
+ * quoting a title that contains an apostrophe.
+ */
+function unescaped(source) {
+  return source.replace(/\\(['"`\\])/g, "$1");
+}
+
+function scenarioTag(changeId, id) {
+  return `@${changeId}/${id}`;
+}
+
+function taggedWith(title, changeId, id) {
+  const tag = scenarioTag(changeId, id);
+  const at = title.indexOf(tag);
+  if (at === -1) return false;
+  // Nothing alphanumeric may follow: `@c/S1` must not be satisfied by `@c/S12`.
+  return !/[0-9A-Za-z]/.test(title.charAt(at + tag.length));
+}
+
+function rowShape(changeId, id, row) {
   if (row === null || typeof row !== "object") return "each row must be an object";
   if (!BUCKETS.includes(row.bucket)) return `bucket must be one of ${BUCKETS.join(" | ")}`;
   if (row.bucket === "mapped") {
     if (typeof row.test !== "string" || row.test.trim() === "") return "a mapped scenario needs `test`, the file its case lives in";
-    if (typeof row.title !== "string" || !row.title.includes(id)) return "`title` must be the test's own title and must contain the scenario id";
+    if (typeof row.title !== "string") return "`title` must be the test's own title";
+    if (!taggedWith(row.title, changeId, id)) return `\`title\` must be the test's own title and must carry the tag \`${scenarioTag(changeId, id)}\``;
     if (!DB_ASSERT.includes(row.db_assert)) return `db_assert must be one of ${DB_ASSERT.join(" | ")}`;
     if (escapes(row.test)) return "`test` must be a path inside the project, without `..`";
     return null;

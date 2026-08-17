@@ -11,6 +11,14 @@ inputs:
   - name: commits
     from: genai.implement
     required: true
+  # Not a second thing to read — it is the same work at a narrower grain, and it is declared for the
+  # same reason genai.arch-decision declares `changes` and `specs`: a premise can only be measured
+  # against something the upstream step actually read. `review-still-valid` at genai.merge premises
+  # this review against `product`, and without this line that premise has no version to compare and
+  # refuses entry every time it is asked.
+  - name: product
+    from: genai.implement
+    required: true
 
 outputs:
   - name: reviews
@@ -33,18 +41,18 @@ ready:
       label_from: result
       values: [clean, dirty, unreadable]
     on_result:
-      clean: { ready: true }
+      clean: { verdict: pass }
       dirty:
-        ready: false
+        verdict: reject
         reason: "The working tree has uncommitted changes to tracked files. A verdict is recorded against a commit, so everything under review has to be committed first"
       unreadable:
-        ready: false
+        verdict: reject
         reason: "git could not run — confirm this is a repository"
       failed:
-        ready: false
+        verdict: reject
         reason: "The check itself exited non-zero. That is a bug in the installed step definitions"
       unexecutable:
-        ready: false
+        verdict: reject
         reason: "The check could not run at all. Re-install with genai-init, and confirm node is on PATH"
 
 gates:

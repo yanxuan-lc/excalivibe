@@ -38,12 +38,17 @@ ready:
   # `targets`, and every one of them has to be identified. The list is a conjunction, so it is
   # strictly stronger than one target and there is nothing here to loosen. It is still identity and
   # not readiness: a database that falls over mid-run is `infra_failure` in the report, which goes to
-  # a person, not a refusal that costs nothing and invites another dispatch.
+  # a person, not a refusal at the door.
   #
   # Safe on the default `always`: this step does not start, stop or deploy the app, so nothing it does
-  # can make the rule false. A refusal here consumes nothing at all — no verdict, no patience, no
-  # attempt — which is exactly the right shape for "the app is not up yet": start it and dispatch
-  # again.
+  # can make the rule false. Re-entry after starting the app sees the repair.
+  #
+  # **A refusal here is not free, and this is the rule most likely to meet a driver who thinks it
+  # is.** An entry rejection writes its events and spends a patience point like any other, so
+  # dispatching repeatedly to find out whether the app has come up will suspend the graph in as many
+  # tries as the project's patience allows. Probing is what `fsx next --check-ready` is for: it
+  # evaluates these rules, reports which one refused, and writes nothing. Start the app, confirm with
+  # that, and dispatch once.
   - rule_id: app-identified
     checker:
       type: command
@@ -52,24 +57,24 @@ ready:
       label_from: result
       values: [identified, wrong_service, unreachable, config_missing, config_malformed]
     on_result:
-      identified: { ready: true }
+      identified: { verdict: pass }
       wrong_service:
-        ready: false
+        verdict: reject
         reason: "Something answered and it is not this project's app — a marker the project declared is not in what came back. The facts name which target, and every other target's state alongside it. For a `url`, point it at the right port or start the right service; for a `command`, check it runs this build rather than one on PATH"
       unreachable:
-        ready: false
+        verdict: reject
         reason: "The app under test is not reachable. The facts name which target, so a project with several faces sees which of them is down. Start it with the project's own command; this step validates a running system and never boots one"
       config_missing:
-        ready: false
+        verdict: reject
         reason: "tools/genai/e2e.json is not there, so there is no way to tell this app from anything else listening. A project often cannot write it until the app exists, which is why nothing earlier in the round asked for it — get the URL — or, for something that never listens on a port, the command — and a marker only this app returns from a person, rather than guessing either. genai-init has the shape. If it is being added now, mind the commit window: before genai.code-review is dispatched, or left untracked for genai.merge to collect — a commit after the review approved the tip strands the merge"
       config_malformed:
-        ready: false
+        verdict: reject
         reason: "tools/genai/e2e.json does not satisfy its contract; the reason names the field, and the target when there is more than one. Per target: exactly one of `url` or `command`, and `contains` always — without a marker there is nothing to identify the app by. A project with several faces declares `targets`, a list of exactly that shape with a `name` each, and never both forms at once"
       failed:
-        ready: false
+        verdict: reject
         reason: "The check itself exited non-zero. That is a bug in the installed step definitions"
       unexecutable:
-        ready: false
+        verdict: reject
         reason: "The check could not run at all. Re-install with genai-init, and confirm node is on PATH"
 
   # The report is evidence about a commit, and the framework compares it against the branch tip — so
@@ -85,18 +90,18 @@ ready:
       label_from: result
       values: [clean, dirty, unreadable]
     on_result:
-      clean: { ready: true }
+      clean: { verdict: pass }
       dirty:
-        ready: false
+        verdict: reject
         reason: "The working tree has uncommitted changes to tracked files. An acceptance run is recorded against a commit, so everything it exercises has to be committed first"
       unreadable:
-        ready: false
+        verdict: reject
         reason: "git could not run — confirm this is a repository"
       failed:
-        ready: false
+        verdict: reject
         reason: "The check itself exited non-zero. That is a bug in the installed step definitions"
       unexecutable:
-        ready: false
+        verdict: reject
         reason: "The check could not run at all. Re-install with genai-init, and confirm node is on PATH"
 
 gates:
@@ -122,10 +127,31 @@ gates:
         verdict: reject
         message: "Say what blocked it"
 
-  # No `signature_changed` rule. This gate asserts an absolute end state that doing nothing cannot
-  # satisfy, so a delta check would add nothing and would make rework fragile: a stalled signature
-  # drains the whole patience budget on one attempt.
+  # **This rule was once left out, and the reasoning was wrong in a way that cost a round.** The
+  # argument against it was that this gate asserts an absolute end state, so a delta check adds
+  # nothing while making rework fragile — a stalled signature drains the whole patience budget on one
+  # attempt. What it missed is that `acceptance` below classifies from the **artifact on disk**, and
+  # an artifact that was not written this attempt is still on disk from the last one.
   #
+  # Measured: the executor finished the suite and died before writing the report. `outputs` found the
+  # previous attempt's file and passed. `acceptance` read that file's classifications — 57 failures
+  # all marked `test` — and returned `delegate` with "nothing here says the product is broken", while
+  # the run that had actually just happened contained four product defects. The wrong conclusion was
+  # then handed to genai.e2e-author as an instruction: change the assertions. Nothing in the record
+  # would have looked abnormal afterwards.
+  #
+  # So the order matters and this rule comes first. An attempt whose report did not move did not
+  # produce evidence, and draining the patience is the right price: an executor that dies mid-run is
+  # a person's problem, and a suspension puts it in front of one. The two attempts this cost are
+  # cheaper than one round shipping four defects it believed were test bugs.
+  - rule_id: no-spin
+    checker: { type: signature_changed }
+    on_result:
+      satisfied: { verdict: pass }
+      stalled:
+        verdict: reject
+        message: "No report was written this attempt — the file on disk is the previous one, unchanged. Nothing can be classified from it, because it describes a run that is not this one. If the run really did produce the same results, say so in a report written this attempt; if the executor did not survive the run, that is what needs looking at first"
+
   # The two non-pass verdicts below are how the classification routes, and they are the only two
   # destinations one node can have. `delegate` sends a broken test to the author, costs no patience,
   # and leaves this step `delegated` rather than `rejected` — the work moved, the graph is not
@@ -157,9 +183,16 @@ gates:
         message: "A scenario failed against the product. Which ones, and what happened instead, are in openspec/changes/*/genai/e2e-report.md — read that rather than working from this line. It is the developer's to fix, not the suite's, and the red test stays red until it is"
 
       # The test is wrong. Nothing about the product is being asserted, so it costs no patience.
+      #
+      # Stated as what the report says rather than as what is true, and the distinction is not
+      # pedantry: this label is derived from classifications an executor wrote, and the executor can
+      # be wrong. Phrased as a fact — the earlier wording was "nothing here says the product is
+      # broken" — it reads as licence to change the assertions, which is exactly what happened once
+      # the classifications turned out to be a stale attempt's. `no-spin` above now catches that
+      # particular way of being wrong; being honest about where the claim comes from covers the rest.
       test_failure:
         verdict: delegate
-        message: "Every failure this round is a test bug — a stale selector, a wrong assertion, a fixture that no longer applies. Which tests, and what they did instead, are in openspec/changes/*/genai/e2e-report.md. It goes back to whoever wrote the suite; nothing here says the product is broken"
+        message: "Every failure in the report is classified as a test bug — a stale selector, a wrong assertion, a fixture that no longer applies. Which tests, and what they did instead, are in openspec/changes/*/genai/e2e-report.md; read those before changing anything, and say so rather than adjusting an assertion if one of them looks like the product misbehaving"
 
       infra_failure:
         verdict: reject

@@ -33,18 +33,18 @@ ready:
       label_from: result
       values: [present, absent, unreadable]
     on_result:
-      absent: { ready: true }
+      absent: { verdict: pass }
       present:
-        ready: false
+        verdict: reject
         reason: "A requirement of this round is still active, so this round is not finished. Nothing gets tagged while something is unaccounted for"
       unreadable:
-        ready: false
+        verdict: reject
         reason: "The requirements directory could not be read — confirm the sibling <project>_genai directory exists"
       failed:
-        ready: false
+        verdict: reject
         reason: "The check itself exited non-zero. That is a bug in the installed step definitions"
       unexecutable:
-        ready: false
+        verdict: reject
         reason: "The check could not run at all. Re-install with genai-init, and confirm node is on PATH"
 
 gates:

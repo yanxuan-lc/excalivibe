@@ -65,8 +65,11 @@ of its labels choose between two **destinations** rather than two messages.
 | the facts — what this project's suite actually produced | the project's own `make genai-metrics` | which test framework a project uses is outside this flow's subject |
 | the floors — how much coverage is enough here | the project's `tools/genai/thresholds.json`, which a round may not edit | one number for a greenfield project and a decade-old one is either meaningless or unreachable |
 
-`skills/genai-guideline/SKILL.md` carries the protocol between the first two in full, and it is the
-file to change when that protocol changes — it is what a person reads before wiring a project up.
+`skills/genai-guideline/references/metrics-target.md` carries the protocol between the first two in
+full — the line format, the field table and how the floors are written — and it is the file to
+change when that protocol changes. Its skill body summarises it and points there; the policy around
+it (who may change these files, what a green gate proves) stays in the body, because that is
+judgment rather than format.
 
 ## Habits specific to the step definitions
 
@@ -78,12 +81,31 @@ judgment, not formats. A markdown table would read better and would put a round 
 alignment.
 
 **An entry rule its own step invalidates must narrow its `when`.** The field defaults to `always`,
-and on `always` a precondition the step destroys forbids that step's own rework — permanently and
-silently, since a ready refusal writes no event, spends no patience and records no attempt. Two
-definitions depend on this: `nodes/genai.spec/node.yaml` uses `first_attempt` because it is a root,
-and `nodes/genai.archive/node.yaml` uses `upstream_reran` because it has an upstream that can re-run.
+and on `always` a precondition the step destroys forbids that step's own rework permanently — and
+charges for it, since an entry refusal writes its events and spends a patience point like a
+rejection at the gate, so the round suspends on a condition nothing can satisfy. Two definitions
+depend on this: `nodes/genai.spec/node.yaml` uses `first_attempt` because it is a root, and
+`nodes/genai.archive/node.yaml` uses `upstream_reran` because it has an upstream that can re-run.
 Leave `when` off wherever the rule survives its own step — that is every rule guarding an
 irreversible act, and those are the ones worth asking every time.
+
+**An entry rule that can route work at somebody should `delegate`, not `reject`.** The two premise
+pairs — `nodes/genai.merge/node.yaml` and `nodes/genai.implement/node.yaml` — reach `stale` when an
+upstream conclusion no longer describes the current version, and the step that produced that
+conclusion is the one who can fix it. `reject` at a door has nowhere to send work, which is how a
+fully-passed chain used to become unenterable; `delegate` routes over an edge and costs no patience.
+Two obligations come with it. The graph has to carry the edge — a delegation that delivers nothing
+is charged the whole remaining patience — and it must be narrowed by `rule_id` wherever two rules on
+one node delegate to different destinations, which is why `genai.merge`'s two edges carry one and
+`genai.implement`'s single edge does not.
+
+**A step must not move what it is compared against.** This is the condition under which a delegation
+loop has a fixed point at all, and it is why `genai.code-review` and `genai.e2e` leave `review.md`
+and `e2e-report.md` uncommitted: both are premised against something derived from the commits, and
+committing their own record would re-invalidate the premise that sent the work to them. A rule
+routing `stale` anywhere is a rule to check this against before it is written — the engine bounds
+the loop by suspending on the second empty delegation, but it cannot tell a converging round from
+one whose definitions make convergence impossible.
 
 **Take a checker's label set from `fsx schema`.** `on_result` has to enumerate every label its
 checker can produce, and too few or too many is an error at load time, so the label set is an input

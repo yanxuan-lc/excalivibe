@@ -1,6 +1,6 @@
 id: genai.accept
 kind: judge
-description: required - the last reading of whether the batch delivered what was asked, and the step that closes the requirement items. Give it a reject edge when you assemble the graph. A judge cannot rework its own subject, so with nowhere to send the work this verdict locks the round rather than returning it, and only fsx graph patch reopens it
+description: required - the last reading of whether the batch delivered what was asked, and the step that closes the requirement items. A judge cannot rework its own subject, so this step is deliberately given no reject edge - a rejection here stops the round for a person rather than sending work anywhere, and by then the batch is merged and archived, which makes the finding next round's material. Read what the engine reports before deciding otherwise, and reopen with fsx dispatch --reopen rather than with graph surgery
 
 executor:
   protocol: subagent
@@ -40,18 +40,18 @@ ready:
       label_from: result
       values: [present, absent, unreadable]
     on_result:
-      absent: { ready: true }
+      absent: { verdict: pass }
       present:
-        ready: false
+        verdict: reject
         reason: "A change is still open under openspec/changes/, so the deltas are not folded into the main specs yet. Archive them first — checking requirements before the fold misses what this step is for"
       unreadable:
-        ready: false
+        verdict: reject
         reason: "openspec/changes/ could not be read — confirm openspec/ exists in this repository"
       failed:
-        ready: false
+        verdict: reject
         reason: "The check itself exited non-zero. That is a bug in the installed step definitions"
       unexecutable:
-        ready: false
+        verdict: reject
         reason: "The check could not run at all. Re-install with genai-init, and confirm node is on PATH"
 
 gates:

@@ -47,6 +47,38 @@ retry that happens to pass is not evidence.
 one module and a run against the system are different runs. Start every face a scenario's path goes
 through, not only the one whose code changed.
 
+## Run the suite in the foreground, once
+
+**Start the suite and wait for it in the same call. Do not put it in the background and come back
+for it.** A backgrounded run reads like the obvious move for something that takes twenty minutes,
+and it is the single most expensive mistake made in this seat — three separate executors in one
+round stopped with "I'll wait for the run to finish", and each time the run had already ended, its
+output was already on disk, and stopping was what made it invisible. One of them burned half a
+million tokens repeating that sentence. Nothing about waiting is available to you: by the time you
+are asked anything again, whatever you launched is over. So the only shape that works is to run it,
+let the call take as long as it takes, and read what comes back.
+
+**One run at a time, for the same reason plus another.** Two suites against one database interleave
+their fixtures, and the results of both are then worth nothing — that has happened here too, and
+cost a full re-run to discover.
+
+If a suite genuinely cannot complete in one call, split it by scope — a directory, a project, a
+tag — and run each part in the foreground. Partial scope you can describe beats a complete run you
+cannot see.
+
+## The harness is not allowed to damage the system it measures
+
+Two properties to check before the first run, both learned the same way:
+
+- **A missing setting must stop the run, not be defaulted.** A harness that falls back to
+  `127.0.0.1:3306` or to a built-in password does not fail where the mistake is; it fails
+  everywhere, as a wall of red that reads like a broken product. If something it needs is not
+  configured, say which and stop.
+- **Its own login attempts count against the product's limits.** A wrong password five times locks
+  the account, and every scenario afterwards fails for a reason that has nothing to do with the
+  code. Verify one login before the suite runs, and treat a failure there as a blocker rather than
+  letting each scenario discover it.
+
 ## What cannot be reached is a blocker, not a result
 
 An unreachable app, a lost device, a database you cannot query — report it as that. Never infer a

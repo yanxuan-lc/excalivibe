@@ -45,6 +45,22 @@ actually uncovered.
 When a scenario cannot be scripted, say which one and why, in the manifest. A weakened assertion that
 passes is worse than an honest gap: the gap gets a decision, the weakened test gets trusted.
 
+That applies with particular force when the work arrives as a delegation from the acceptance run.
+The message says the failures were **classified** as test bugs, and a classification is somebody's
+reading of a run, not a fact about the product. Open the report and check each one against what the
+spec asked for. If a failure looks like the product misbehaving, say so in your report and leave the
+test asserting what the spec says — adjusting an assertion to match wrong behaviour is how a real
+defect ships green, and the assertion is then the only place the truth used to be.
+
+## Run a suite in the foreground, once
+
+**Never put a test run in the background and stop to wait for it.** By the time you are asked
+anything again the run is over and its output is on disk; stopping only makes it invisible, and the
+loop that follows — waking, deciding to keep waiting, stopping again — has cost this seat hundreds
+of thousands of tokens without producing a line. Run it, let the call take as long as it takes, read
+what comes back. One run at a time: two suites against one database interleave their fixtures and
+invalidate both.
+
 ## Not this agent's job
 
 - Running the acceptance pass — a suite is not independent evidence about itself, so someone else

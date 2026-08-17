@@ -58,7 +58,7 @@ was measured about that and what the author is asked to record instead. If a rou
 separation to be mechanical rather than instructed, dispatch `genai.e2e-author` in a worktree checked
 out at the integration branch and copy the suite back before `genai.e2e` runs.
 
-Five rework edges, and they are where the routing lives:
+Eight rework edges, and they are where the routing lives:
 
 | From | On | To | Why there |
 |---|---|---|---|
@@ -67,10 +67,39 @@ Five rework edges, and they are where the routing lives:
 | `genai.code-review` | reject | `genai.implement` | that edit has become a rewrite, and this is what it costs |
 | `genai.e2e` | reject | `genai.implement` | the product failed a scenario. Also every case where the acceptance run itself did not deliver |
 | `genai.e2e` | delegate | `genai.e2e-author` | a **test** failed, not the product. `delegate` spends no patience and leaves the step `delegated` rather than `rejected` — the work moved, the graph is not stalled |
+| `genai.implement` | delegate | `genai.write-arch-docs` | **from the entry rules, not a gate.** The approved structure no longer describes the current spec, so the document is re-derived and the ruling re-taken before any code is written against it |
+| `genai.merge` | delegate | `genai.code-review` | likewise from the entry rules: the product code moved after the approval. Narrowed by `rule_id: review-still-valid` |
+| `genai.merge` | delegate | `genai.e2e` | the branch moved after the acceptance run. Narrowed by `rule_id: e2e-still-valid` |
 
-The asymmetry between the first two is the reason the design is reviewed at all. The asymmetry
-between the last two is the verification triangle: the developer never repairs a test and the author
+The asymmetry between the first three is the reason the design is reviewed at all. The asymmetry
+between the next two is the verification triangle: the developer never repairs a test and the author
 never touches product code, so a failure has to be classified before it can be routed.
+
+**The last three are the ones a graph is most likely to be assembled without, and the round that
+finds out is the one that cannot finish.** They exist because one kind of rule in this flow can only
+be evaluated at a step's door — the kind asking whether an upstream conclusion still describes the
+current version — and a door is a place with no way to send work anywhere. Without them the ordinary
+`delegate` above is enough to strand a round: the test author's repair is a commit, the commit moves
+the tip the review approved, and a step that has already passed is not something a satisfied
+dependency passes again. Measured, on a round whose code was finished and green.
+
+With the edges in place the same sequence closes itself, and nobody updates any version anywhere:
+
+```
+genai.e2e        delegate → genai.e2e-author repairs the tests and commits
+genai.e2e        re-runs, green
+genai.merge      entry: review-still-valid is stale → delegate → genai.code-review
+genai.code-review re-reads the current tip → pass → genai.merge is re-activated
+genai.merge      entry: fresh → in
+```
+
+Two properties make that terminate rather than spin, and both are worth checking before adding an
+edge of this kind. The framework compares a snapshot it took itself when it dispatched the upstream
+step against what is there now, so no report has to carry a commit id. And **a step must not move
+the thing it is compared against** — `genai.code-review` leaves `review.md` uncommitted and
+`genai.e2e` leaves `e2e-report.md` uncommitted, which is why re-running either one does not
+re-invalidate itself. A step that committed its own record would have no fixed point, and the engine
+would suspend the round on the second delegation rather than loop forever.
 
 The order is not arbitrary and the gates are not negotiable — `genai-guideline` has what each
 step produces, what its gate requires, and why the last two sit in that order. This skill is
@@ -109,9 +138,10 @@ on that step, or the premise that does routes `absent` to ready, and `fsx graph 
 one notice per premise that will fall that way — so what a shape gives up is on the record at the
 moment it is chosen. The steps with no such line are load-bearing in a way the graph cannot express.
 `genai.archive` is the sharp one: leave it out with `genai.accept` still in, and the acceptance step
-is refused entry forever by a check that writes no event and spends no patience. So decide what to
-include from the listing's `description` lines, and read the assembly rules at the end of this skill
-before changing any edge.
+is refused entry every time it is tried, on a condition only the missing step could have made true —
+so it spends a patience point per attempt and suspends the round having achieved nothing. So decide
+what to include from the listing's `description` lines, and read
+[references/graph-assembly.md](references/graph-assembly.md) before changing any edge.
 
 ```bash
 fsx graph create --name <round-label> --var branch=<branch-name> --inline '{
@@ -148,6 +178,9 @@ fsx graph create --name <round-label> --var branch=<branch-name> --inline '{
     { "from": "genai.e2e#1",             "to": "genai.merge#1",           "on": "pass" },
     { "from": "genai.e2e#1",             "to": "genai.implement#1",       "on": "reject" },
     { "from": "genai.e2e#1",             "to": "genai.e2e-author#1",      "on": "delegate" },
+    { "from": "genai.implement#1",       "to": "genai.write-arch-docs#1", "on": "delegate" },
+    { "from": "genai.merge#1",           "to": "genai.code-review#1",     "on": "delegate", "rule_id": "review-still-valid" },
+    { "from": "genai.merge#1",           "to": "genai.e2e#1",             "on": "delegate", "rule_id": "e2e-still-valid" },
     { "from": "genai.merge#1",           "to": "genai.archive#1",         "on": "pass" },
     { "from": "genai.archive#1",         "to": "genai.update-project-docs#1", "on": "pass" },
     { "from": "genai.update-project-docs#1", "to": "genai.accept#1",      "on": "pass" },
@@ -155,6 +188,18 @@ fsx graph create --name <round-label> --var branch=<branch-name> --inline '{
   ]
 }'
 ```
+
+**Creating this graph prints two notices about unnarrowed `reject` edges, and they are expected.**
+`genai.code-review → genai.implement` and `genai.e2e → genai.implement` both carry `reject`, and
+since both of those steps can also reject at their door, each edge matches refusals from either
+gate. Narrowing them is not available in any form worth having: an edge takes **one** `rule_id`, so
+scoping them to the exit gates would mean one edge per gate rule — six of them here — and the day
+someone added a seventh its rejections would silently route nowhere. An over-wide edge activates a
+step that has nothing to do, which the message it carries corrects; a missing edge loses the routing
+without saying so. What it costs in practice is that an entry refusal at either step also makes
+`genai.implement` dispatchable — right for a dirty tree, wrong for "the app is not running", where
+nobody should be dispatched and the app should be started. **Dispatch what the refusal message
+names.** Any other notice is worth reading properly; these two are the graph working as designed.
 
 **Keep the name — it is what every later command takes as `-g`.** The name is only an alias, so
 it plays no part in the graph's identity; `-g` equally accepts the graph id the create call
@@ -204,11 +249,18 @@ the wrong shape for everything else — the listing's `description` lines say wh
 ## The loop
 
 ```bash
-fsx next -g <round>                     # what can start
+fsx next -g <round> --check-ready       # what can actually start, and what is holding the rest back
 fsx dispatch '<node>#1' -g <round>      # the instruction (quote it — # starts a shell comment)
 # hand the instruction to the executor the node names
 fsx gate '<node>#1' -g <round>          # re-runs the checks and returns a verdict
 ```
+
+**Look with `--check-ready`; try with `dispatch`.** The first is read-only — it evaluates the entry
+rules, writes no event and spends nothing. The second is a write, and a refusal at the door costs a
+patience point exactly like a rejection at the gate. So a step that cannot start yet is something to
+find out about, not something to discover by dispatching at it until it works: with patience at 5, a
+project waiting on an app that has not been started suspends its round in five attempts, and the
+suspension names a step nobody did anything wrong in.
 
 **The instruction is kept for you.** Every dispatch writes the rendered text under the run
 directory and returns `instruction_path` beside `draft_path`; read that file rather than saving the
@@ -233,18 +285,27 @@ without `-g` fails with `graph_ref_required` rather than acting on the wrong rou
 commands the engine hands back instead of assembling your own — `dispatch` returns `submit_with`
 for the report, and most commands return `next_steps[].command`; both already carry the `-g`.
 
-**`fsx next` answers a topology question, not an entry question.** It lists a node whose
-upstream edges are satisfied, and `graph create` and `fsx status` do the same. Only
-`fsx dispatch` evaluates entry rules, so a node listed as dispatchable can still be refused.
+**Bare `fsx next` answers a topology question, not an entry question.** It lists a node whose
+upstream edges are satisfied, and `graph create` and `fsx status` do the same. `--check-ready` is
+what closes that gap: it evaluates the entry rules too, drops a node that cannot start out of
+`next`, and reports it under `not_ready` with the rule that refused it and why. That is why it is
+the form in the loop above rather than an occasional extra.
 
-`fsx next --check-ready` closes that gap: it evaluates the entry rules too, drops a node that
-cannot start out of `next`, and reports it under `not_ready` with the rule that refused it and
-why. Use it when you want to know whether the round can move at all, not just where it would go
-next.
+**When a dispatch is refused anyway, read `details.delivered` before doing anything.** An entry
+refusal is now a recorded event with consequences, and which consequence depends on the verdict the
+rule returned:
 
-That refusal is safe: **nothing is consumed** — no verdict, no patience, no attempt. Read the
-reason it gives, make the condition true, and dispatch again. Retrying by itself never helps,
-because an applicable condition is recomputed from the world every single time.
+- **`delivered: true`** — the rule delegated, and the work has gone to the steps in `details.targets`.
+  Nothing was charged. Go and dispatch what it named; re-dispatching this step achieves nothing
+  because the condition it is waiting on is what those steps are now producing.
+- **`delivered: false`** — nothing moved and a patience point was spent. Read the reason, make the
+  condition true in the world, and dispatch once. Retrying by itself never helps: an applicable
+  condition is recomputed from the world every single time, and each recomputation costs.
+
+`details.patience` carries `remaining` and `consumed_now` on the refusal itself, and `fsx status`
+keeps the last one per instance under `last_entry` — including `refused_visits`, the number of
+consecutive refusals. One refusal is ordinary. The same rule refusing five times in a row is a graph
+that is not converging, and that difference is the one worth looking at.
 
 **Not every entry rule applies to every dispatch, and a skipped one is not a passed one.** A rule
 declares a `when`, and rework skips the rules a step's own execution invalidates — `genai.spec`
@@ -294,13 +355,22 @@ so a round that reworks three different steps once each has spent nothing that a
 rejected four times and then passing is back at full. Plan the risk per step; there is no batch
 budget to run down.
 
+**One allowance covers both of a step's gates.** An entry refusal and a gate rejection come out of
+the same number, because what is stuck is the position rather than one half of it. What resets it is
+a visit that *ends* in a pass, which is the gate — an entry rule passing only means the visit got
+started, so the reset arrives at the far end of the work and not at the door. That asymmetry is what
+keeps a rework loop from laundering its own history: entry-passes-then-gate-rejects would otherwise
+clear the account on every lap and never converge.
+
 **That arithmetic holds only while every rejection is an ordinary one.** `patience.consumed_now` says
-what *this* gate call took: `0` for a pass, a waiver, a delegation or a replay; `1` for an ordinary
-rejection; and **the whole remaining budget at once** when the engine finds the attempt stalled or a
-cache hit, because it has judged that looking again cannot produce a different result. So one attempt
-can take a round from four left to suspended, and "one rework costs one" is a planning assumption, not
-a rule. When `fsx next` marks a node `last_chance`, one attempt is left, and **that belongs in the
-instruction you hand over** — after the gate is too late to try harder.
+what *this* call took: `0` for a pass, a waiver, a delegation or a replay; `1` for an ordinary
+rejection; and **the whole remaining budget at once** when the engine judges that looking again
+cannot produce a different result. Three things trigger that: a resubmission whose signature has not
+moved, a cached verdict, and **a delegation that delivered nothing** — every target already holding
+an equivalent activation, so the round changed nothing while claiming the work had gone somewhere.
+So one attempt can take a round from four left to suspended, and "one rework costs one" is a
+planning assumption, not a rule. When `fsx next` marks a node `last_chance`, one attempt is left, and
+**that belongs in the instruction you hand over** — after the gate is too late to try harder.
 
 ## When the graph suspends
 
@@ -308,14 +378,32 @@ Patience ran out. **This is a handoff, not a failure**: a path that keeps not wo
 person to decide about. Bring them the rejection history and the options.
 
 **Read `consumed_now` on the rejection that suspended it before you offer those options.** Equal to
-the whole remaining budget means the engine stopped because a repeat was pointless — a stalled attempt
-or a cache hit — and more patience buys nothing until something about the attempt changes. Drained one
-at a time means the work really was moving and simply did not arrive; more budget is a reasonable ask.
-Say which of the two it was. (The same distinction is in the gate diagnostics as `no_progress` /
-`cache_hit`; `consumed_now` is the one number that does not need them parsed.)
+the whole remaining budget means the engine stopped because a repeat was pointless — a stalled
+attempt, a cache hit, or a delegation that delivered nothing — and more patience buys nothing until
+something about the attempt changes. Drained one at a time means the work really was moving and
+simply did not arrive; more budget is a reasonable ask. Say which of the two it was. (The same
+distinction is in the gate diagnostics as `no_progress` / `cache_hit`; `consumed_now` is the one
+number that does not need them parsed.)
+
+**A suspension at the door reads differently from one at the gate**, and `fsx status` separates
+them: an instance held up by its entry rules carries `last_entry` with the rule, the verdict and
+`refused_visits`. Drained by entry refusals means nobody has done any work at all and the world
+outside the graph is what has to change — an app started, a file written, a tree cleaned. Bring the
+person that fact rather than a rejection history there is none of.
+`fsx log --type ready_evaluated --node '<node>#1'` is the whole trace when the pattern matters more
+than the last line — a delegation that keeps coming back to the same door is a graph that will not
+converge, and that is a definition to fix rather than a budget to top up.
 
 - Grant more budget: `fsx resume -g <round> --by <who>`. **`--by` is required** — a suspension
   lifted by a person has to say which person.
+- Re-enter a step the graph considers settled:
+  `fsx dispatch '<node>#1' -g <round> --reopen "<why>" --by <who>`. It bypasses only the "something
+  new must have arrived" predicate; the entry rules still run, and the attempt count and patience
+  are kept. This is for a person who wants another look, not a way around a refusal — it does not
+  provide one. **Graph surgery is not the tool for this**: removing an instance and hanging a new one
+  back under the same name resets its attempt count and patience and takes its history off the graph.
+  This flow used to have to do that; if a procedure written down anywhere still says to, it is out of
+  date.
 - Abandon the round: `fsx graph abort -g <round> --reason <why>`, then return every `active`
   requirement to `ready` and append a log line to each. **The engine does not do this** — an
   abandoned graph is not an abandoned requirement, and nothing else will put them back.
@@ -334,41 +422,13 @@ pass. Individual steps
 do not write to the requirements directory; eight writers on one todo list will eventually make
 a mess of it.
 
-## Assembly rules
+## Editing the graph
 
-The graph above is the whole design, but if it is ever edited, these are the ways to get a
-graph that **passes creation and deadlocks at run time**:
-
-- **The `delegate` edge is not optional wherever `genai.e2e` is.** That gate is the one that
-  produces a `delegate` verdict, and a `delegate` with no matching edge hard-locks: the gate errors,
-  the verdict is not recorded, and the node sits forever at dispatched-but-ungated. Drop
-  `genai.e2e → genai.e2e-author` and the first test bug of the round ends the round. Leaving the
-  acceptance pair out entirely is a different thing and is fine — no step remains that can return
-  that verdict.
-- **One destination per verdict, so a node has at most two.** Edges route on the verdict and nothing
-  else — not on a report field, not on a gate label. That is why a failure has to be classified into
-  the two buckets the graph can act on before it can be routed anywhere, and why a third
-  destination would need a third verdict rather than a cleverer message.
-- **Never draw a `pass` edge backwards.** Pass edges are dependencies; one pointing back turns
-  the downstream node into a root and inverts the graph.
-- **`reject` self-rework needs no edge.** A redundant self-edge is harmless; a missing
-  cross-node reject edge is not.
-- **`genai.accept` rejecting stops the round hard, and it does not suspend.** A judge cannot rework
-  itself — it judged; re-reading the same artifacts would only repeat — so its `reject` needs a
-  destination, and the graph above deliberately gives it none. Measured, not assumed: the gate then
-  errors with `no_matching_edge`, the verdict is **not** recorded, and the node stays
-  dispatched-but-ungated. The finding is not lost — the report is submitted and stored before the
-  gate runs, and it is what says which requirement went missing in the fold. What to do is a
-  person's call and it is not "add the edge and rerun": the batch is merged and archived by then, so
-  the finding is next round's work, entered as a backlog item. Only if a rework of *this* round is
-  genuinely wanted does an edge get added, with `fsx graph patch -g <round> -i
-  '{"ops":[{"op":"add_edge","edge":{"from":"genai.accept#1","to":"genai.spec#1","on":"reject"}}]}'`
-  — and then the whole batch reopens, which is the cost the missing edge is there to make you weigh.
-- **Never route `genai.archive` back with `reject` either**, and here the reason is mechanical:
-  its two entry rules are `upstream_reran`, so re-activating it through a dependency edge asks
-  again for an unfolded change and a clean tree — both false by then, and the refusal is silent.
-- **Gate commands get no variables.** Not graph variables, not instance suffixes, no injected
-  environment. Anything a check needs, it derives from `$PWD` or from git.
+Every way to get a graph that **passes creation and deadlocks at run time** is in
+[references/graph-assembly.md](references/graph-assembly.md) — which `delegate` edges are mandatory
+and why a missing one is worse than none, when an edge needs a `rule_id`, the two steps that must
+never be routed back, and what a gate command can see. Read it before changing an edge or dropping a
+step; there is nothing in it for a round that is merely being driven.
 
 ## What this does not do
 

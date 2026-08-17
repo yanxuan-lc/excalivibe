@@ -40,10 +40,15 @@ Whoever runs the round will record it as a new requirement for a later one.
 Say so in the report. Do not edit the spec so the code passes — the spec was reviewed and the
 code was not, and quietly changing the reviewed side inverts that.
 
-## Commit before reporting
+## Commit before reporting, and name what you commit
 
 Uncommitted work cannot be measured and does not count. Every round must add at least one
 commit; an unchanged branch tip reads as no progress at all, and it is treated that way.
+
+**Stage paths, never everything.** `git add -A` sweeps in records this flow deliberately leaves
+untracked until the merge, and a record swept into history stops being invisible to the
+clean-tree checks — after which two later steps block each other on a file neither of them is
+about, with the cause dozens of commits behind and nothing pointing at it.
 
 ## When the gate fails
 

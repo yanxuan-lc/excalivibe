@@ -237,3 +237,15 @@ Committing the baseline at install time removes the whole situation.
 A graph's identity is its workflow, variables, nodes and edges. Changing a definition under a live
 run leaves the run measuring against a contract it was not created with. `apply.mjs` exits 1 without
 touching anything when `fsx status --json` reports any graph; finish or abort the round first.
+
+The same order applies one level up, and nothing here can enforce it: **upgrading fsx itself while a
+round is in flight abandons that round.** The engine's event log has a schema version, and 0.4
+refuses to read one written by 0.3 rather than misreading it — there is no converter and there will
+not be one. So a machine with a live graph finishes or aborts it on the old binary, and upgrades
+after. The old `.flow/runs/<id>/` stays readable by whatever version wrote it; it is only this
+version that will not open it.
+
+`apply.mjs` refuses outright when the fsx on PATH is not `^0.4.0`, because these definitions are
+written against that contract: entry rules return the same four verdicts gates do, which a 0.3
+engine rejects at load time with a schema complaint about every node — a message that reads like a
+corrupt install rather than an old binary.

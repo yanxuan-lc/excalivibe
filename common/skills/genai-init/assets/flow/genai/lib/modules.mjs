@@ -31,6 +31,7 @@
 // where a project's commands already live, so this file points at them.
 
 import { execFileSync } from "node:child_process";
+import { createHash } from "node:crypto";
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 
@@ -177,6 +178,70 @@ export function targetExists(target) {
     const output = `${String(cause?.stdout ?? "")}${String(cause?.stderr ?? "")}`.trim();
     return { exists: false, reason: output.slice(0, 300) || String(cause?.message ?? cause) };
   }
+}
+
+/**
+ * What the code review was about, narrowed to the product code this project declares.
+ *
+ * `genai.merge` premises the review against this instead of against the branch tip, and the
+ * difference is the whole point. A tip signature says "some commit landed"; a round routinely lands
+ * commits the review's subject does not include — a test the acceptance author repaired, a document
+ * the writer updated — and every one of them used to invalidate an approval that was still true of
+ * every line it had read. Measured: a round reached the merge with the product code untouched since
+ * the approval and two commits against it, one test and one document.
+ *
+ * The narrowing is drawn from declarations the project already maintains, and from nothing else:
+ * what the modules claim, minus the documentation those same modules point at. **A path no module
+ * claims is not product code** — a top-level `e2e/` is outside every module's `path` by
+ * construction, which is exactly the shape the incident above had.
+ *
+ * `HEAD`, not the working tree: a review is a statement about commits, and the uncommitted records
+ * this flow deliberately leaves lying around are not part of what was approved.
+ *
+ * **A single-module project whose `path` is `.` gets no narrowing at all**, because everything is
+ * claimed. That is a real limit and not a bug to work around here: such a project narrows this by
+ * declaring the directory its source actually lives in, which is a one-line edit to its own map.
+ *
+ * Both unreadable cases hash their reason rather than throwing. A signature has to be defined for
+ * the framework to compare anything, and hashing the reason gives the honest one: stable while the
+ * map or the repository stays broken, and moving the moment it is repaired — which is the moment an
+ * approval taken against it deserves to be taken again.
+ */
+export function productSignature() {
+  const read = readMap();
+  if (read.label !== "ok") return digest(`map-unreadable:${read.label}`);
+
+  const modules = Object.values(read.map);
+  const roots = [...new Set(modules.map((module) => module.path))].sort();
+  const docs = [...new Set(modules.flatMap((module) => module.docs))];
+
+  let listing;
+  try {
+    listing = execFileSync("git", ["ls-tree", "-r", "HEAD", "--", ...roots], {
+      encoding: "utf8",
+      stdio: ["ignore", "pipe", "pipe"],
+      maxBuffer: 64 * 1024 * 1024,
+    });
+  } catch (cause) {
+    return digest(`git-unreadable:${String(cause?.message ?? cause)}`);
+  }
+
+  // `<mode> <type> <object>\t<path>` per line. The object id is the content, already computed by
+  // git, so nothing here opens a file.
+  const entries = [];
+  for (const line of listing.split("\n")) {
+    const [meta, path] = line.split("\t");
+    if (path === undefined || meta === undefined) continue;
+    const object = meta.trim().split(/\s+/)[2];
+    if (object === undefined) continue;
+    if (docs.some((doc) => path === doc || path.startsWith(`${doc}/`))) continue;
+    entries.push(`${object} ${path}`);
+  }
+  return digest(entries.sort().join("\n"));
+}
+
+function digest(value) {
+  return createHash("sha256").update(value).digest("hex");
 }
 
 /**

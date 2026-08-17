@@ -68,6 +68,16 @@ State what was checked and what was found, pointing at a file and a line. A crit
 met with no evidence is indistinguishable from one that was not checked, and the whole reason
 this runs in a separate context is to produce something better than a self-assessment.
 
+**Anything you run to gather that evidence runs in the foreground.** A build or a suite put in the
+background, with a stop to wait for it, produces nothing: by the time you are asked again the
+process has ended, and stopping is what hid its output. Run it, let the call take as long as it
+takes, read the result.
+
+**Leave `review.md` uncommitted, and commit nothing else either.** The merge collects it. A commit
+made from this seat moves the branch tip under the verdict being recorded, and one that sweeps in a
+record meant to stay untracked turns two later steps into a pair that block each other with no
+symptom pointing back here.
+
 ## Use the verdict honestly
 
 - **approve** — ship it

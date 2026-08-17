@@ -160,8 +160,23 @@ process.on("uncaughtException", (error) => {
 // This script calls fsx four times. If it is not here and nobody asked for it to be installed, say so
 // now: the alternative is failing at `fsx init` two sections in, with half a log and a stack of
 // follow-on errors that all have the same one cause.
-if (!install.includes("fsx") && !run("fsx", ["--version"], { allowFail: true }).ok) {
-  fail("fsx is not on PATH, and --install does not name it. Install it (npm i -g flow-scratch) or re-run with --install fsx.");
+// The engine contract these definitions are written against. An entry rule here returns one of the
+// four verdicts a gate returns, which is 0.4 and not 0.3, and the two are not compatible in either
+// direction: a 0.3 engine refuses to load these definitions, and 0.4 refuses to read a run started
+// by 0.3. Checking it here is worth the line — the alternative is a schema complaint about every
+// node in `.flow/nodes/`, which reads like a broken install rather than an old binary.
+const FSX_WANTED = "^0.4.0";
+const FSX_MAJOR = /^0\.4\./;
+
+if (!install.includes("fsx")) {
+  const present = run("fsx", ["--version"], { allowFail: true });
+  if (!present.ok) {
+    fail(`fsx is not on PATH, and --install does not name it. Install it (npm i -g flow-scratch@${FSX_WANTED}) or re-run with --install fsx.`);
+  }
+  const version = (present.out.match(/[0-9]+\.[0-9]+\.[0-9]+[^\s]*/) ?? [])[0] ?? null;
+  if (version !== null && !FSX_MAJOR.test(version)) {
+    fail(`fsx ${version} is on PATH, and these step definitions need ${FSX_WANTED}. Upgrade with npm i -g flow-scratch@${FSX_WANTED}.\n      Finish or abandon any round still running under the old version first: its event log cannot be read by the new one, and there is no converter.`);
+  }
 }
 
 const status = run("fsx", ["status", "--json"], { allowFail: true });
@@ -206,7 +221,11 @@ if (install.length) {
   // A global install replaces whatever was there, including an npm link to somebody's local
   // checkout, and prints nothing about it. So only ever install what was reported missing.
   if (install.includes("fsx")) {
-    run("npm", ["i", "-g", "flow-scratch"]);
+    // Pinned to a major, not left open. The step definitions this installs are written against the
+    // 0.4 contract — entry rules return the same four verdicts the gates do — and a 0.3 engine
+    // refuses to load them, reporting a schema complaint about every node rather than a version
+    // mismatch. Saying the version here turns that into npm's own error, which names the problem.
+    run("npm", ["i", "-g", `flow-scratch@${FSX_WANTED}`]);
     const v = run("fsx", ["--version"], { allowFail: true });
     v.ok ? did(`fsx installed — ${v.out.split("\n")[0]}`) : (warn("fsx installed but does not answer --version"), (broken += 1));
   }

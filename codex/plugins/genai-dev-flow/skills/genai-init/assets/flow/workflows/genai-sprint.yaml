@@ -22,12 +22,23 @@ nodes:
 
 defaults:
   # One value for every node above — so it is declared once here rather than repeated in each
-  # definition. This is a starting number to tune against real runs, not a derived one. It is spent
-  # per step and per consecutive rejection: a step rejected four times and then passing is back at
-  # five, and five different steps rejected once each have accumulated nothing. So this number bounds
-  # how long one step may go round in circles, not how much rework a round may contain.
+  # definition. This is a starting number to tune against real runs, not a derived one. It belongs to
+  # a node instance and is spent per consecutive rejection: a step rejected four times and then
+  # passing is back at five, and five different steps rejected once each have accumulated nothing. So
+  # this number bounds how long one step may go round in circles, not how much rework a round may
+  # contain.
   #
-  # One rework path deliberately spends none of it: a test bug found by genai.e2e is handed to
-  # genai.e2e-author as a `delegate`, because the acceptance run did not fail — it worked, and what it
-  # found was a broken test. What bounds that loop is the graph budget, not patience.
+  # **One book covers both gates.** A rejection at the entry rules and a rejection at the exit gates
+  # come out of the same allowance, because it is the position that is stuck, not one half of it.
+  # That makes probing expensive: dispatching a step to find out whether its entry conditions hold
+  # spends this number down. `fsx next --check-ready` answers the same question and writes nothing.
+  #
+  # Two rework paths deliberately spend none of it, and both are `delegate`: a test bug found by
+  # genai.e2e goes to genai.e2e-author, and a conclusion invalidated by later work goes back to
+  # whoever concluded it, from the entry rules at genai.merge and genai.implement. In each case the
+  # work moved to somebody who can do it, which is what a delegation asserts. When that assertion is
+  # false — every target already holding the same activation, so the round changed nothing — the
+  # engine charges the whole remaining allowance at once and suspends. That is the floor under a loop
+  # that would otherwise be unbounded, and it is why a delegate edge that routes nowhere is worse
+  # than no delegate edge at all.
   patience: 5

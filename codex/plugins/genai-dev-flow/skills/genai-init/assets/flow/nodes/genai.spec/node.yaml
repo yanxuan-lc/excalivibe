@@ -36,10 +36,10 @@ outputs:
 #
 # `first_attempt` is what makes it survivable at all. This step flips the items it selects from
 # `ready` to `active`, so after one pass the rule it entered under is false — and on `always` any
-# rework would be refused forever, silently, because a ready refusal writes no event and spends no
-# patience. This is a root node with no upstream, so "has never been dispatched" is the whole of
-# what "fresh work arrived" can mean here; a step with an upstream that can re-run wants
-# `upstream_reran` instead.
+# rework would be refused every time it was tried, spending a patience point on each refusal until
+# the graph suspended on a condition no rework could ever satisfy. This is a root node with no
+# upstream, so "has never been dispatched" is the whole of what "fresh work arrived" can mean here;
+# a step with an upstream that can re-run wants `upstream_reran` instead.
 ready:
   - rule_id: has-ready-backlog
     when: first_attempt
@@ -49,18 +49,18 @@ ready:
       label_from: result
       values: [present, absent, unreadable]
     on_result:
-      present: { ready: true }
+      present: { verdict: pass }
       absent:
-        ready: false
+        verdict: reject
         reason: "No backlog item is in ready state, so there is nothing to design this round"
       unreadable:
-        ready: false
+        verdict: reject
         reason: "The requirements directory could not be read — confirm the sibling <project>_genai directory exists"
       failed:
-        ready: false
+        verdict: reject
         reason: "The check itself exited non-zero. That is a bug in the installed step definitions"
       unexecutable:
-        ready: false
+        verdict: reject
         reason: "The check could not run at all. Re-install with genai-init, and confirm node is on PATH"
 
   # Checked here, at the front of the round, and nowhere in the implementation loop. Every step
@@ -81,21 +81,21 @@ ready:
       label_from: result
       values: [consistent, map_missing, map_malformed, target_missing]
     on_result:
-      consistent: { ready: true }
+      consistent: { verdict: pass }
       map_missing:
-        ready: false
+        verdict: reject
         reason: "tools/genai/modules.json is not there, so no step knows how this repository is divided. Re-install with genai-init, or write it: one entry per module, `path` `.` for a project that is one module"
       map_malformed:
-        ready: false
+        verdict: reject
         reason: "tools/genai/modules.json does not satisfy its contract; the reason names the field. A freshly installed map declares no modules at all and reports this until genai-init's last phase fills it in"
       target_missing:
-        ready: false
+        verdict: reject
         reason: "The map names a Makefile target that make does not have. Either the target was renamed and the map was not, or the map names one that never existed — the facts say which module and which target. This is a person's one-line fix, not a round's"
       failed:
-        ready: false
+        verdict: reject
         reason: "The check itself exited non-zero. That is a bug in the installed step definitions"
       unexecutable:
-        ready: false
+        verdict: reject
         reason: "The check could not run at all. Re-install with genai-init, and confirm node is on PATH"
 
 # Rules run in declaration order and the first non-pass concludes, so the cheap prerequisites

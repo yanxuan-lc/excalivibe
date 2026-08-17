@@ -334,10 +334,11 @@ and `--help` often exits 2, so the exit code says little.
 
 Where nothing runs yet, **tell the user in one sentence** what will be needed: a URL or a command, and
 a marker only this build returns. **A project that can answer one of those is a project that can
-merge** — `genai.merge` premises on this step, and `genai.e2e` waits with `config_missing`, spending
-no verdict, no patience and no attempt. A round may leave the acceptance pair out of its graph
-altogether, and then nothing asks for this file; install it anyway, because the first round that
-wants an end-to-end proof should not have to stop and set up a project to get one.
+merge** — `genai.merge` premises on this step, and `genai.e2e` refuses entry with `config_missing`
+until it is answered, spending a patience point on each attempt that asks. A round may leave the
+acceptance pair out of its graph altogether, and then nothing asks for this file; install it anyway,
+because the first round that wants an end-to-end proof should not have to stop and set up a project
+to get one, and should not spend its acceptance step's patience discovering that.
 
 ## Step 5 — prove, and set the floors from what it measures
 

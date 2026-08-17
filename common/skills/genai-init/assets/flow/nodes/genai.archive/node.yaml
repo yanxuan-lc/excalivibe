@@ -18,9 +18,9 @@ outputs:
 
 # Both rules here are preconditions this step's own execution destroys, which is exactly what
 # `when` exists for. On `always` neither could be declared at all: the archive empties the set of
-# open changes and dirties the tree by folding, so the second attempt would be refused forever —
-# and refused silently, since a ready refusal writes no event, spends no patience and records no
-# attempt.
+# open changes and dirties the tree by folding, so every rework attempt would be refused at the door
+# and charged a patience point for it, until the graph suspended on a condition this step's own
+# success had made permanently false.
 #
 # `upstream_reran` rather than `first_attempt` because this step has an upstream that can re-run.
 # The question is not "has this ever been dispatched" but "did fresh work arrive from the merge",
@@ -38,18 +38,18 @@ ready:
       label_from: result
       values: [present, absent, unreadable]
     on_result:
-      present: { ready: true }
+      present: { verdict: pass }
       absent:
-        ready: false
+        verdict: reject
         reason: "There is nothing open under openspec/changes/ to fold. Either this round produced no change, or something archived them already"
       unreadable:
-        ready: false
+        verdict: reject
         reason: "openspec/changes/ could not be read — confirm openspec/ exists in this repository"
       failed:
-        ready: false
+        verdict: reject
         reason: "The check itself exited non-zero. That is a bug in the installed step definitions"
       unexecutable:
-        ready: false
+        verdict: reject
         reason: "The check could not run at all. Re-install with genai-init, and confirm node is on PATH"
 
   # The merge committed everything it touched, so the tree is clean when this step is first
@@ -63,18 +63,18 @@ ready:
       label_from: result
       values: [clean, dirty, unreadable]
     on_result:
-      clean: { ready: true }
+      clean: { verdict: pass }
       dirty:
-        ready: false
+        verdict: reject
         reason: "The working tree has uncommitted changes to tracked files. The merge left it clean, so something happened after it — commit or clean it before folding"
       unreadable:
-        ready: false
+        verdict: reject
         reason: "git could not run — confirm this is a repository"
       failed:
-        ready: false
+        verdict: reject
         reason: "The check itself exited non-zero. That is a bug in the installed step definitions"
       unexecutable:
-        ready: false
+        verdict: reject
         reason: "The check could not run at all. Re-install with genai-init, and confirm node is on PATH"
 
 gates:

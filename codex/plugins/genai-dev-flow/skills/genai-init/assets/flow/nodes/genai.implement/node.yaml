@@ -32,6 +32,25 @@ outputs:
     locator: "{{vars.branch}}"
     signature: commit_sha
 
+  # The same work, measured at a second grain, and declared here for one reader: `review-still-valid`
+  # at genai.merge premises the review against this rather than against the tip. A tip signature says
+  # "some commit landed", and a round routinely lands commits the review's subject does not contain —
+  # a test the acceptance author repaired on a delegation, a document the writer updated. Every one of
+  # those used to invalidate an approval that was still true of every line it had read, and each
+  # invalidation cost a full review round.
+  #
+  # Not a replacement for `commits`, which stays exactly as it was: genai.e2e is premised against the
+  # tip and should be, because a repaired test changes what the acceptance run would execute. The two
+  # grains answer two different questions and both are asked.
+  #
+  # `check.mjs signature-product` says what it covers and the one project shape it cannot narrow.
+  - name: product
+    kind: observed
+    signature:
+      scheme: custom
+      name: product_code
+      command: node .flow/genai/check.mjs signature-product
+
 # No rule here asserts anything this step changes. A clean-worktree rule would deadlock against the
 # very artifact that makes the tree dirty, and is left out for that reason.
 ready:
@@ -59,22 +78,38 @@ ready:
   # "the round deliberately did not plan on one" lets the work through, and that choice is made once,
   # in the open, when the graph is submitted — `fsx graph create` prints which premises will fall to
   # `absent` and which way each is routed.
+  #
+  # **`stale` delegates rather than refuses**, over the graph's `implement -> write-arch-docs` edge.
+  # Both rules here route to that one destination, so the edge needs no `rule_id` narrowing — unlike
+  # the pair at genai.merge, which sends its two rules to two different steps. The chain closes over
+  # edges that already exist: the document step re-derives the decision document from the current
+  # spec, its `pass` edge re-activates genai.arch-decision, a person rules on what is actually there
+  # now, and its `pass` edge brings the work back here with the premise fresh.
+  #
+  # Delegating to genai.arch-decision directly would be the shorter edge and the wrong one: it would
+  # ask a person to re-approve a document that was written from the spec as it used to be. The
+  # refusal message this replaces already said "have the decision document written again from the
+  # current spec" — the edge now does it instead of asking someone to.
+  #
+  # The fixed point holds: genai.write-arch-docs writes `openspec/changes/*/genai/DECISION.mdx`,
+  # which is in neither `changes` (the proposals) nor `specs` (the deltas), so re-running it does not
+  # move either thing this rule compares.
   - rule_id: decision-still-valid
     checker:
       type: upstream_premise
       of: [decision]
       against: changes
     on_result:
-      fresh: { ready: true }
-      absent: { ready: true }
+      fresh: { verdict: pass }
+      absent: { verdict: pass }
       stale:
-        ready: false
-        reason: "A proposal moved after it was approved. Have the decision document written again from the current spec and re-approved — an approval describes the design it was given and no other"
+        verdict: delegate
+        message: "A proposal moved after it was approved. Write the decision document again from the current spec — an approval describes the design it was given and no other, and the ruling that follows will be taken on what is there now"
       unread:
-        ready: false
+        verdict: reject
         reason: "The ruling on record never read the spec, so it cannot say which version it approved. That is a bug in the installed step definitions, not in this round — genai.arch-decision has to declare `changes` and `specs` as its own inputs"
       unknown:
-        ready: false
+        verdict: reject
         reason: "The ruling step is in this graph but has not run yet. Let genai.arch-decision be dispatched and approved first"
 
   # Not a duplicate of the rule above, and the one that catches the common case: the deltas are what
@@ -87,19 +122,19 @@ ready:
       of: [decision]
       against: specs
     on_result:
-      fresh: { ready: true }
-      # Same policy as the rule above, for the same reason. The two must agree: routing one to ready
-      # and the other to refused would leave a round that dropped the ruling step blocked by
+      fresh: { verdict: pass }
+      # Same policy as the rule above, for the same reason. The two must agree: routing one to pass
+      # and the other to reject would leave a round that dropped the ruling step blocked by
       # whichever one refuses, with nothing in the graph able to satisfy it.
-      absent: { ready: true }
+      absent: { verdict: pass }
       stale:
-        ready: false
-        reason: "A spec delta moved after the structure was approved. The ruling describes the requirements it was given — have the decision document written again from the current deltas and re-approved"
+        verdict: delegate
+        message: "A spec delta moved after the structure was approved. The ruling describes the requirements it was given — write the decision document again from the current deltas, and the ruling that follows will be taken on those"
       unread:
-        ready: false
+        verdict: reject
         reason: "The ruling on record never read the spec deltas, so it cannot say which version it approved. That is a bug in the installed step definitions — genai.arch-decision has to declare `specs` as its own input"
       unknown:
-        ready: false
+        verdict: reject
         reason: "The ruling step is in this graph but has not run yet. Let genai.arch-decision be dispatched and approved first"
 
   - rule_id: has-spec-deltas
@@ -109,18 +144,18 @@ ready:
       label_from: result
       values: [present, absent, unreadable]
     on_result:
-      present: { ready: true }
+      present: { verdict: pass }
       absent:
-        ready: false
+        verdict: reject
         reason: "There is no spec delta under openspec/changes/ to build from. The design step either did not run or its output is gone"
       unreadable:
-        ready: false
+        verdict: reject
         reason: "openspec/changes/ could not be read — confirm openspec/ exists in this repository"
       failed:
-        ready: false
+        verdict: reject
         reason: "The check itself exited non-zero. That is a bug in the installed step definitions"
       unexecutable:
-        ready: false
+        verdict: reject
         reason: "The check could not run at all. Re-install with genai-init, and confirm node is on PATH"
 
 gates:
