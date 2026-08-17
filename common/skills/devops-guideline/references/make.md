@@ -4,7 +4,15 @@ Concrete patterns for implementing the [universal principles](../SKILL.md) with 
 
 Use Make as a **command launcher**, not a build system with `.o`-style file dependencies — targets are `.PHONY` verbs, not artifacts.
 
+## Start from the template, not from these fragments
+
+**[makefile-template.md](makefile-template.md) is a complete, runnable file** — section banners, the `help` renderer, the aggregates, one backend and one frontend domain, the generated-artifact pair, the compose targets. Copy it and delete what the project does not have.
+
+The sections below explain *why* each part is shaped that way, and are what you read when a project's Makefile already exists and you are adding one target to it. Assembling a new file out of them instead of starting from the template is how two repositories end up with the same rules and visibly different Makefiles.
+
 ## Skeleton
+
+The minimum every file opens with — see the template for the whole thing:
 
 ```makefile
 .DEFAULT_GOAL := help
@@ -25,6 +33,12 @@ test:  rust-test  server-test           ## run all test suites
 Every public target is `.PHONY` (it's a verb, never a file) and carries an inline `## one-line description`.
 
 ## Self-Documenting, Grouped Help
+
+Three properties, all load-bearing — a `help` that drops any of them stops being the thing people actually read:
+
+1. **Bare `make` prints help and builds nothing** (`.DEFAULT_GOAL := help`). Discovery must not require knowing a target name, and it must never be destructive.
+2. **Targets are grouped by domain**, and every group carries a **name plus a one-line description** and a **divider** under it. A flat alphabetical list of thirty targets is a list nobody scans; the group heading is what tells a newcomer which five of them are theirs.
+3. **Three colours with fixed roles** — group title, target name, description. Colour is what makes the columns separable at a glance; without it the output is a wall of text that technically contains the same information. Keep the roles stable across repositories so the reader's eye transfers.
 
 Put the description after the target's prerequisites with a `## ` marker, then let `help` parse and group them. Drive grouping with an explicit group→pattern map so aggregate targets (which share no name prefix) and multi-prefix domains both group cleanly:
 
@@ -54,6 +68,7 @@ help: ## list all targets, grouped by domain
 ```
 
 Why this shape:
+- **The colour roles**: `\033[1m` for the project line, `\033[1;33m` (bold yellow) for the group title, `\033[2m` (dim) for the divider, `\033[36m` (cyan) for the target name, and the description left uncoloured. Names are padded to a fixed width (`%-16s`) so the descriptions line up into a readable column — colour separates the roles, alignment separates the columns, and both are needed.
 - **Grouping by an explicit pattern**, not pure name-prefix, lets the `general` group collect `build`/`test`/`lint`/… (no shared prefix) and lets one group span several prefixes (`deps|db|server`) when needed.
 - **`awk` with `sub()`**, not `FS=":.*?## "`. POSIX/BSD `awk` (macOS default) has no lazy `.*?` quantifier and no 3-arg `match()` capture array — those are GNU `gawk` extensions. `sub(/:.*/, "", name)` then `sub(/^.*## /, "", desc)` is portable everywhere.
 
@@ -117,6 +132,36 @@ export YINMO_DB_DSN YINMO_AUTH_TOKEN YINMO_LISTEN
 
 - **A literal dollar sign must be written `$$`** — a password like `p@$$w0rd` in `.env` is one `$` to Make. This is the only case where "literally" is wrong in the direction that bites.
 - **The expansion belongs to Make.** A consumer that reads `.env` itself — Docker Compose, a language's dotenv loader — does its own interpolation with its own rules and its own variable sources. If both read the same file, do not assume they agree; pass the composed value through the environment (`export`) rather than expecting each reader to rebuild it.
+
+## Run Targets Take No Arguments, and `up` Is the Front Door
+
+A run target is used dozens of times a day, so the work of making it runnable belongs in the target, not in the caller's memory:
+
+```makefile
+up:            ## bring the whole local stack up — service + console, Ctrl-C stops both
+service-run:   ## run the API alone
+web-run:       ## run the console alone
+```
+
+- **No arguments, and no setup the caller has to remember.** Each run target ensures its own preconditions first — the `.env` exists (generated on first use, secrets included, and never regenerating a value that is already there), the dependencies it needs are reachable, the schema it needs is present. A target that dies with `missing DB_DSN` has offloaded its setup onto a README.
+- **`up` is the one-command front door**, and a *composition* of the single-process targets rather than a fork of them. It also owns what a single target cannot: waiting for readiness (a service that migrates and seeds before it listens is not ready when the process starts), reusing an already-running process instead of starting a second one, and stopping on Ctrl-C exactly what it started — never the process a developer has open in another terminal.
+- **Reuse, don't restart.** An `up` that kills whatever holds the port also kills the debugger someone had attached to it.
+- **Preconditions get their own target too** (`env`, `deps-up`): they outlive a single run, and someone will need to inspect or repair them without starting anything.
+
+## Generated Artifacts Get a Pair of Targets
+
+When the repository commits something derived — release SQL generated from migrations, an OpenAPI document, generated clients — it needs **two** targets, and the second is what keeps the first honest:
+
+```makefile
+db-scripts:    ## regenerate database/<engine>/ from the migrations
+db-check:      ## fail if the committed SQL no longer matches the migrations
+check: lint db-check test
+```
+
+- **Wire the check into the gate**, not into a habit. Otherwise the source changes, the artifact doesn't, and the divergence ships.
+- **The check must not need what the generation needs.** Generating release SQL may require a live database (to read back each table's final shape); verifying it must not — compare digests recorded in a manifest instead. A gate that needs a server running is a gate that gets skipped, and CI is where it gets skipped first.
+- **Generation refuses rather than half-writes.** When an input is invalid, leave the committed artifacts untouched — a run that wrote three files and then failed leaves a state nobody reviewed.
+- Say inside the generated file that it is generated and which target rewrites it. Whoever finds it will otherwise edit it.
 
 ## Name Destructive Targets Honestly
 
@@ -185,8 +230,15 @@ Hard-won sub-rules (all measured in a real Rust workspace; the principles genera
 - Aggregate verbs (`build/test/lint/fmt/check`) delegate to per-domain targets.
 - Two-tier gate: `check` (full, once per iteration on the integrated tree) + `check-diff` (scoped
   inner loop); gate commands always build the full workspace, scoping happens at the run level.
-- `help` renders targets grouped by domain; groups mirror the repo's real toolchains/services.
+- `help` renders targets grouped by domain; groups mirror the repo's real toolchains/services, each
+  with a title, a one-line description and a divider.
+- Three fixed colour roles in `help` — group title, target name, description — plus a padded name
+  column so descriptions align.
 - Cross-tool ordering is expressed as prerequisites, not comments.
+- Run targets take no arguments and ensure their own preconditions; `up` composes them, waits for
+  readiness, reuses what is already running, and stops only what it started.
+- Anything committed but generated has a `<thing>-check` counterpart wired into `check`, and that
+  check needs no database or network.
 - Config via `.env` (+ `.env.example`); `-include .env` + `export`; `.env` gitignored.
 - Portable shell in recipes (no `gawk`-only / GNU-only constructs unless the project pins them).
 - Capture `MK := $(firstword $(MAKEFILE_LIST))` before `-include` and grep that in `help`.

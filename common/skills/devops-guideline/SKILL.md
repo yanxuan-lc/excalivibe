@@ -14,12 +14,14 @@ The task runner is steering wheel, not engine: it **orchestrates** the native to
 1. Read the **Universal Principles** below — they hold for any runner (Make, just, npm scripts, Taskfile).
 2. Read the reference for the runner the project actually uses (routing table below) for concrete syntax and gotchas.
 3. When the project already has a runner, match its existing structure before adding to it; consistency beats your preferred style.
+4. When there is **no** runner yet, start from the template file rather than writing one from the patterns. Every repository that assembles its own from first principles ends up obeying the same rules in a visibly different shape, and the shape is half of what makes a runner discoverable.
 
 ## Runner Reference Routing
 
 | Topic | Reference | When to read |
 |-------|-----------|--------------|
-| Make / Makefile | [references/make.md](references/make.md) | The repo uses (or will use) a `Makefile` as its task runner |
+| Makefile template | [references/makefile-template.md](references/makefile-template.md) | **Creating** a Makefile, or bringing an inconsistent one back to the house shape — a complete runnable file to copy |
+| Make / Makefile | [references/make.md](references/make.md) | Adding to or reviewing an existing `Makefile`; the reasoning behind each pattern in the template |
 | Local middleware | [references/docker-compose.md](references/docker-compose.md) | Standing up DB / MQ / cache locally for development via docker-compose |
 | Service image | [references/dockerfile.md](references/dockerfile.md) | Writing the Dockerfile that builds/ships the service (multi-stage, China mirrors) |
 
