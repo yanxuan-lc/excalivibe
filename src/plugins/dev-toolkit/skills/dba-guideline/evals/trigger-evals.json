@@ -46,5 +46,17 @@
  {
   "query": "数据库密码现在明文放配置里，放哪里比较安全？",
   "should_trigger": false
+ },
+ {
+  "query": "生产环境这次 schema 变更谁执行？应用账号要给 ALTER 权限吗",
+  "should_trigger": true
+ },
+ {
+  "query": "database 目录怎么组织？全量建库和增量升级脚本各放哪",
+  "should_trigger": true
+ },
+ {
+  "query": "要删一列，先扩后缩这两个阶段的 SQL 分别什么时候跑",
+  "should_trigger": true
  }
 ]
